@@ -524,34 +524,42 @@ a{color:inherit;text-decoration:none}
 .grade-tab.active{background:var(--brand);border-color:var(--brand);color:#fff;box-shadow:0 2px 6px rgba(37,99,235,.25)}
 
 /* ============================================================ */
-/* GRADE GRID (학급 구성)                                      */
-.grade-grid{display:flex;flex-direction:column;gap:.5rem}
-.grade-row{
-  display:flex;align-items:center;gap:.85rem;padding:.65rem .9rem;
-  background:var(--g50);border:1px solid var(--g200);border-radius:var(--r);
+/* GRADE CLASS GRID (학년 반 설정)                             */
+/* ============================================================ */
+.grade-class-grid{display:flex;flex-direction:column;gap:.65rem}
+.grade-class-row{background:var(--g50);border:1px solid var(--g200);border-radius:var(--r-lg);overflow:hidden}
+.grade-class-hdr{
+  display:flex;align-items:center;gap:.65rem;padding:.5rem .85rem;
+  background:var(--g100);border-bottom:1px solid var(--g200);
 }
-.grade-label{
-  font-size:.88rem;font-weight:800;color:var(--g700);min-width:52px;
+.grade-class-label{font-size:.88rem;font-weight:800;color:var(--g700);min-width:52px}
+.grade-class-count{font-size:.78rem;color:var(--g500);flex:1}
+.grade-class-addbtn{
+  font-size:.78rem;font-weight:700;padding:.22rem .65rem;border-radius:var(--r);
+  border:1.5px solid var(--brand);color:var(--brand);background:#fff;
+  cursor:pointer;transition:all var(--t);white-space:nowrap;
 }
-.grade-count-ctrl{display:flex;align-items:center;gap:.4rem}
-.grade-cnt-btn{
-  width:28px;height:28px;border-radius:6px;border:1.5px solid var(--g200);
-  background:#fff;font-size:1rem;font-weight:700;color:var(--g600);
-  cursor:pointer;display:flex;align-items:center;justify-content:center;
-  transition:all var(--t);line-height:1;user-select:none;
+.grade-class-addbtn:hover{background:var(--brand);color:#fff}
+.grade-class-body{display:flex;flex-wrap:wrap;gap:.35rem;padding:.6rem .85rem;min-height:42px;align-items:center}
+.grade-class-chip{
+  display:inline-flex;align-items:center;gap:.28rem;padding:.22rem .55rem;
+  border-radius:12px;font-size:.8rem;font-weight:700;
+  background:var(--brand-100);color:var(--brand-dark);
+  border:1.5px solid transparent;transition:all var(--t);
 }
+.grade-class-chip:hover{border-color:var(--danger-bg)}
+.gcc-del{
+  width:15px;height:15px;border-radius:50%;background:rgba(220,38,38,.12);
+  color:var(--danger);font-size:.72rem;border:none;cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;
+  font-weight:900;padding:0;flex-shrink:0;line-height:1;
+}
+.gcc-del:hover{background:var(--danger);color:#fff}
+.grade-no-class-msg{font-size:.78rem;color:var(--g300);font-style:italic}
+/* 구버전 호환 유지 */
+.grade-cnt-btn{width:28px;height:28px;border-radius:6px;border:1.5px solid var(--g200);background:#fff;font-size:1rem;font-weight:700;color:var(--g600);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all var(--t);line-height:1;user-select:none}
 .grade-cnt-btn:hover{background:var(--brand-50);border-color:var(--brand);color:var(--brand)}
 .grade-cnt-btn:disabled{opacity:.35;cursor:not-allowed}
-.grade-cnt-val{
-  min-width:32px;text-align:center;font-size:1rem;font-weight:800;color:var(--g900);
-}
-.grade-chips{display:flex;flex-wrap:wrap;gap:.3rem;flex:1}
-.grade-chip{
-  font-size:.75rem;font-weight:700;padding:.18rem .5rem;border-radius:12px;
-  background:var(--brand-100);color:var(--brand-dark);white-space:nowrap;
-}
-.grade-chip.zero{background:var(--g100);color:var(--g400)}
-.grade-no-class{font-size:.78rem;color:var(--g300);font-style:italic}
 
 /* ============================================================ */
 /* ROOM SCHEDULE SCREEN (특별실 배정)                           */
@@ -857,28 +865,27 @@ a{color:inherit;text-decoration:none}
     <!-- TAB: Classes -->
     <div id="tab-classes" class="tab-panel active">
 
-      <!-- Grade config card -->
+      <!-- 학년 반 설정 -->
       <div class="card">
-        <div class="card-title">🏫 학년별 반 수 설정</div>
-        <div class="form-hint" style="margin-bottom:1rem">
-          각 학년의 학급 수를 설정한 뒤 <strong>자동 생성</strong> 버튼을 눌러주세요. 특수학급 등은 아래에서 개별 추가할 수 있습니다.
+        <div class="card-title">🏫 학년 반 설정</div>
+        <div class="form-hint" style="margin-bottom:.85rem">
+          학년별로 반을 추가·삭제하세요. 변경사항은 아래 학급 목록에 즉시 반영됩니다.
         </div>
-        <div class="grade-grid" id="grade-grid">
+        <div class="grade-class-grid" id="grade-class-grid">
           <!-- rendered by JS -->
         </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:1rem;flex-wrap:wrap;gap:.5rem">
+        <div style="margin-top:.75rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem">
           <span class="text-sm text-muted" id="grade-preview-count"></span>
-          <button class="btn btn-primary btn-sm" onclick="applyGradeConfig()">🔄 학급 목록 자동 생성</button>
         </div>
       </div>
 
-      <!-- Manual class list -->
+      <!-- 특수학급 등 직접 추가 -->
       <div class="card">
-        <div class="card-title">📋 현재 학급 목록</div>
-        <div class="form-hint" style="margin-bottom:.75rem">자동 생성 후 특수학급 등을 직접 추가·삭제할 수 있습니다.</div>
-        <div class="list-wrap" id="class-list"></div>
+        <div class="card-title">📋 기타 학급 직접 추가</div>
+        <div class="form-hint" style="margin-bottom:.75rem">특수학급, 병설유치원 등 위 그리드에 없는 학급을 추가합니다.</div>
+        <div class="list-wrap" id="class-extra-list"></div>
         <div class="add-row" style="margin-top:.85rem">
-          <input type="text" id="new-class-name" class="form-input" placeholder="직접 추가 (예: 특수학급, 병설유치원)">
+          <input type="text" id="new-class-name" class="form-input" placeholder="예: 특수학급, 병설유치원">
           <button class="btn btn-primary btn-sm" onclick="addClassItem()">+ 추가</button>
         </div>
       </div>
@@ -2054,7 +2061,7 @@ async function createSchool() {
       subjects:     [],
       specialRooms: DEFAULT_ROOMS.map((r,i) => ({id:'rm'+i, name:r})),
       classes:      [],
-      gradeConfig:  [3,3,3,3,3,3],
+      gradeConfig:  [4,4,4,4,4,4],
       periodTimes:  { default: DEFAULT_PERIOD_TIMES.map(t=>({...t})) },
       teacherTypes: DEFAULT_TEACHER_TYPES.map(t => ({...t})),
       specialtyTeacherCount: 0,
@@ -2109,6 +2116,7 @@ function initSetup() {
     b.classList.toggle('active', i === 0);
   });
   ensureSubjectsByGrade();
+  ensureGradeClasses();
   renderSubjectList();
   renderRoomList();
   renderGradeGrid();
@@ -2229,22 +2237,6 @@ function renderRoomList() {
       </div>
     </div>
   `).join('') : '<div class="text-muted text-sm" style="padding:.5rem">특별실이 없습니다.</div>';
-}
-
-function renderClassList() {
-  const classes = S.school?.classes || [];
-  q('#class-list').innerHTML = classes.length ? classes.map((c,i) => `
-    <div class="list-item">
-      <div class="item-icon" style="background:var(--success-bg);color:var(--success)">🎓</div>
-      <div class="item-text">
-        <div class="item-title">${escHtml(c.name)}</div>
-        ${c.grade ? `<div class="item-sub">${c.grade}학년</div>` : ''}
-      </div>
-      <div class="item-actions">
-        <button class="btn-icon red" onclick="removeClassItem(${i})">🗑️</button>
-      </div>
-    </div>
-  `).join('') : '<div class="text-muted text-sm" style="padding:.5rem">학급이 없습니다. 위에서 학년별로 자동 생성하거나 직접 추가하세요.</div>';
 }
 
 /* --- Grade config grid --- */
@@ -2492,76 +2484,138 @@ function removeTeacherType(i) {
 }
 window.removeTeacherType = removeTeacherType;
 
+/* ===========================================================
+   GRADE CLASS GRID — 학년 반 설정 (즉시 반영)
+   =========================================================== */
+function ensureGradeClasses() {
+  if (!S.school) return;
+  // gradeClasses: { 1:[{id,name,grade},...], 2:[...], ... }
+  if (!S.school.gradeClasses) {
+    S.school.gradeClasses = {};
+    // 기존 classes 배열에서 마이그레이션
+    const existing = S.school.classes || [];
+    [1,2,3,4,5,6].forEach(g => {
+      const gc = existing.filter(c => c.grade === g);
+      S.school.gradeClasses[g] = gc.length
+        ? gc
+        : Array.from({length:4}, (_,i) => ({id:`cls_${g}_${i+1}`, name:`${g}-${i+1}`, grade:g}));
+    });
+    syncGradeClassesToClasses();
+  }
+}
+
+function syncGradeClassesToClasses() {
+  if (!S.school) return;
+  const gradeClasses = S.school.gradeClasses || {};
+  const manual = (S.school.classes||[]).filter(c => !c.grade);
+  const graded  = [1,2,3,4,5,6].flatMap(g => gradeClasses[g] || []);
+  S.school.classes = [...graded, ...manual];
+}
+
 function renderGradeGrid() {
   if (!S.school) return;
-  // 기존 데이터 호환: gradeConfig 없으면 classes에서 역산
-  if (!S.school.gradeConfig) {
-    const cfg = [0,0,0,0,0,0];
-    (S.school.classes||[]).forEach(c => {
-      if (c.grade && c.grade >= 1 && c.grade <= 6) cfg[c.grade-1]++;
-    });
-    S.school.gradeConfig = cfg;
-  }
-  const cfg = S.school.gradeConfig;
-  const total = cfg.reduce((a,b)=>a+b,0);
+  ensureGradeClasses();
+  const gc = S.school.gradeClasses;
+  const gradeColors = ['#ef4444','#f97316','#ca8a04','#16a34a','#2563eb','#7c3aed'];
+  let total = 0;
 
-  q('#grade-grid').innerHTML = cfg.map((cnt, gi) => {
-    const grade = gi + 1;
-    const chips = cnt === 0
-      ? `<span class="grade-no-class">학급 없음</span>`
-      : Array.from({length:cnt}, (_,i) =>
-          `<span class="grade-chip">${grade}-${i+1}</span>`
-        ).join('');
+  q('#grade-class-grid').innerHTML = [1,2,3,4,5,6].map(g => {
+    const classes = gc[g] || [];
+    total += classes.length;
+    const color = gradeColors[g-1];
+    const chips = classes.length
+      ? classes.map((cls, idx) => `
+          <span class="grade-class-chip" style="background:${hexAlpha(color,.12)};color:${color}">
+            ${escHtml(cls.name)}
+            <button class="gcc-del" onclick="removeGradeClass(${g},${idx})" title="${cls.name} 삭제">×</button>
+          </span>`)
+        .join('')
+      : `<span class="grade-no-class-msg">반 없음 — + 버튼으로 추가하세요</span>`;
+
     return `
-      <div class="grade-row">
-        <span class="grade-label">${grade}학년</span>
-        <div class="grade-count-ctrl">
-          <button class="grade-cnt-btn" onclick="changeGradeCount(${gi},-1)" ${cnt===0?'disabled':''}>−</button>
-          <span class="grade-cnt-val">${cnt}</span>
-          <button class="grade-cnt-btn" onclick="changeGradeCount(${gi},+1)" ${cnt>=15?'disabled':''}>+</button>
+      <div class="grade-class-row">
+        <div class="grade-class-hdr">
+          <span class="grade-class-label" style="color:${color}">${g}학년</span>
+          <span class="grade-class-count">${classes.length}개 반</span>
+          <button class="grade-class-addbtn" onclick="addGradeClass(${g})">+ 반 추가</button>
         </div>
-        <div class="grade-chips">${chips}</div>
+        <div class="grade-class-body">${chips}</div>
       </div>`;
   }).join('');
 
-  q('#grade-preview-count').textContent = total > 0
-    ? `총 ${total}개 학급 (${cfg.map((n,i)=>n?`${i+1}학년 ${n}반`:'').filter(Boolean).join(', ')})`
-    : '반 수를 설정해주세요.';
+  const lbl = q('#grade-preview-count');
+  if (lbl) lbl.textContent = `전체 ${total}개 학급`;
 }
 
-function changeGradeCount(gradeIdx, delta) {
+function addGradeClass(grade) {
   if (!S.school) return;
-  if (!S.school.gradeConfig) S.school.gradeConfig = [0,0,0,0,0,0];
-  const next = (S.school.gradeConfig[gradeIdx] || 0) + delta;
-  if (next < 0 || next > 15) return;
-  S.school.gradeConfig[gradeIdx] = next;
+  ensureGradeClasses();
+  const classes = S.school.gradeClasses[grade] || [];
+  const nextNum  = classes.length + 1;
+  classes.push({ id: `cls_${grade}_${Date.now()}`, name: `${grade}-${nextNum}`, grade });
+  S.school.gradeClasses[grade] = classes;
+  syncGradeClassesToClasses();
   renderGradeGrid();
-}
-window.changeGradeCount = changeGradeCount;
-
-function applyGradeConfig() {
-  if (!S.school) return;
-  const cfg = S.school.gradeConfig || [0,0,0,0,0,0];
-  const total = cfg.reduce((a,b)=>a+b,0);
-  if (total === 0) { toast('먼저 반 수를 설정해주세요.', 'error'); return; }
-
-  // Keep non-grade classes (manually added, grade===undefined)
-  const manual = (S.school.classes||[]).filter(c => !c.grade);
-
-  // Generate grade classes
-  const generated = [];
-  cfg.forEach((cnt, gi) => {
-    const grade = gi + 1;
-    for (let i = 1; i <= cnt; i++) {
-      generated.push({ id: `cls_${grade}_${i}`, name: `${grade}-${i}`, grade });
-    }
-  });
-
-  S.school.classes = [...generated, ...manual];
   renderClassList();
-  toast(`학급 ${S.school.classes.length}개 생성 완료 ✔`, 'success');
 }
-window.applyGradeConfig = applyGradeConfig;
+window.addGradeClass = addGradeClass;
+
+function removeGradeClass(grade, idx) {
+  if (!S.school) return;
+  ensureGradeClasses();
+  const classes = S.school.gradeClasses[grade] || [];
+  if (!classes.length) return;
+  const removed = classes.splice(idx, 1)[0];
+  S.school.gradeClasses[grade] = classes;
+  syncGradeClassesToClasses();
+  renderGradeGrid();
+  renderClassList();
+  toast(`${removed.name} 삭제됨`);
+}
+window.removeGradeClass = removeGradeClass;
+
+/* renderClassList — 기타(수동) 학급만 표시 */
+function renderClassList() {
+  const extraClasses = (S.school?.classes||[]).filter(c => !c.grade);
+  const listEl = q('#class-extra-list') || q('#class-list');
+  if (!listEl) return;
+  listEl.innerHTML = extraClasses.length
+    ? extraClasses.map((c,i) => `
+        <div class="list-item">
+          <div class="item-icon" style="background:var(--success-bg);color:var(--success)">🎓</div>
+          <div class="item-text"><div class="item-title">${escHtml(c.name)}</div></div>
+          <div class="item-actions">
+            <button class="btn-icon red" onclick="removeClassItem(${i})">🗑️</button>
+          </div>
+        </div>`)
+      .join('')
+    : '<div class="text-muted text-sm" style="padding:.4rem">기타 학급 없음</div>';
+}
+
+function addClassItem() {
+  const input = q('#new-class-name');
+  const name  = input?.value.trim();
+  if (!name) { toast('학급 이름을 입력하세요.', 'error'); return; }
+  if (!S.school) return;
+  if (!S.school.classes) S.school.classes = [];
+  S.school.classes.push({ id: 'cls_manual_' + Date.now(), name });
+  if (input) input.value = '';
+  renderClassList();
+  toast(`${name} 추가됨`, 'success');
+}
+window.addClassItem = addClassItem;
+
+function removeClassItem(idx) {
+  if (!S.school) return;
+  // 기타(grade 없는) 클래스만 필터링 후 삭제
+  const extras  = S.school.classes.filter(c => !c.grade);
+  const graded  = S.school.classes.filter(c => !!c.grade);
+  const removed = extras.splice(idx, 1)[0];
+  S.school.classes = [...graded, ...extras];
+  renderClassList();
+  toast(`${removed?.name} 삭제됨`);
+}
+window.removeClassItem = removeClassItem;
 
 function updateSubjHours(i, v) {
   if (!S.school) return;
@@ -2618,24 +2672,6 @@ function removeRoom(i) {
   renderRoomList();
 }
 window.removeRoom = removeRoom;
-
-function addClassItem() {
-  const name = q('#new-class-name').value.trim();
-  if (!name) { toast('학급 이름을 입력하세요.','error'); return; }
-  if (!S.school) return;
-  S.school.classes.push({ id:'cls'+Date.now(), name });
-  q('#new-class-name').value = '';
-  renderClassList();
-  toast(`${name} 추가됨`,'success');
-}
-window.addClassItem = addClassItem;
-
-function removeClassItem(i) {
-  if (!S.school) return;
-  S.school.classes.splice(i,1);
-  renderClassList();
-}
-window.removeClassItem = removeClassItem;
 
 function switchTab(tabId, btn) {
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
