@@ -285,9 +285,26 @@ a{color:inherit;text-decoration:none}
 }
 .tt-table thead th:first-child{background:var(--g100);min-width:56px;color:var(--g400);font-size:.75rem}
 .period-cell{
-  background:var(--g50);padding:.5rem .65rem;font-size:.75rem;font-weight:700;
-  color:var(--g500);text-align:center;white-space:nowrap;
+  background:var(--g50);padding:.4rem .65rem;font-size:.75rem;font-weight:700;
+  color:var(--g500);text-align:center;white-space:nowrap;line-height:1.4;
 }
+.period-time{font-size:.65rem;font-weight:400;color:var(--g400);display:block;margin-top:1px}
+
+/* Period time edit row */
+.pt-row{
+  display:flex;align-items:center;gap:.6rem;padding:.55rem .75rem;
+  border:1px solid var(--g200);border-radius:var(--r);background:#fff;margin-bottom:.45rem;
+}
+.pt-label{font-size:.85rem;font-weight:800;color:var(--g700);min-width:52px}
+.pt-inputs{display:flex;align-items:center;gap:.4rem;flex:1;flex-wrap:wrap}
+.pt-sep{font-size:.82rem;color:var(--g400);font-weight:600}
+.pt-input{
+  width:80px;padding:.3rem .5rem;border:1.5px solid var(--g200);border-radius:var(--r);
+  font-size:.85rem;font-weight:700;color:var(--g800);text-align:center;
+  transition:border-color var(--t);
+}
+.pt-input:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-50)}
+.pt-badge{font-size:.72rem;color:var(--g400);min-width:60px}
 .tt-cell{
   width:116px;min-width:96px;height:70px;padding:3px;vertical-align:middle;
   position:relative;transition:background var(--t);
@@ -773,6 +790,7 @@ a{color:inherit;text-decoration:none}
       <button class="tab-btn" onclick="switchTab('tab-rooms',this)">🏛️ 특별실</button>
       <button class="tab-btn active" onclick="switchTab('tab-classes',this)">🎓 학급 구성</button>
       <button class="tab-btn" onclick="switchTab('tab-teachers',this)">👩‍🏫 교담 교사</button>
+      <button class="tab-btn" onclick="switchTab('tab-times',this)">⏰ 교시 시간</button>
       <button class="tab-btn" onclick="switchTab('tab-password',this)">🔑 비밀번호</button>
     </div>
 
@@ -903,6 +921,55 @@ a{color:inherit;text-decoration:none}
           </div>
         </div>
         <button class="btn btn-primary btn-sm" onclick="addTeacherType()">+ 유형 추가</button>
+      </div>
+    </div>
+
+    <!-- TAB: Period Times (교시 시간) -->
+    <div id="tab-times" class="tab-panel">
+      <div class="card">
+        <div class="card-title" style="margin-bottom:.6rem">⏰ 학년별 교시 시간 설정</div>
+        <div class="form-hint" style="margin-bottom:.85rem">
+          학년별로 교시 시간이 다를 경우 각 탭에서 수정하세요. <strong>기본값</strong>은 별도 설정이 없는 모든 학년에 적용됩니다.
+        </div>
+        <div class="grade-tab-strip" id="times-grade-tabs" style="margin-bottom:.85rem">
+          <button class="grade-tab active" onclick="setTimesGrade(0,this)">기본값</button>
+          <button class="grade-tab" onclick="setTimesGrade(1,this)">1학년</button>
+          <button class="grade-tab" onclick="setTimesGrade(2,this)">2학년</button>
+          <button class="grade-tab" onclick="setTimesGrade(3,this)">3학년</button>
+          <button class="grade-tab" onclick="setTimesGrade(4,this)">4학년</button>
+          <button class="grade-tab" onclick="setTimesGrade(5,this)">5학년</button>
+          <button class="grade-tab" onclick="setTimesGrade(6,this)">6학년</button>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.65rem;flex-wrap:wrap;gap:.4rem">
+          <span class="text-sm text-muted" id="times-grade-label">기본값 (전 학년 공통)</span>
+          <button class="btn btn-ghost btn-sm" onclick="resetPeriodTimes()">🔄 기본값으로 초기화</button>
+        </div>
+        <div id="period-times-list"></div>
+      </div>
+    </div>
+
+    <!-- TAB: Password (비밀번호 변경) -->
+    <div id="tab-password" class="tab-panel">
+      <div class="card">
+        <div class="card-title">🔑 학교 접속 비밀번호 변경</div>
+        <div class="form-hint" style="margin-bottom:1rem">
+          모든 교사가 학교 시간표에 접속할 때 사용하는 비밀번호입니다. 변경 후에는 교직원에게 새 비밀번호를 공유하세요.
+        </div>
+        <div class="form-group">
+          <label class="form-label">현재 비밀번호</label>
+          <input type="password" id="pw-current" class="form-input" placeholder="현재 비밀번호 입력">
+          <div id="pw-current-err" class="form-error">⚠️ 현재 비밀번호가 맞지 않습니다.</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">새 비밀번호</label>
+          <input type="password" id="pw-new1" class="form-input" placeholder="새 비밀번호 (4자 이상)">
+        </div>
+        <div class="form-group">
+          <label class="form-label">새 비밀번호 확인</label>
+          <input type="password" id="pw-new2" class="form-input" placeholder="새 비밀번호 재입력">
+          <div id="pw-new-err" class="form-error">⚠️ 두 비밀번호가 일치하지 않습니다.</div>
+        </div>
+        <button class="btn btn-primary" onclick="changeSchoolPw()">✔ 비밀번호 변경</button>
       </div>
     </div>
 
@@ -1212,6 +1279,37 @@ let db = null;  // Firebase 미설정 시 null → localStorage 모드
    =========================================================== */
 const DAYS    = ['월','화','수','목','금'];
 const PERIODS = [1,2,3,4,5,6];
+
+/* 기본 교시 시간 (2022 개정 기준) */
+const DEFAULT_PERIOD_TIMES = [
+  { start: '09:00', end: '09:40' },
+  { start: '09:50', end: '10:30' },
+  { start: '10:50', end: '11:30' },
+  { start: '11:40', end: '12:10' },
+  { start: '13:10', end: '13:50' },
+  { start: '14:00', end: '14:40' },
+];
+
+/* 학교/학년에 맞는 교시 시간 반환 */
+function getPeriodTimes(grade) {
+  const pt = S.school?.periodTimes;
+  if (grade && pt?.[grade]?.length) return pt[grade];
+  if (pt?.default?.length) return pt.default;
+  return DEFAULT_PERIOD_TIMES;
+}
+
+/* 현재 학급의 교시 시간 반환 */
+function getCurrentClassPeriodTimes() {
+  const grade = getCurrentClassGrade();
+  return getPeriodTimes(grade);
+}
+
+/* 교시 레이블 (예: "1교시\n09:00~09:40") */
+function periodLabel(p, times) {
+  const t = times ? times[p-1] : null;
+  if (t) return `${p}교시<span class="period-time">${t.start}~${t.end}</span>`;
+  return `${p}교시`;
+}
 const SA_PW_DEFAULT = 'SMARTTT2024!';
 const SA_PW_KEY     = 'stt_sa_pw';
 function getSaPw()      { return localStorage.getItem(SA_PW_KEY) || SA_PW_DEFAULT; }
@@ -1605,9 +1703,11 @@ function renderSpecialtyGrid() {
   const cnt = Object.keys(schedule).length;
   const el = q('#sp-stat-label');
   if (el) el.textContent = cnt ? `${subject}: ${cnt}개 시간 배정됨` : `${subject}: 배정 없음`;
-  q('#sp-tbody').innerHTML = PERIODS.map(p => `
+  q('#sp-tbody').innerHTML = PERIODS.map(p => {
+    const pt = getPeriodTimes(null);
+    return `
     <tr>
-      <td class="period-cell">${p}교시</td>
+      <td class="period-cell">${periodLabel(p, pt)}</td>
       ${DAYS.map(day => {
         const key   = `${day}-${p}`;
         const entry = schedule[key];
@@ -1630,7 +1730,7 @@ function renderSpecialtyGrid() {
         return `<td class="sp-cell" onclick="openSpModal('${key}')">${inner}</td>`;
       }).join('')}
     </tr>
-  `).join('');
+  `;}).join('');
 }
 window.renderSpecialtyGrid = renderSpecialtyGrid;
 
@@ -1895,7 +1995,8 @@ async function createSchool() {
     specialRooms: DEFAULT_ROOMS.map((r,i) => ({id:'rm'+i, name:r})),
     classes:      [],
     gradeConfig:  [3,3,3,3,3,3],
-    teacherTypes:          DEFAULT_TEACHER_TYPES.map(t => ({...t})),
+    periodTimes:  { default: DEFAULT_PERIOD_TIMES.map(t=>({...t})) },
+    teacherTypes: DEFAULT_TEACHER_TYPES.map(t => ({...t})),
     specialtyTeacherCount: 0,
     specialtySubjects:     [],
     createdAt:    Date.now(),
@@ -1938,11 +2039,14 @@ function initSetup() {
     b.classList.toggle('active', i === 0);
   });
   ensureSubjectsByGrade();
+  timesGrade = 0;
+  document.querySelectorAll('#times-grade-tabs .grade-tab').forEach((b,i) => b.classList.toggle('active', i===0));
   renderSubjectList();
   renderRoomList();
   renderGradeGrid();
   renderClassList();
   renderTeacherTab();
+  renderPeriodTimesList();
 }
 
 /* --- 학년별 교과목 헬퍼 --- */
@@ -2081,7 +2185,116 @@ function renderClassList() {
    TEACHER COUNT & SPECIALTY SUBJECTS
    =========================================================== */
 /* ===========================================================
-   TEACHER TYPES MANAGEMENT
+   PERIOD TIMES TAB
+   =========================================================== */
+let timesGrade = 0;  // 0 = default
+
+function ensurePeriodTimes() {
+  if (!S.school) return;
+  if (!S.school.periodTimes) {
+    S.school.periodTimes = { default: DEFAULT_PERIOD_TIMES.map(t => ({...t})) };
+  }
+  if (!S.school.periodTimes.default) {
+    S.school.periodTimes.default = DEFAULT_PERIOD_TIMES.map(t => ({...t}));
+  }
+}
+
+function setTimesGrade(grade, btn) {
+  timesGrade = grade;
+  document.querySelectorAll('#times-grade-tabs .grade-tab').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const lbl = q('#times-grade-label');
+  if (lbl) lbl.textContent = grade === 0
+    ? '기본값 (별도 설정이 없는 학년에 적용)'
+    : `${grade}학년 전용 (없으면 기본값 사용)`;
+  renderPeriodTimesList();
+}
+window.setTimesGrade = setTimesGrade;
+
+function renderPeriodTimesList() {
+  ensurePeriodTimes();
+  const key   = timesGrade === 0 ? 'default' : timesGrade;
+  const times = S.school.periodTimes[key] || DEFAULT_PERIOD_TIMES.map(t => ({...t}));
+  const isDefault = timesGrade === 0;
+
+  // 학년별이면 기본값과 다른지 체크
+  const hasOverride = timesGrade !== 0 && !!S.school.periodTimes[timesGrade];
+
+  const el = q('#period-times-list');
+  if (!el) return;
+  el.innerHTML = PERIODS.map((p, i) => {
+    const t       = times[i] || { start:'', end:'' };
+    const defT    = DEFAULT_PERIOD_TIMES[i];
+    const diff    = !isDefault && hasOverride && (t.start !== defT.start || t.end !== defT.end);
+    const duration = calcDuration(t.start, t.end);
+    return `
+      <div class="pt-row" id="pt-row-${p}">
+        <div class="pt-label">${p}교시${diff ? ' <span style="color:var(--brand);font-size:.65rem">●</span>' : ''}</div>
+        <div class="pt-inputs">
+          <input type="time" class="pt-input" value="${t.start}"
+                 onchange="updatePeriodTime(${p},0,this.value)" title="시작 시간">
+          <span class="pt-sep">~</span>
+          <input type="time" class="pt-input" value="${t.end}"
+                 onchange="updatePeriodTime(${p},1,this.value)" title="종료 시간">
+        </div>
+        <span class="pt-badge">${duration ? duration+'분' : ''}</span>
+      </div>`;
+  }).join('');
+
+  if (timesGrade !== 0 && !hasOverride) {
+    el.insertAdjacentHTML('afterbegin',
+      `<div class="alert alert-info" style="margin-bottom:.65rem;font-size:.82rem">
+        ℹ️ 현재 기본값 사용 중. 수정하면 이 학년 전용으로 저장됩니다.
+      </div>`);
+  }
+}
+
+function calcDuration(start, end) {
+  if (!start || !end) return '';
+  const [sh, sm] = start.split(':').map(Number);
+  const [eh, em] = end.split(':').map(Number);
+  const diff = (eh * 60 + em) - (sh * 60 + sm);
+  return diff > 0 ? diff : '';
+}
+
+function updatePeriodTime(period, field, val) {
+  ensurePeriodTimes();
+  const key = timesGrade === 0 ? 'default' : timesGrade;
+  // 학년별이면 기본값에서 복사 후 수정
+  if (timesGrade !== 0 && !S.school.periodTimes[key]) {
+    S.school.periodTimes[key] = DEFAULT_PERIOD_TIMES.map(t => ({...t}));
+  }
+  if (!S.school.periodTimes[key]) S.school.periodTimes[key] = DEFAULT_PERIOD_TIMES.map(t => ({...t}));
+  const t = S.school.periodTimes[key][period - 1];
+  if (!t) return;
+  if (field === 0) t.start = val;
+  else t.end = val;
+  // duration 업데이트
+  const row  = q(`#pt-row-${period}`);
+  const badge = row?.querySelector('.pt-badge');
+  if (badge) badge.textContent = calcDuration(t.start, t.end) ? calcDuration(t.start, t.end) + '분' : '';
+}
+window.updatePeriodTime = updatePeriodTime;
+
+function resetPeriodTimes() {
+  ensurePeriodTimes();
+  const key   = timesGrade === 0 ? 'default' : timesGrade;
+  const label = timesGrade === 0 ? '기본값' : `${timesGrade}학년`;
+  openConfirm(
+    `${label} 교시 시간 초기화`,
+    `${label}의 교시 시간을 기본값으로 되돌립니다. 계속하시겠습니까?`,
+    () => {
+      if (timesGrade === 0) {
+        S.school.periodTimes.default = DEFAULT_PERIOD_TIMES.map(t => ({...t}));
+      } else {
+        delete S.school.periodTimes[timesGrade];
+      }
+      renderPeriodTimesList();
+      toast(`${label} 교시 시간이 초기화되었습니다.`, 'success');
+    }
+  );
+}
+window.resetPeriodTimes = resetPeriodTimes;
    =========================================================== */
 const DEFAULT_TEACHER_TYPES = [
   {
@@ -2797,10 +3010,11 @@ function renderGrid() {
   const tbody    = q('#tt-tbody');
   const spAssign  = S.classId ? getSpecialtyAssignmentsForClass(S.classId) : {};
   const collabMap = S.classId ? getCollabForClass(S.classId) : {};
+  const ptimes    = getCurrentClassPeriodTimes();
 
   tbody.innerHTML = PERIODS.map(p => `
     <tr>
-      <td class="period-cell">${p}교시</td>
+      <td class="period-cell">${periodLabel(p, ptimes)}</td>
       ${DAYS.map(day => {
         const key        = `${day}-${p}`;
         const cell       = S.ttData[key];
@@ -3362,6 +3576,8 @@ function renderRoomSchedule() {
     const usedCount = Object.keys(classCounts).length;
 
     const gridRows = PERIODS.map(p => {
+      const ptimes   = getPeriodTimes(null);
+      const ptLabel  = ptimes[p-1] ? `${p}교시<br><span style="font-size:.6rem;color:var(--g400)">${ptimes[p-1].start}</span>` : `${p}교시`;
       const rowCells = DAYS.map(day => {
         const key   = `${day}-${p}`;
         const entry = schedule[key];
@@ -3372,7 +3588,7 @@ function renderRoomSchedule() {
           : `<div class="rs-ci empty">+</div>`;
         return `<td class="rs-cell" onclick="openRsModal('${room.id}','${escHtml(room.name)}','${key}')">${inner}</td>`;
       }).join('');
-      return `<tr><td class="rs-period">${p}교시</td>${rowCells}</tr>`;
+      return `<tr><td class="rs-period">${ptLabel}</td>${rowCells}</tr>`;
     }).join('');
 
     return `
