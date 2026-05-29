@@ -602,13 +602,21 @@ a{color:inherit;text-decoration:none}
 .rs-table{border-collapse:collapse;width:100%;table-layout:fixed}
 .rs-table th,.rs-table td{border:1px solid var(--g200)}
 .rs-table thead th{background:var(--g50);padding:.4rem .3rem;font-size:.72rem;font-weight:800;color:var(--g500);text-align:center}
-.rs-table thead th:first-child{background:var(--g100);width:80px;font-size:.68rem}
-.rs-period{background:var(--g50);padding:.28rem .4rem;font-size:.68rem;font-weight:700;color:var(--g400);text-align:center;width:80px;max-width:80px;word-break:keep-all;line-height:1.3}
-.rs-cell{width:48px;height:42px;padding:2px;vertical-align:middle;cursor:pointer}
+.rs-table thead th:first-child{background:var(--g100);width:88px;font-size:.68rem}
+.rs-period{
+  background:var(--g50);padding:.35rem .4rem;font-size:.7rem;font-weight:700;
+  color:var(--g700);text-align:center;width:88px;max-width:88px;
+  vertical-align:middle;
+}
+.rs-cell{width:48px;height:46px;padding:2px;vertical-align:middle;cursor:pointer}
+.rs-cell.rs-drag-over{background:var(--brand-50);outline:2px dashed var(--brand);outline-offset:-2px}
+.rs-cell.rs-drag-bad{background:var(--danger-bg);outline:2px dashed var(--danger);outline-offset:-2px}
 .rs-ci{
   width:100%;height:100%;border-radius:5px;display:flex;align-items:center;
   justify-content:center;font-size:.73rem;font-weight:800;text-align:center;line-height:1.2;transition:all .12s;
 }
+.rs-ci.filled{cursor:grab}
+.rs-ci.filled:active{cursor:grabbing;opacity:.75}
 .rs-ci.empty{border:1.5px dashed var(--g200);color:var(--g300)}
 .rs-cell:hover .rs-ci.empty{border-color:var(--brand);color:var(--brand);background:var(--brand-50)}
 .rs-count-row{display:flex;flex-wrap:wrap;gap:.3rem;padding:.5rem .8rem;border-top:1px solid var(--g100)}
@@ -1022,15 +1030,22 @@ a{color:inherit;text-decoration:none}
 <!-- ═══════════════════════════════════════════════════════ -->
 <div id="screen-room-schedule" class="screen">
   <div class="page-header">
-    <button class="btn btn-ghost btn-sm" onclick="goTo('screen-timetable')">← 시간표로</button>
+    <button class="btn btn-ghost btn-sm" onclick="goAdminSetup()">⚙️ 기초 설정</button>
     <h1 class="page-header-title">🏛️ 특별실 배정</h1>
     <span style="flex:1"></span>
     <span class="text-sm text-muted" id="rs-school-label" style="margin-right:.5rem"></span>
-    <button class="btn btn-ghost btn-sm" onclick="goAdminSetup()">⚙️ 특별실 관리</button>
+    <button class="btn btn-ghost btn-sm" onclick="goTo('screen-timetable')">시간표로 →</button>
   </div>
   <div class="rs-body">
-    <div class="alert alert-info" style="margin-bottom:1rem">
-      💡 특별실별로 사용 학급을 배정하세요. 배정된 시간은 해당 학급 시간표에 🔒 표시되며, 담임교사는 과목 입력만 가능합니다.
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.6rem;margin-bottom:.85rem">
+      <div class="alert alert-info" style="margin:0;flex:1;min-width:200px">
+        💡 셀을 클릭해 직접 배정하거나, <strong>드래그</strong>로 이동할 수 있습니다.
+      </div>
+      <div style="display:flex;gap:.5rem;flex-shrink:0">
+        <button class="btn btn-ghost btn-sm" onclick="confirmClearRoomSchedule()">🗑️ 전체 초기화</button>
+        <button class="btn btn-primary btn-sm" onclick="openRandomAssignModal()">🎲 랜덤 배정</button>
+        <button class="btn btn-ghost btn-sm" onclick="saveRoomSchedule()">💾 저장</button>
+      </div>
     </div>
     <div id="rs-empty" class="empty-state" style="display:none">
       <div class="ei">🏛️</div>
@@ -1272,6 +1287,27 @@ a{color:inherit;text-decoration:none}
     </div>
   </div>
 </div>
+<!-- Random Room Assignment Modal -->
+<div class="modal-bg" id="modal-random-assign">
+  <div class="modal-box" style="max-width:400px">
+    <div class="modal-title">🎲 랜덤 배정</div>
+    <div class="modal-desc">각 특별실에 배정할 주당 횟수를 설정하세요.</div>
+    <div id="random-assign-rooms" style="margin:.85rem 0;display:flex;flex-direction:column;gap:.5rem"></div>
+    <div class="form-group">
+      <label class="form-label">배정 방식</label>
+      <select id="random-assign-mode" class="form-select">
+        <option value="append">기존 배정 유지하고 빈 칸 채우기</option>
+        <option value="reset">기존 배정 초기화 후 새로 배정</option>
+      </select>
+    </div>
+    <div id="random-assign-warn" class="form-error" style="display:none"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-random-assign')">취소</button>
+      <button class="btn btn-primary btn-sm" onclick="runRandomAssign()">🎲 배정 시작</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="modal-rs-cell">
   <div class="modal-box">
     <div class="modal-title" id="mrs-title">특별실 배정</div>
@@ -4243,20 +4279,43 @@ function renderRoomSchedule() {
 
     const scheduleRows = getScheduleRows();
     const gridRows = scheduleRows.map(slot => {
-      const slotLabel = slot.label.replace(/\n/g, '<br>');
-      const timeLabel = `<span style="font-size:.6rem;color:var(--g400);display:block">${slot.start}</span>`;
-      const ptLabel   = `${slotLabel}${timeLabel}`;
+      // 교시 레이블: 학년별로 다르면 각각 줄로 표시
+      const byPeriod = {};
+      Object.entries(slot.gradeMap).forEach(([g, p]) => {
+        if (!byPeriod[p]) byPeriod[p] = [];
+        byPeriod[p].push(parseInt(g));
+      });
+      const periodEntries = Object.entries(byPeriod).sort((a,b)=>a[0]-b[0]);
+      let ptLabel;
+      if (periodEntries.length === 1) {
+        ptLabel = `<strong>${periodEntries[0][0]}교시</strong><br><span style="font-size:.6rem;color:var(--g400)">${slot.start}</span>`;
+      } else {
+        ptLabel = periodEntries.map(([p, gs]) => {
+          const gradeStr = compressGrades(gs).replace('학년','');
+          return `<span style="display:block;font-size:.65rem;font-weight:700;line-height:1.5">(${gradeStr}학년)<br><strong>${p}교시</strong></span>`;
+        }).join('<hr style="margin:2px 0;border:none;border-top:1px dashed var(--g200)">') +
+        `<span style="font-size:.6rem;color:var(--g400);display:block;margin-top:2px">${slot.start}</span>`;
+      }
+
       const rowCells = DAYS.map(day => {
         const key   = `${day}-${slot.slotKey}`;
         const entry = schedule[key];
         const cls   = entry ? (S.school.classes||[]).find(c=>c.id===entry.classId) : null;
         const gc    = cls ? gradeColor(cls) : null;
+        const filled = !!cls;
         const inner = cls
-          ? `<div class="rs-ci" style="background:${gc.bg};color:${gc.text}">${escHtml(cls.name)}</div>`
+          ? `<div class="rs-ci filled" style="background:${gc.bg};color:${gc.text}"
+                  draggable="true"
+                  ondragstart="rsOnDragStart(event,'${room.id}','${key}')"
+                  ondragend="rsOnDragEnd(event)">${escHtml(cls.name)}</div>`
           : `<div class="rs-ci empty">+</div>`;
-        return `<td class="rs-cell" onclick="openRsModal('${room.id}','${escHtml(room.name)}','${key}')">${inner}</td>`;
+        return `<td class="rs-cell"
+                    onclick="rsOnCellClick(event,'${room.id}','${escHtml(room.name)}','${key}')"
+                    ondragover="rsOnDragOver(event,this)"
+                    ondragleave="rsOnDragLeave(event,this)"
+                    ondrop="rsOnDrop(event,'${room.id}','${key}')">${inner}</td>`;
       }).join('');
-      return `<tr><td class="rs-period" style="white-space:pre-line;font-size:.68rem;line-height:1.35">${ptLabel}</td>${rowCells}</tr>`;
+      return `<tr><td class="rs-period">${ptLabel}</td>${rowCells}</tr>`;
     }).join('');
 
     return `
@@ -4277,9 +4336,201 @@ function renderRoomSchedule() {
       </div>`;
   }).join('');
 }
-window.renderRoomSchedule = renderRoomSchedule;
+/* ===========================================================
+   ROOM SCHEDULE — DRAG & DROP
+   =========================================================== */
+let _rsDrag = null; // { roomId, fromKey, classId, className }
 
-let rsCurrent = null; // { roomId, roomName, key }
+function rsOnDragStart(event, roomId, fromKey) {
+  const entry = S.school.roomSchedule?.[roomId]?.[fromKey];
+  if (!entry) return;
+  _rsDrag = { roomId, fromKey, classId: entry.classId, className: entry.className };
+  event.dataTransfer.effectAllowed = 'move';
+  event.dataTransfer.setData('text/plain', fromKey);
+  event.target.closest('.rs-ci').style.opacity = '.5';
+}
+window.rsOnDragStart = rsOnDragStart;
+
+function rsOnDragEnd(event) {
+  event.target.closest('.rs-ci')?.style && (event.target.closest('.rs-ci').style.opacity = '');
+  _rsDrag = null;
+  document.querySelectorAll('.rs-cell.rs-drag-over,.rs-cell.rs-drag-bad').forEach(el => {
+    el.classList.remove('rs-drag-over','rs-drag-bad');
+  });
+}
+window.rsOnDragEnd = rsOnDragEnd;
+
+function rsOnDragOver(event, cellEl) {
+  if (!_rsDrag) return;
+  event.preventDefault();
+  const toKey  = cellEl.querySelector('.rs-ci')?.parentElement?.getAttribute('onclick')
+                 ?.match(/'([^']+)'[^']*'([^']+)'\s*\)$/)?.[2];
+  // 같은 시간대 다른 특별실에 같은 반 있는지 확인
+  const conflict = checkRsConflict(_rsDrag.roomId, _rsDrag.classId, cellEl);
+  cellEl.classList.toggle('rs-drag-over', !conflict);
+  cellEl.classList.toggle('rs-drag-bad',   conflict);
+  event.dataTransfer.dropEffect = conflict ? 'none' : 'move';
+}
+window.rsOnDragOver = rsOnDragOver;
+
+function rsOnDragLeave(event, cellEl) {
+  cellEl.classList.remove('rs-drag-over','rs-drag-bad');
+}
+window.rsOnDragLeave = rsOnDragLeave;
+
+function checkRsConflict(roomId, classId, cellEl) {
+  // 타겟 셀의 key를 onclick 속성에서 추출
+  const onclick = cellEl.getAttribute('onclick') || '';
+  const m = onclick.match(/rsOnCellClick\([^,]+,'([^']+)','([^']+)','([^']+)'\)/);
+  if (!m) return false;
+  const toRoomId = m[1], toKey = m[3];
+  // 같은 시간대 다른 특별실에 같은 반이 있으면 충돌
+  const rs = S.school.roomSchedule || {};
+  for (const [rid, sched] of Object.entries(rs)) {
+    if (rid === roomId && toKey === _rsDrag?.fromKey) continue; // 자기 자신
+    if (sched[toKey]?.classId === classId) return true;
+  }
+  return false;
+}
+
+function rsOnDrop(event, toRoomId, toKey) {
+  event.preventDefault();
+  if (!_rsDrag) return;
+  const { roomId: fromRoomId, fromKey, classId, className } = _rsDrag;
+
+  // 충돌 체크
+  const rs = S.school.roomSchedule || {};
+  for (const [rid, sched] of Object.entries(rs)) {
+    if (rid === fromRoomId && toKey === fromKey) { _rsDrag = null; return; } // 제자리
+    if (sched[toKey]?.classId === classId) {
+      toast('⚠ 같은 시간에 이미 배정된 반입니다.', 'warn');
+      _rsDrag = null; return;
+    }
+  }
+  // 이동 실행
+  if (!S.school.roomSchedule[fromRoomId]) S.school.roomSchedule[fromRoomId] = {};
+  if (!S.school.roomSchedule[toRoomId])   S.school.roomSchedule[toRoomId]   = {};
+  delete S.school.roomSchedule[fromRoomId][fromKey];
+  S.school.roomSchedule[toRoomId][toKey] = { classId, className };
+  _rsDrag = null;
+  renderRoomSchedule();
+  saveSchool(S.school);
+  toast(`${className} → 이동 완료`, 'success');
+}
+window.rsOnDrop = rsOnDrop;
+
+/* 클릭(빈 셀) vs 드래그 시작 구분 */
+function rsOnCellClick(event, roomId, roomName, key) {
+  if (_rsDrag) return; // 드래그 중이면 클릭 무시
+  openRsModal(roomId, roomName, key);
+}
+window.rsOnCellClick = rsOnCellClick;
+
+/* ===========================================================
+   ROOM SCHEDULE — RANDOM ASSIGN
+   =========================================================== */
+function openRandomAssignModal() {
+  if (!S.school?.specialRooms?.length) { toast('특별실을 먼저 추가하세요.', 'error'); return; }
+  const rooms = S.school.specialRooms;
+  const el    = q('#random-assign-rooms');
+  el.innerHTML = rooms.map((r, i) => `
+    <div style="display:flex;align-items:center;gap:.65rem">
+      <span style="flex:1;font-size:.85rem;font-weight:700">🏛️ ${escHtml(r.name)}</span>
+      <label style="font-size:.78rem;color:var(--g500)">주당</label>
+      <input type="number" id="ra-cnt-${i}" class="form-input" value="1" min="0" max="10"
+             style="width:60px;text-align:center;padding:.25rem .4rem">
+      <label style="font-size:.78rem;color:var(--g500)">회</label>
+    </div>`).join('');
+  q('#random-assign-warn').style.display = 'none';
+  openModal('modal-random-assign');
+}
+window.openRandomAssignModal = openRandomAssignModal;
+
+function runRandomAssign() {
+  const rooms   = S.school.specialRooms || [];
+  const classes = (S.school.classes||[]).filter(c => !!c.grade);
+  const slots   = getScheduleRows();
+  const days    = ['월','화','수','목','금'];
+  const mode    = q('#random-assign-mode').value;
+
+  if (!classes.length) { toast('학급이 없습니다. 먼저 학급을 구성하세요.', 'error'); return; }
+
+  // 각 특별실의 목표 횟수 수집
+  const targets = rooms.map((r, i) => ({
+    room: r,
+    count: parseInt(q(`#ra-cnt-${i}`)?.value || '0'),
+  })).filter(t => t.count > 0);
+
+  if (!targets.length) {
+    q('#random-assign-warn').textContent = '배정 횟수를 1 이상으로 설정하세요.';
+    q('#random-assign-warn').style.display = 'block'; return;
+  }
+
+  // 초기화 모드
+  if (!S.school.roomSchedule) S.school.roomSchedule = {};
+  if (mode === 'reset') {
+    rooms.forEach(r => { S.school.roomSchedule[r.id] = {}; });
+  }
+
+  // 모든 가능한 슬롯 목록 생성
+  const allSlots = [];
+  days.forEach(day => slots.forEach(slot => allSlots.push({ day, slotKey: slot.slotKey, key: `${day}-${slot.slotKey}` })));
+
+  // 각 반마다 랜덤 배정 (같은 시간대 충돌 없이)
+  let totalAssigned = 0;
+  targets.forEach(({ room, count }) => {
+    if (!S.school.roomSchedule[room.id]) S.school.roomSchedule[room.id] = {};
+    const sched = S.school.roomSchedule[room.id];
+
+    // 아직 배정 안 된 반들을 순환하며 채움
+    const shuffled = [...classes].sort(() => Math.random() - .5);
+    let assigned = 0;
+
+    for (const cls of shuffled) {
+      if (assigned >= count * classes.length) break;
+      // 빈 슬롯 중 이 반이 아직 없는 슬롯 찾기
+      const available = allSlots.filter(s => {
+        if (sched[s.key]) return false; // 이미 채워진 칸
+        // 같은 시간 다른 특별실에 이 반이 있으면 불가
+        for (const [rid, rs] of Object.entries(S.school.roomSchedule)) {
+          if (rid === room.id) continue;
+          if (rs[s.key]?.classId === cls.id) return false;
+        }
+        return true;
+      }).sort(() => Math.random() - .5);
+
+      const toFill = Math.min(count, available.length);
+      available.slice(0, toFill).forEach(s => {
+        sched[s.key] = { classId: cls.id, className: cls.name };
+        assigned++;
+        totalAssigned++;
+      });
+    }
+  });
+
+  closeModal('modal-random-assign');
+  renderRoomSchedule();
+  saveSchool(S.school);
+  toast(`🎲 랜덤 배정 완료 — ${totalAssigned}개 슬롯 배정됨 ✔`, 'success');
+}
+window.runRandomAssign = runRandomAssign;
+
+function confirmClearRoomSchedule() {
+  openConfirm('특별실 배정 전체 초기화', '모든 특별실 배정이 삭제됩니다. 계속하시겠습니까?', async () => {
+    S.school.roomSchedule = {};
+    await saveSchool(S.school);
+    renderRoomSchedule();
+    toast('초기화 완료', 'success');
+  });
+}
+window.confirmClearRoomSchedule = confirmClearRoomSchedule;
+
+async function saveRoomSchedule() {
+  if (!S.school) return;
+  await saveSchool(S.school);
+  toast('특별실 배정 저장 완료 ✔', 'success');
+}
+window.saveRoomSchedule = saveRoomSchedule;
 
 function openRsModal(roomId, roomName, key) {
   rsCurrent = { roomId, roomName, key };
