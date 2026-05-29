@@ -636,36 +636,24 @@ a{color:inherit;text-decoration:none}
     <h1 class="page-header-title">⚙️ 기존 학교 관리하기</h1>
   </div>
   <div class="page-body">
-
-    <!-- 학교 검색 -->
     <div class="card">
-      <div class="card-title">학교 검색</div>
+      <div class="card-title">🔐 관리자 로그인</div>
       <div class="form-group">
         <label class="form-label">학교 이름</label>
-        <input type="text" id="manage-search" class="form-input"
-               placeholder="학교 이름을 입력하세요..." oninput="searchManageSchools(this.value)">
+        <input type="text" id="manage-name-input" class="form-input"
+               placeholder="예: 행복초등학교"
+               onkeydown="if(event.key==='Enter') q('#manage-pw').focus()">
+        <div id="manage-name-err" class="form-error">⚠️ 학교를 찾을 수 없습니다.</div>
       </div>
-      <div id="manage-results"></div>
-    </div>
-
-    <!-- 비밀번호 확인 -->
-    <div id="manage-auth-form" style="display:none">
-      <div class="card">
-        <div class="card-title">🔐 관리자 인증</div>
-        <div class="form-group">
-          <div class="form-hint" style="margin-bottom:.75rem">
-            선택한 학교: <strong id="manage-school-name-label"></strong>
-          </div>
-          <label class="form-label">관리자 비밀번호</label>
-          <input type="password" id="manage-pw" class="form-input"
-                 placeholder="학교 관리자 비밀번호 입력"
-                 onkeydown="if(event.key==='Enter') confirmManageAuth()">
-          <div id="manage-pw-err" class="form-error">⚠️ 비밀번호가 맞지 않습니다.</div>
-        </div>
-        <button class="btn btn-primary btn-block" onclick="confirmManageAuth()">✔ 인증하고 설정 열기</button>
+      <div class="form-group">
+        <label class="form-label">관리자 비밀번호</label>
+        <input type="password" id="manage-pw" class="form-input"
+               placeholder="학교 관리자 비밀번호"
+               onkeydown="if(event.key==='Enter') confirmManageAuth()">
+        <div id="manage-pw-err" class="form-error">⚠️ 비밀번호가 맞지 않습니다.</div>
       </div>
+      <button class="btn btn-primary btn-block" onclick="confirmManageAuth()">✔ 설정 열기</button>
     </div>
-
   </div>
 </div>
 <!-- ═══════════════════════════════════════════════════════ -->
@@ -1278,11 +1266,12 @@ window.confirmDeleteSchool = confirmDeleteSchool;
    LANDING ACTIONS
    =========================================================== */
 function goToManage() {
-  q('#manage-search').value          = '';
-  q('#manage-results').innerHTML     = '';
-  q('#manage-auth-form').style.display = 'none';
-  q('#manage-pw').value              = '';
-  q('#manage-pw-err').style.display  = 'none';
+  const ni = q('#manage-name-input');
+  const pw = q('#manage-pw');
+  if (ni) ni.value = '';
+  if (pw) pw.value = '';
+  q('#manage-name-err').style.display = 'none';
+  q('#manage-pw-err').style.display   = 'none';
   manageSchoolRef = null;
   goTo('screen-manage');
 }
@@ -1290,51 +1279,25 @@ window.goToManage = goToManage;
 
 let manageSchoolRef = null;
 
-async function searchManageSchools(val) {
-  const wrap = q('#manage-results');
-  if (!val || val.trim().length < 1) { wrap.innerHTML = ''; return; }
+async function confirmManageAuth() {
+  const nameVal = q('#manage-name-input').value.trim();
+  const pw      = q('#manage-pw').value;
+  const nameErr = q('#manage-name-err');
+  const pwErr   = q('#manage-pw-err');
+  nameErr.style.display = 'none';
+  pwErr.style.display   = 'none';
+
+  if (!nameVal) { toast('학교 이름을 입력하세요.', 'error'); return; }
+
   const schools = await fetchSchools();
-  const filtered = schools.filter(s => s.name.includes(val.trim()));
-  if (!filtered.length) {
-    wrap.innerHTML = '<div class="text-muted text-sm" style="padding:.5rem">검색 결과가 없습니다.</div>';
-    return;
-  }
-  wrap.innerHTML = filtered.map(s => `
-    <div class="school-result-item" onclick="selectManageSchool('${s.id}')">
-      <div class="sri-icon">🏫</div>
-      <div class="sri-text">
-        <div class="sri-name">${escHtml(s.name)}</div>
-        <div class="sri-sub">${(s.classes||[]).length}개 학급</div>
-      </div>
-      <div class="sri-arrow">→</div>
-    </div>
-  `).join('');
-}
-window.searchManageSchools = searchManageSchools;
+  const found   = schools.find(s => s.name === nameVal || s.name.includes(nameVal));
+  if (!found) { nameErr.style.display = 'block'; return; }
+  if (pw !== found.adminPassword) { pwErr.style.display = 'block'; return; }
 
-async function selectManageSchool(schoolId) {
-  const schools = await fetchSchools();
-  manageSchoolRef = schools.find(s => s.id === schoolId);
-  if (!manageSchoolRef) return;
-  q('#manage-school-name-label').textContent = manageSchoolRef.name;
-  q('#manage-auth-form').style.display = 'block';
-  q('#manage-pw').value = '';
-  q('#manage-pw-err').style.display = 'none';
-  q('#manage-pw').focus();
-}
-window.selectManageSchool = selectManageSchool;
-
-function confirmManageAuth() {
-  if (!manageSchoolRef) return;
-  const pw  = q('#manage-pw').value;
-  const err = q('#manage-pw-err');
-  err.style.display = 'none';
-  if (pw !== manageSchoolRef.adminPassword) { err.style.display = 'block'; return; }
-
-  S.school = manageSchoolRef;
+  S.school = found;
   S.user   = { name: '관리자', role: 'admin', className: '', classId: null };
   saveSession();
-  toast(`${manageSchoolRef.name} 관리자로 접속했습니다. 👑`, 'success');
+  toast(`${found.name} 관리자로 접속했습니다. 👑`, 'success');
   initTimetable();
   q('#setup-school-label').textContent = S.school.name;
   initSetup();
