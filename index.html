@@ -2642,31 +2642,58 @@ function openRsModal(roomId, roomName, key) {
   q('#mrs-desc').textContent  = current ? `현재: ${current.className} 배정됨` : '배정된 학급이 없습니다.';
   q('#mrs-clear').style.display = current ? 'flex' : 'none';
 
-  // 학급 드롭다운 (학년별 그룹)
+  // 이 시간(key)에 다른 특별실에 이미 배정된 학급 목록 수집
+  const takenByOtherRoom = {}; // classId → roomName
+  const rs = S.school.roomSchedule || {};
+  for (const [rId, schedule] of Object.entries(rs)) {
+    if (rId === roomId) continue; // 현재 편집 중인 특별실은 제외
+    const entry = schedule[key];
+    if (entry?.classId) {
+      const room = (S.school.specialRooms||[]).find(r=>r.id===rId);
+      takenByOtherRoom[entry.classId] = room?.name || '다른 특별실';
+    }
+  }
+
+  // 학급 드롭다운 (학년별 그룹, 이중 배정 불가 클래스 disabled)
   const sel = q('#mrs-class');
   sel.innerHTML = '<option value="">-- 배정 안 함 (비우기) --</option>';
   const classes = S.school.classes || [];
   const graded  = {}, ungraded = [];
   classes.forEach(c => { if (c.grade) (graded[c.grade]=graded[c.grade]||[]).push(c); else ungraded.push(c); });
+
+  function makeOption(c) {
+    const o = document.createElement('option');
+    o.value = c.id;
+    if (takenByOtherRoom[c.id]) {
+      o.textContent = `${c.name} — ⚠ ${takenByOtherRoom[c.id]} 배정됨`;
+      o.disabled = true;
+    } else {
+      o.textContent = c.name;
+    }
+    if (current?.classId === c.id) o.selected = true;
+    return o;
+  }
+
   [1,2,3,4,5,6].forEach(g => {
     if (!graded[g]) return;
     const og = document.createElement('optgroup'); og.label = `${g}학년`;
-    graded[g].forEach(c => {
-      const o = document.createElement('option'); o.value = c.id; o.textContent = c.name;
-      if (current?.classId === c.id) o.selected = true;
-      og.appendChild(o);
-    });
+    graded[g].forEach(c => og.appendChild(makeOption(c)));
     sel.appendChild(og);
   });
   if (ungraded.length) {
     const og = document.createElement('optgroup'); og.label = '기타';
-    ungraded.forEach(c => {
-      const o = document.createElement('option'); o.value = c.id; o.textContent = c.name;
-      if (current?.classId === c.id) o.selected = true;
-      og.appendChild(o);
-    });
+    ungraded.forEach(c => og.appendChild(makeOption(c)));
     sel.appendChild(og);
   }
+
+  // 이중 배정 안내
+  const takenCount = Object.keys(takenByOtherRoom).length;
+  q('#mrs-desc').textContent = current
+    ? `현재: ${current.className} 배정됨`
+    : takenCount > 0
+      ? `⚠ ${takenCount}개 학급은 이 시간에 다른 특별실 사용 중`
+      : '배정된 학급이 없습니다.';
+
   openModal('modal-rs-cell');
 }
 window.openRsModal = openRsModal;
@@ -2683,6 +2710,19 @@ async function saveRsCell() {
     delete S.school.roomSchedule[roomId][key];
     if (!Object.keys(S.school.roomSchedule[roomId]).length) delete S.school.roomSchedule[roomId];
   } else {
+    // 이중 배정 최종 검증: 같은 key에 다른 특별실에 이미 배정된 학급인지 확인
+    const rs = S.school.roomSchedule;
+    for (const [rId, schedule] of Object.entries(rs)) {
+      if (rId === roomId) continue;
+      const entry = schedule[key];
+      if (entry?.classId === classId) {
+        const room = (S.school.specialRooms||[]).find(r=>r.id===rId);
+        const cls  = (S.school.classes||[]).find(c=>c.id===classId);
+        toast(`⚠ ${cls?.name||'해당 학급'}은(는) 이 시간에 이미 [${room?.name||'다른 특별실'}]에 배정되어 있습니다.`, 'error');
+        return;
+      }
+    }
+
     const cls = (S.school.classes||[]).find(c=>c.id===classId);
     S.school.roomSchedule[roomId][key] = { classId, className: cls?.name || classId };
   }
