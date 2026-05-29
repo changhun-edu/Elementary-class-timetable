@@ -591,11 +591,18 @@ a{color:inherit;text-decoration:none}
       <div class="card">
         <div class="card-title">✍️ 내 정보 입력</div>
         <div class="form-group">
-          <label class="form-label">이름 / 담당</label>
-          <input type="text" id="join-name" class="form-input" placeholder="예: 3-1 담임, 영어 전담, 박○○ 선생님">
-          <div class="form-hint">💡 이름에 <strong>'전담'</strong>이 포함되면 전담교사로 분류됩니다.</div>
+          <label class="form-label">역할</label>
+          <select id="join-role" class="form-select" onchange="onJoinRoleChange()">
+            <option value="homeroom">🏠 담임교사</option>
+            <option value="specialty">⭐ 전담교사</option>
+            <option value="admin">👑 연구부장 (관리자)</option>
+          </select>
         </div>
         <div class="form-group">
+          <label class="form-label">이름</label>
+          <input type="text" id="join-name" class="form-input" placeholder="예: 홍길동, 박○○ 선생님">
+        </div>
+        <div class="form-group" id="join-class-group">
           <label class="form-label">담당 학급 <span class="text-muted text-sm">(선택)</span></label>
           <select id="join-class" class="form-select">
             <option value="">-- 학급을 선택하세요 --</option>
@@ -1558,7 +1565,8 @@ async function saveSetup() {
   await saveSchool(S.school);
   toast('설정 저장 완료 ✔','success');
   initTimetable();
-  goTo('screen-timetable');
+  // 연구부장은 저장 후 특별실 배정 화면으로 이동
+  goToRoomSchedule();
 }
 window.saveSetup = saveSetup;
 
@@ -1630,26 +1638,50 @@ async function selectSchool(id, el) {
     sel.appendChild(og);
   }
   q('#join-form').style.display = 'block';
+  // 역할 초기화
+  const roleEl = q('#join-role');
+  if (roleEl) roleEl.value = 'homeroom';
+  q('#join-class-group').style.display = 'block';
 }
 window.selectSchool = selectSchool;
+
+function onJoinRoleChange() {
+  const role = q('#join-role').value;
+  // 연구부장/전담은 학급 선택 숨김
+  const hideClass = role === 'admin' || role === 'specialty';
+  q('#join-class-group').style.display = hideClass ? 'none' : 'block';
+}
+window.onJoinRoleChange = onJoinRoleChange;
 
 async function joinSchool() {
   if (!joinSchoolRef) { toast('학교를 선택해주세요.','error'); return; }
   const name  = q('#join-name').value.trim();
+  const role  = q('#join-role').value;
   const clsId = q('#join-class').value;
   const pw    = q('#join-pw').value;
   const err   = q('#join-pw-err');
-  err.style.display='none';
+  err.style.display = 'none';
   if (!name) { toast('이름을 입력해주세요.','error'); return; }
   if (pw !== joinSchoolRef.adminPassword) { err.style.display='block'; return; }
-  const role = name.includes('전담')||name.includes('교감')||name.includes('교장') ? 'specialty' : 'homeroom';
-  const cls  = joinSchoolRef.classes?.find(c=>c.id===clsId);
+
+  const cls = joinSchoolRef.classes?.find(c=>c.id===clsId);
   S.school = joinSchoolRef;
-  S.user   = { name, role, className: cls?.name||'', classId: clsId||null };
+  S.user   = {
+    name,
+    role,
+    className: (role==='homeroom' && cls) ? cls.name : '',
+    classId:   role==='homeroom' ? (clsId||null) : null,
+  };
   saveSession();
   toast(`${joinSchoolRef.name}에 오신 것을 환영합니다! 👋`, 'success');
   initTimetable();
-  goTo('screen-timetable');
+
+  // 연구부장으로 로그인 시 특별실 배정 화면으로
+  if (role === 'admin') {
+    goToRoomSchedule();
+  } else {
+    goTo('screen-timetable');
+  }
 }
 window.joinSchool = joinSchool;
 
