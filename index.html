@@ -1304,6 +1304,21 @@ async function confirmManageAuth() {
   goTo('screen-setup');
 }
 window.confirmManageAuth = confirmManageAuth;
+
+function goToJoin() {
+  // 참여 폼 초기화
+  const si = q('#join-search');
+  if (si) si.value = '';
+  q('#school-results').innerHTML = '';
+  q('#join-form').style.display = 'none';
+  q('#join-pw').value = '';
+  q('#join-pw-err').style.display = 'none';
+  const roleEl = q('#join-role');
+  if (roleEl) roleEl.value = 'homeroom';
+  q('#join-class-group').style.display = 'block';
+  joinSchoolRef = null;
+  goTo('screen-join');
+}
 window.goToJoin = goToJoin;
 
 function goToCreate() {
