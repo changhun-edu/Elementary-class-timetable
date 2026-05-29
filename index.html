@@ -337,26 +337,51 @@ a{color:inherit;text-decoration:none}
 /* ============================================================ */
 /* SUPER ADMIN                                                  */
 /* ============================================================ */
-#screen-super-admin{background:var(--g900)}
+#screen-superadmin{background:#0f172a}
 .sa-header{
-  padding:1.75rem 2rem 1rem;border-bottom:1px solid rgba(255,255,255,.08);
+  padding:1.25rem 2rem;
+  background:#0f172a;
+  border-bottom:1px solid rgba(255,255,255,.1);
   display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:50;
 }
-.sa-title{font-size:1.1rem;font-weight:900;color:#fff;display:flex;align-items:center;gap:.5rem}
-.sa-body{flex:1;padding:1.5rem 2rem;overflow-y:auto}
-.sa-login-wrap{padding:2rem;max-width:380px;margin:1.5rem auto}
+.sa-title{font-size:1.05rem;font-weight:900;color:#f1f5f9;display:flex;align-items:center;gap:.5rem}
+.sa-body{flex:1;padding:1.5rem 2rem;overflow-y:auto;background:#0f172a}
+.sa-login-wrap{
+  padding:2.5rem 2rem;max-width:400px;margin:2rem auto;
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
+  border-radius:var(--r-xl);
+}
+.sa-login-wrap .form-input{
+  background:rgba(255,255,255,.07);
+  border-color:rgba(255,255,255,.18);
+  color:#f1f5f9;
+}
+.sa-login-wrap .form-input::placeholder{color:rgba(255,255,255,.3)}
+.sa-login-wrap .form-input:focus{
+  border-color:var(--brand);
+  background:rgba(255,255,255,.1);
+  box-shadow:0 0 0 3px rgba(37,99,235,.25);
+}
+.sa-login-title{font-size:.95rem;font-weight:700;color:#cbd5e1;margin-bottom:.3rem}
+.sa-login-sub{font-size:.82rem;color:rgba(255,255,255,.35);margin-bottom:1.5rem}
 .sa-card{
   background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
-  border-radius:var(--r-lg);padding:1.1rem 1.25rem;display:flex;align-items:center;
-  gap:1rem;margin-bottom:.65rem;transition:all var(--t);
+  border-radius:var(--r-lg);padding:1rem 1.25rem;display:flex;align-items:center;
+  gap:1rem;margin-bottom:.6rem;transition:all var(--t);
 }
-.sa-card:hover{background:rgba(255,255,255,.09)}
+.sa-card:hover{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.2)}
 .sa-icon{
   width:42px;height:42px;background:linear-gradient(135deg,var(--brand),var(--brand-dark));
   border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;
 }
-.sa-school-name{font-size:.9rem;font-weight:700;color:#fff}
-.sa-meta{font-size:.75rem;color:rgba(255,255,255,.35);margin-top:2px}
+.sa-school-name{font-size:.9rem;font-weight:700;color:#f1f5f9}
+.sa-meta{font-size:.75rem;color:rgba(255,255,255,.4);margin-top:3px}
+.sa-section-label{font-size:.8rem;font-weight:700;color:rgba(255,255,255,.35);
+  text-transform:uppercase;letter-spacing:.06em;margin-bottom:.75rem}
+.sa-empty{
+  text-align:center;padding:3rem 1rem;color:rgba(255,255,255,.25);font-size:.88rem;
+}
 
 /* ============================================================ */
 /* MODAL                                                        */
@@ -412,8 +437,19 @@ a{color:inherit;text-decoration:none}
 .empty-state .ed{font-size:.8rem}
 
 /* ============================================================ */
-/* GRADE GRID (class setup)                                     */
+/* GRADE TAB STRIP (교과목 설정용)                             */
 /* ============================================================ */
+.grade-tab-strip{display:flex;gap:.3rem;flex-wrap:wrap;margin-bottom:.85rem}
+.grade-tab{
+  padding:.3rem .75rem;border-radius:var(--r);font-size:.82rem;font-weight:700;
+  border:1.5px solid var(--g200);background:#fff;color:var(--g500);cursor:pointer;
+  transition:all var(--t);
+}
+.grade-tab:hover{border-color:var(--brand);color:var(--brand);background:var(--brand-50)}
+.grade-tab.active{background:var(--brand);border-color:var(--brand);color:#fff;box-shadow:0 2px 6px rgba(37,99,235,.25)}
+
+/* ============================================================ */
+/* GRADE GRID (학급 구성)                                      */
 .grade-grid{display:flex;flex-direction:column;gap:.5rem}
 .grade-row{
   display:flex;align-items:center;gap:.85rem;padding:.65rem .9rem;
@@ -641,7 +677,23 @@ a{color:inherit;text-decoration:none}
     <!-- TAB: Subjects -->
     <div id="tab-subjects" class="tab-panel active">
       <div class="card">
-        <div class="card-title">교과목 목록 및 주간 필수 시수</div>
+        <div class="card-title" style="margin-bottom:.75rem">학년별 교과목 및 주간 시수</div>
+
+        <!-- 학년 선택 탭 -->
+        <div class="grade-tab-strip" id="subj-grade-tabs">
+          <button class="grade-tab active" onclick="setSubjGrade(1,this)">1학년</button>
+          <button class="grade-tab"        onclick="setSubjGrade(2,this)">2학년</button>
+          <button class="grade-tab"        onclick="setSubjGrade(3,this)">3학년</button>
+          <button class="grade-tab"        onclick="setSubjGrade(4,this)">4학년</button>
+          <button class="grade-tab"        onclick="setSubjGrade(5,this)">5학년</button>
+          <button class="grade-tab"        onclick="setSubjGrade(6,this)">6학년</button>
+        </div>
+
+        <!-- 주당 총 시수 표시 -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
+          <span class="text-sm text-muted" id="subj-total-label">주당 총 0시간</span>
+        </div>
+
         <div class="list-wrap" id="subject-list"></div>
         <div class="divider"></div>
         <div class="add-row">
@@ -797,23 +849,26 @@ a{color:inherit;text-decoration:none}
 <div id="screen-superadmin" class="screen">
   <div class="sa-header">
     <div class="sa-title">🔐 총괄 관리자 패널</div>
-    <button class="btn btn-ghost btn-sm" onclick="goTo('screen-landing')" style="color:#fff;border-color:rgba(255,255,255,.2)">← 나가기</button>
+    <button class="btn btn-sm" onclick="goTo('screen-landing')"
+      style="color:#94a3b8;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06)">← 나가기</button>
   </div>
 
   <div id="sa-login" class="sa-login-wrap">
-    <div style="color:rgba(255,255,255,.55);font-size:.85rem;margin-bottom:1rem">관리자 비밀번호를 입력하세요.</div>
+    <div class="sa-login-title">🔑 관리자 인증</div>
+    <div class="sa-login-sub">슈퍼 관리자 비밀번호를 입력하세요.</div>
     <div class="form-group">
-      <input type="password" id="sa-pw" class="form-input" placeholder="슈퍼 관리자 비밀번호"
-             style="background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.15);color:#fff"
+      <label class="form-label" style="color:#94a3b8">비밀번호</label>
+      <input type="password" id="sa-pw" class="form-input" placeholder="비밀번호 입력"
              onkeydown="if(event.key==='Enter') saLogin()">
     </div>
     <button class="btn btn-primary btn-block" onclick="saLogin()">접속하기</button>
   </div>
 
   <div id="sa-dashboard" class="sa-body" style="display:none">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
-      <span style="color:rgba(255,255,255,.45);font-size:.85rem">등록된 학교 목록</span>
-      <button class="btn btn-ghost btn-sm" onclick="loadAllSchools()" style="color:#fff;border-color:rgba(255,255,255,.2)">🔄 새로고침</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.1rem">
+      <div class="sa-section-label">📋 등록된 학교 목록</div>
+      <button class="btn btn-sm" onclick="loadAllSchools()"
+        style="color:#94a3b8;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06)">🔄 새로고침</button>
     </div>
     <div id="sa-list"></div>
   </div>
@@ -918,18 +973,79 @@ const DAYS    = ['월','화','수','목','금'];
 const PERIODS = [1,2,3,4,5,6];
 const SA_PW   = 'SMARTTT2024!';        // ← 슈퍼관리자 비밀번호 (변경 권장)
 
-const DEFAULT_SUBJECTS = [
-  { name:'국어', weeklyHours:6,  color:'#ef4444' },
-  { name:'수학', weeklyHours:4,  color:'#f97316' },
-  { name:'사회', weeklyHours:3,  color:'#ca8a04' },
-  { name:'과학', weeklyHours:3,  color:'#16a34a' },
-  { name:'영어', weeklyHours:2,  color:'#2563eb' },
-  { name:'체육', weeklyHours:3,  color:'#7c3aed' },
-  { name:'음악', weeklyHours:2,  color:'#db2777' },
-  { name:'미술', weeklyHours:2,  color:'#0891b2' },
-  { name:'실과', weeklyHours:2,  color:'#65a30d' },
-  { name:'창체', weeklyHours:3,  color:'#d97706' },
-];
+/* 학년별 교과목 기본값 (2022 개정 교육과정) */
+const DEFAULT_SUBJECTS_BY_GRADE = {
+  1: [
+    {name:'국어',       weeklyHours:6, color:'#ef4444'},
+    {name:'수학',       weeklyHours:4, color:'#f97316'},
+    {name:'바른생활',   weeklyHours:2, color:'#ca8a04'},
+    {name:'슬기로운생활',weeklyHours:3, color:'#16a34a'},
+    {name:'즐거운생활', weeklyHours:5, color:'#2563eb'},
+    {name:'자율',       weeklyHours:3, color:'#7c3aed'},
+  ],
+  2: [
+    {name:'국어',       weeklyHours:6, color:'#ef4444'},
+    {name:'수학',       weeklyHours:4, color:'#f97316'},
+    {name:'바른생활',   weeklyHours:2, color:'#ca8a04'},
+    {name:'슬기로운생활',weeklyHours:3, color:'#16a34a'},
+    {name:'즐거운생활', weeklyHours:6, color:'#2563eb'},
+    {name:'자율',       weeklyHours:2, color:'#7c3aed'},
+  ],
+  3: [
+    {name:'국어',   weeklyHours:5, color:'#ef4444'},
+    {name:'사회',   weeklyHours:3, color:'#ca8a04'},
+    {name:'도덕',   weeklyHours:1, color:'#065f46'},
+    {name:'수학',   weeklyHours:4, color:'#f97316'},
+    {name:'과학',   weeklyHours:2, color:'#16a34a'},
+    {name:'체육',   weeklyHours:2, color:'#7c3aed'},
+    {name:'음악',   weeklyHours:2, color:'#db2777'},
+    {name:'미술',   weeklyHours:2, color:'#0891b2'},
+    {name:'영어',   weeklyHours:2, color:'#2563eb'},
+    {name:'창체',   weeklyHours:2, color:'#d97706'},
+    {name:'학교자율',weeklyHours:1, color:'#6366f1'},
+  ],
+  4: [
+    {name:'국어',   weeklyHours:5, color:'#ef4444'},
+    {name:'사회',   weeklyHours:3, color:'#ca8a04'},
+    {name:'도덕',   weeklyHours:1, color:'#065f46'},
+    {name:'수학',   weeklyHours:4, color:'#f97316'},
+    {name:'과학',   weeklyHours:2, color:'#16a34a'},
+    {name:'체육',   weeklyHours:2, color:'#7c3aed'},
+    {name:'음악',   weeklyHours:2, color:'#db2777'},
+    {name:'미술',   weeklyHours:2, color:'#0891b2'},
+    {name:'영어',   weeklyHours:2, color:'#2563eb'},
+    {name:'창체',   weeklyHours:2, color:'#d97706'},
+    {name:'학교자율',weeklyHours:1, color:'#6366f1'},
+  ],
+  5: [
+    {name:'국어',   weeklyHours:5, color:'#ef4444'},
+    {name:'사회',   weeklyHours:3, color:'#ca8a04'},
+    {name:'도덕',   weeklyHours:1, color:'#065f46'},
+    {name:'수학',   weeklyHours:3, color:'#f97316'},
+    {name:'과학',   weeklyHours:3, color:'#16a34a'},
+    {name:'실과',   weeklyHours:2, color:'#65a30d'},
+    {name:'체육',   weeklyHours:2, color:'#7c3aed'},
+    {name:'음악',   weeklyHours:2, color:'#db2777'},
+    {name:'미술',   weeklyHours:2, color:'#0891b2'},
+    {name:'영어',   weeklyHours:3, color:'#2563eb'},
+    {name:'창체',   weeklyHours:2, color:'#d97706'},
+    {name:'학교자율',weeklyHours:1, color:'#6366f1'},
+  ],
+  6: [
+    {name:'국어',   weeklyHours:5, color:'#ef4444'},
+    {name:'사회',   weeklyHours:3, color:'#ca8a04'},
+    {name:'도덕',   weeklyHours:1, color:'#065f46'},
+    {name:'수학',   weeklyHours:3, color:'#f97316'},
+    {name:'과학',   weeklyHours:3, color:'#16a34a'},
+    {name:'실과',   weeklyHours:2, color:'#65a30d'},
+    {name:'체육',   weeklyHours:2, color:'#7c3aed'},
+    {name:'음악',   weeklyHours:2, color:'#db2777'},
+    {name:'미술',   weeklyHours:2, color:'#0891b2'},
+    {name:'영어',   weeklyHours:3, color:'#2563eb'},
+    {name:'창체',   weeklyHours:2, color:'#d97706'},
+    {name:'학교자율',weeklyHours:1, color:'#6366f1'},
+  ],
+};
 const DEFAULT_ROOMS   = ['체육관','과학실','컴퓨터실','도서실','음악실','영어실'];
 
 /* ===========================================================
@@ -1026,10 +1142,10 @@ window.saLogin = saLogin;
 
 async function loadAllSchools() {
   const list = document.getElementById('sa-list');
-  list.innerHTML = '<div style="color:rgba(255,255,255,.3);text-align:center;padding:2rem"><div class="spinner"></div></div>';
+  list.innerHTML = '<div style="color:rgba(255,255,255,.3);text-align:center;padding:2rem"><div class="spinner" style="border-color:rgba(255,255,255,.15);border-top-color:var(--brand)"></div></div>';
   const schools = await fetchSchools();
   if (!schools.length) {
-    list.innerHTML = '<div style="color:rgba(255,255,255,.3);text-align:center;padding:2rem">등록된 학교가 없습니다.</div>';
+    list.innerHTML = '<div class="sa-empty">🏫 등록된 학교가 없습니다.</div>';
     return;
   }
   list.innerHTML = schools.map(s => `
@@ -1087,13 +1203,19 @@ async function createSchool() {
   q('#create-btn').textContent = '⏳ 생성 중...';
 
   const id = 'sch_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+  // 학년별 교과목 기본값 생성
+  const sbg = {};
+  [1,2,3,4,5,6].forEach(g => {
+    sbg[g] = DEFAULT_SUBJECTS_BY_GRADE[g].map((s,i) => ({...s, id:`sub${g}_${i}`}));
+  });
   const schoolData = {
     id, name,
     adminPassword: pw,
-    subjects:     DEFAULT_SUBJECTS.map((s,i) => ({...s, id:'sub'+i})),
+    subjectsByGrade: sbg,
+    subjects:     [],          // 하위호환 보존용 (빈 배열)
     specialRooms: DEFAULT_ROOMS.map((r,i) => ({id:'rm'+i, name:r})),
     classes:      [],
-    gradeConfig:  [3,3,3,3,3,3],   // 기본값: 전 학년 3반
+    gradeConfig:  [3,3,3,3,3,3],
     createdAt:    Date.now(),
   };
 
@@ -1120,14 +1242,79 @@ window.createSchool = createSchool;
    ADMIN SETUP
    =========================================================== */
 function initSetup() {
+  setupSubjGrade = 1;
+  // 학년 탭 초기화
+  document.querySelectorAll('.grade-tab').forEach((b,i) => {
+    b.classList.toggle('active', i === 0);
+  });
   renderSubjectList();
   renderRoomList();
   renderGradeGrid();
   renderClassList();
 }
 
+/* --- 학년별 교과목 헬퍼 --- */
+let setupSubjGrade = 1;  // 현재 설정 중인 학년
+
+function ensureSubjectsByGrade() {
+  if (!S.school) return;
+  if (!S.school.subjectsByGrade) {
+    // 구형 데이터 호환: school.subjects → 모든 학년 동일 적용
+    S.school.subjectsByGrade = {};
+    [1,2,3,4,5,6].forEach(g => {
+      S.school.subjectsByGrade[g] =
+        (S.school.subjects||[]).map(s=>({...s, id:s.id+'_g'+g}));
+      if (!S.school.subjectsByGrade[g].length) {
+        S.school.subjectsByGrade[g] =
+          DEFAULT_SUBJECTS_BY_GRADE[g].map((s,i)=>({...s, id:`sub${g}_${i}`}));
+      }
+    });
+  }
+}
+
+function getSubjectsForGrade(grade) {
+  ensureSubjectsByGrade();
+  return S.school?.subjectsByGrade?.[grade] || [];
+}
+
+function getCurrentClassGrade() {
+  if (!S.classId || !S.school) return null;
+  const cls = (S.school.classes||[]).find(c=>c.id===S.classId);
+  if (cls?.grade) return cls.grade;
+  const m = cls?.name?.match(/^(\d)/);
+  return m ? parseInt(m[1]) : null;
+}
+
+function getSubjectsForCurrentClass() {
+  const g = getCurrentClassGrade();
+  if (g && g >= 1 && g <= 6) return getSubjectsForGrade(g);
+  // 학년 불명 → 전 학년 합집합 (중복 제거)
+  ensureSubjectsByGrade();
+  const seen = new Set(), all = [];
+  [1,2,3,4,5,6].forEach(g => {
+    (S.school?.subjectsByGrade?.[g]||[]).forEach(s => {
+      if (!seen.has(s.name)) { seen.add(s.name); all.push(s); }
+    });
+  });
+  return all;
+}
+
+function setSubjGrade(grade, btn) {
+  setupSubjGrade = grade;
+  document.querySelectorAll('.grade-tab').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderSubjectList();
+}
+window.setSubjGrade = setSubjGrade;
+
 function renderSubjectList() {
-  const subjects = S.school?.subjects || [];
+  ensureSubjectsByGrade();
+  const subjects = getSubjectsForGrade(setupSubjGrade);
+  const total    = subjects.reduce((a,s)=>a+s.weeklyHours,0);
+
+  const lbl = q('#subj-total-label');
+  if (lbl) lbl.textContent = `주당 총 ${total}시간`;
+
   q('#subject-list').innerHTML = subjects.length ? subjects.map((s,i) => `
     <div class="list-item" id="subj-${i}">
       <div class="item-icon" style="background:${hexAlpha(s.color,.12)};color:${s.color}">${s.name[0]}</div>
@@ -1247,7 +1434,13 @@ window.applyGradeConfig = applyGradeConfig;
 
 function updateSubjHours(i, v) {
   if (!S.school) return;
-  S.school.subjects[i].weeklyHours = Math.max(1, parseInt(v)||1);
+  ensureSubjectsByGrade();
+  const subjects = S.school.subjectsByGrade[setupSubjGrade];
+  if (subjects && subjects[i]) {
+    subjects[i].weeklyHours = Math.max(1, parseInt(v)||1);
+    const lbl = q('#subj-total-label');
+    if (lbl) lbl.textContent = `주당 총 ${subjects.reduce((a,s)=>a+s.weeklyHours,0)}시간`;
+  }
 }
 window.updateSubjHours = updateSubjHours;
 
@@ -1257,17 +1450,22 @@ function addSubject() {
   const color = q('#new-subj-color').value;
   if (!name) { toast('교과명을 입력하세요.','error'); return; }
   if (!S.school) return;
-  S.school.subjects.push({ id:'sub'+Date.now(), name, weeklyHours:hours, color });
+  ensureSubjectsByGrade();
+  if (!S.school.subjectsByGrade[setupSubjGrade]) S.school.subjectsByGrade[setupSubjGrade] = [];
+  S.school.subjectsByGrade[setupSubjGrade].push({ id:'sub'+Date.now(), name, weeklyHours:hours, color });
   q('#new-subj-name').value = '';
   renderSubjectList();
-  toast(`${name} 추가됨`,'success');
+  toast(`${setupSubjGrade}학년 ${name} 추가됨`,'success');
 }
 window.addSubject = addSubject;
 
 function removeSubject(i) {
   if (!S.school) return;
-  const name = S.school.subjects[i]?.name;
-  S.school.subjects.splice(i,1);
+  ensureSubjectsByGrade();
+  const subjects = S.school.subjectsByGrade[setupSubjGrade];
+  if (!subjects) return;
+  const name = subjects[i]?.name;
+  subjects.splice(i,1);
   renderSubjectList();
   toast(`${name} 삭제됨`);
 }
@@ -1687,15 +1885,32 @@ function isCellLocked(cell, key) {
 }
 
 function getSubjColor(name) {
-  const found = (S.school?.subjects||[]).find(s=>s.name===name);
-  return found?.color || '#6b7280';
+  // 현재 학급 학년 기준으로 색상 탐색, 없으면 전 학년 검색
+  const subjects = getSubjectsForCurrentClass();
+  const found = subjects.find(s=>s.name===name);
+  if (found) return found.color;
+  // fallback: 전 학년 검색
+  if (S.school?.subjectsByGrade) {
+    for (const g of Object.values(S.school.subjectsByGrade)) {
+      const f = g.find(s=>s.name===name);
+      if (f) return f.color;
+    }
+  }
+  return '#6b7280';
 }
 
 /* ===========================================================
    SUBJECT PALETTE
    =========================================================== */
 function renderSubjectPalette() {
-  const subjects = S.school?.subjects || [];
+  const subjects = getSubjectsForCurrentClass();
+  const grade    = getCurrentClassGrade();
+  const gradeLbl = grade ? `${grade}학년` : '';
+
+  // 팔레트 헤더에 현재 학년 표시
+  const hdr = q('.sidebar-header');
+  if (hdr) hdr.textContent = `📚 ${gradeLbl} 과목 팔레트`;
+
   q('#subject-palette').innerHTML = subjects.map(s => {
     const cur = countSubj(s.name);
     const req = s.weeklyHours;
@@ -1721,14 +1936,20 @@ function countSubj(name) {
    HOUR TRACKER
    =========================================================== */
 function renderTracker() {
-  const subjects = S.school?.subjects || [];
+  const subjects = getSubjectsForCurrentClass();
+  const total    = subjects.reduce((a,s)=>a+s.weeklyHours, 0);
+  const used     = Object.values(S.ttData).filter(c=>c?.subject).length;
+
+  // 트래커 헤더에 총 시수 표시
+  const hdr = q('.tracker-head');
+  if (hdr) hdr.textContent = `📊 시수 현황 (${used}/${total}h)`;
+
   q('#hour-tracker').innerHTML = subjects.map(s => {
     const cur = countSubj(s.name);
     const req = s.weeklyHours;
     const pct = Math.min(100, Math.round(cur/req*100));
-    let cls='short', fillColor=getComputedStyle(document.documentElement).getPropertyValue('--danger').trim()||'#dc2626';
-    let label = `${cur}/${req}`;
-    if (cur >= req) { cls='ok'; fillColor=getComputedStyle(document.documentElement).getPropertyValue('--success').trim()||'#059669'; label=`✔ ${cur}`; }
+    let cls='short', fillColor='#dc2626', label=`${cur}/${req}`;
+    if (cur >= req) { cls='ok';   fillColor='#059669'; label=`✔ ${cur}`; }
     if (cur > req)  { cls='over'; fillColor='#d97706'; label=`⚠ ${cur}/${req}`; }
     return `
       <div class="tracker-item">
@@ -1764,10 +1985,10 @@ function onCellClick(key) {
     ? `📍 ${roomAssign.roomName} 배정됨 — 과목을 선택해 주세요.`
     : '과목을 선택하거나 드래그로 배정하세요.';
 
-  // 과목 선택
+  // 과목 선택 (현재 학급 학년 기준)
   const sel = q('#mcell-subject');
   sel.innerHTML = '<option value="">-- 과목 선택 --</option>';
-  (S.school?.subjects||[]).forEach(s => {
+  getSubjectsForCurrentClass().forEach(s => {
     const o = document.createElement('option'); o.value = s.name;
     o.textContent = `${s.name} (주 ${s.weeklyHours}시간)`;
     if (cell?.subject === s.name) o.selected = true;
