@@ -819,15 +819,14 @@ a{color:inherit;text-decoration:none}
       <div class="page-header-title">⚙️ 기초 설정</div>
       <div class="text-sm text-muted" id="setup-school-label">학교 이름</div>
     </div>
-    <div style="display:flex;gap:.5rem;margin-left:auto;flex-wrap:wrap">
-      <button class="btn btn-ghost btn-sm" id="btn-setup-back" onclick="skipSetup()">← 시간표로</button>
-      <button class="btn btn-primary btn-sm" onclick="saveSetup()">💾 저장하고 완료 →</button>
-    </div>
   </div>
   <div class="page-body-wide">
     <div class="alert alert-success">
       <strong>기초 설정 순서:</strong>
       <span style="color:var(--g700)">① 학급 구성 → ② 교시 시간 → ③ 교담 교사 → ④ 특별실 배정 → ⑤ 교과목(시수) 확인</span>
+    </div>
+    <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:var(--r);padding:.55rem .85rem;margin-bottom:.75rem;font-size:.8rem;color:#92400e">
+      📅 생성한 지 <strong>1년이 지난 학교(그룹)는 삭제될 수 있습니다.</strong> 데이터를 정기적으로 백업(엑셀 저장)해 두세요.
     </div>
 
     <div class="tabs">
@@ -966,14 +965,8 @@ a{color:inherit;text-decoration:none}
     <div id="tab-times" class="tab-panel">
       <div class="card">
         <div class="card-title" style="margin-bottom:.6rem">⏰ 학년별 교시 시간 설정</div>
-        <div class="alert alert-info" style="margin-bottom:.85rem;font-size:.82rem;line-height:1.5">
-          💡 학년마다 교시 시간이 다를 수 있습니다.<br>
-          기본값: <strong>1·2학년 5교시</strong> · <strong>3·4학년 6교시</strong> · <strong>5·6학년 6교시</strong><br>
-          교시를 추가하면 방과후·맞춤형 수업 시간도 표현할 수 있습니다.
-        </div>
         <div class="grade-tab-strip" id="times-grade-tabs" style="margin-bottom:.85rem">
-          <button class="grade-tab active" onclick="setTimesGrade(0,this)">기본값</button>
-          <button class="grade-tab" onclick="setTimesGrade(1,this)">1학년</button>
+          <button class="grade-tab active" onclick="setTimesGrade(1,this)">1학년</button>
           <button class="grade-tab" onclick="setTimesGrade(2,this)">2학년</button>
           <button class="grade-tab" onclick="setTimesGrade(3,this)">3학년</button>
           <button class="grade-tab" onclick="setTimesGrade(4,this)">4학년</button>
@@ -1119,6 +1112,11 @@ a{color:inherit;text-decoration:none}
       <button class="btn btn-ghost btn-sm" id="btn-admin-setup" onclick="goAdminSetup()" style="display:none">⚙️ 설정</button>
       <button class="btn btn-ghost btn-sm" onclick="logout()">로그아웃</button>
     </div>
+  </div>
+
+  <!-- 관리자 전용 1년 경과 안내 -->
+  <div id="admin-expire-notice" style="display:none;background:#fffbeb;border-bottom:1px solid #fcd34d;padding:.45rem 1rem;font-size:.78rem;color:#92400e;text-align:center">
+    📅 생성한 지 <strong>1년이 지난 학교(그룹)는 삭제될 수 있습니다.</strong> 📊 엑셀 저장으로 데이터를 백업해 두세요.
   </div>
 
   <!-- Body -->
@@ -1571,18 +1569,7 @@ const DEFAULT_SUBJECTS_BY_GRADE = {
 };
 const DEFAULT_ROOMS = ['강당','과학실1','과학실2','컴퓨터실1','컴퓨터실2','도서실','음악실','영어실'];
 
-const DEFAULT_TEACHER_TYPES = [
-  {
-    id: 'tt_sports', name: '스포츠 강사', builtin: true,
-    mode: 'collaborative', subjectFilter: ['체육'], gradeFilter: null,
-    note: '협업 수업 · 체육 교과만',
-  },
-  {
-    id: 'tt_native', name: '원어민 강사', builtin: true,
-    mode: 'collaborative', subjectFilter: ['영어'], gradeFilter: null,
-    note: '협업 수업 · 영어 교과만',
-  },
-];
+const DEFAULT_TEACHER_TYPES = [];
 
 /* ===========================================================
    STATE
@@ -2306,7 +2293,7 @@ function initSetup() {
   document.querySelectorAll('#subj-grade-tabs .grade-tab').forEach((b,i) => {
     b.classList.toggle('active', i === 0);
   });
-  timesGrade = 0;
+  timesGrade = 1;
   document.querySelectorAll('#times-grade-tabs .grade-tab').forEach((b,i) => {
     b.classList.toggle('active', i === 0);
   });
@@ -2615,16 +2602,7 @@ window.resetPeriodTimes = resetPeriodTimes;
 
 function ensureTeacherTypes() {
   if (!S.school) return;
-  if (!S.school.teacherTypes || !S.school.teacherTypes.length) {
-    S.school.teacherTypes = DEFAULT_TEACHER_TYPES.map(t => ({...t}));
-  } else {
-    // 기존 학교 데이터에 builtin 플래그 보정
-    DEFAULT_TEACHER_TYPES.forEach(def => {
-      const found = S.school.teacherTypes.find(t => t.id === def.id);
-      if (found) { found.builtin = true; found.subjectFilter = def.subjectFilter; found.note = def.note; }
-      else S.school.teacherTypes.unshift({...def});
-    });
-  }
+  if (!S.school.teacherTypes) S.school.teacherTypes = [];
   if (!S.school.specialtyTeachers) S.school.specialtyTeachers = [];
 }
 
@@ -3208,12 +3186,8 @@ window.saveTabRooms = saveTabRooms;
 async function saveTabSubjects() {
   if (!S.school) return;
   await saveSchool(S.school);
-  toast('교과목 저장 완료 ✔ 기초 설정이 모두 완료되었습니다 🎉', 'success');
-  // 완료 → 시간표로 이동
-  setTimeout(() => {
-    initTimetable();
-    goTo('screen-timetable');
-  }, 800);
+  toast('기초 설정 완료 ✔ 특별실 배정 화면으로 이동합니다 🎉', 'success');
+  setTimeout(() => goToRoomSchedule(), 800);
 }
 window.saveTabSubjects = saveTabSubjects;
 
@@ -3492,6 +3466,14 @@ function initTimetable() {
   q('#btn-admin-setup').style.display    = isAdmin ? 'flex' : 'none';
   q('#btn-clear-all').style.display      = isAdmin ? 'flex' : 'none';
   q('#btn-room-schedule').style.display  = isAdmin ? 'flex' : 'none';
+
+  // 관리자 전용 1년 경과 안내
+  const noticeEl = q('#admin-expire-notice');
+  if (noticeEl) {
+    const age     = Date.now() - (school.createdAt || 0);
+    const expired = age >= 365 * 24 * 60 * 60 * 1000 * 0.9; // 9개월 이상
+    noticeEl.style.display = (isAdmin && expired) ? 'block' : 'none';
+  }
 
   // Populate class select (grouped by grade)
   const sel = q('#tt-class-select');
