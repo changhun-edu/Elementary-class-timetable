@@ -199,10 +199,12 @@ a{color:inherit;text-decoration:none}
 .landing-hr{height:1px;background:var(--g100);margin:1.4rem 0}
 .landing-actions{display:flex;flex-direction:column;gap:.7rem}
 .easter-zone{
-  margin-top:1.75rem;text-align:center;color:var(--g300);font-size:.72rem;
-  cursor:default;user-select:none;transition:color .2s;
+  position:fixed;bottom:.85rem;right:1.1rem;
+  color:rgba(150,150,160,.45);font-size:.7rem;
+  cursor:default;user-select:none;transition:color .25s;
+  z-index:9000;letter-spacing:.01em;pointer-events:all;
 }
-.easter-zone:hover{color:var(--g400)}
+.easter-zone:hover{color:rgba(100,100,120,.7)}
 
 /* ============================================================ */
 /* SCHOOL SEARCH                                                */
@@ -524,13 +526,12 @@ a{color:inherit;text-decoration:none}
           ✨ 새 학교 만들기 <span class="badge badge-orange" style="font-size:.7rem">연구부장</span>
         </button>
       </div>
-      <div class="landing-hr"></div>
-      <div class="easter-zone" id="easter-zone" onclick="easterClick()" title="클릭 5회">
-        ⚙ v1.0.0 — Powered by 스마트시간표
-      </div>
     </div>
   </div>
 </div>
+
+<!-- 이스터에그: 화면 우측 하단 고정 (모든 화면에서 표시) -->
+<div class="easter-zone" id="easter-zone" onclick="easterClick()">만든이 2026 최창훈</div>
 
 <!-- ═══════════════════════════════════════════════════════ -->
 <!-- SCREEN 2: JOIN SCHOOL                                   -->
@@ -988,10 +989,20 @@ let eClicks = 0, eTimer = null;
 function easterClick() {
   eClicks++;
   if (eTimer) clearTimeout(eTimer);
-  eTimer = setTimeout(() => { eClicks = 0; }, 2200);
+  eTimer = setTimeout(() => {
+    eClicks = 0;
+    const ez = document.getElementById('easter-zone');
+    if (ez) ez.style.color = '';
+  }, 2500);
+
+  // 클릭 수에 따라 살짝 밝아짐 (암시적 피드백)
+  const ez = document.getElementById('easter-zone');
+  if (ez) ez.style.color = `rgba(100,100,120,${0.2 + eClicks * 0.15})`;
+
   if (eClicks >= 5) {
     eClicks = 0;
-    document.getElementById('sa-login').style.display = 'block';
+    if (ez) ez.style.color = '';
+    document.getElementById('sa-login').style.display    = 'block';
     document.getElementById('sa-dashboard').style.display = 'none';
     document.getElementById('sa-pw').value = '';
     goTo('screen-superadmin');
