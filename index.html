@@ -514,6 +514,21 @@ a{color:inherit;text-decoration:none}
 .teacher-count-label{font-size:.92rem;font-weight:800;color:var(--g800)}
 .teacher-count-sub{font-size:.78rem;color:var(--g400);margin-top:2px}
 /* ============================================================ */
+/* ============================================================ */
+/* NAME BUILDER (create school)                                */
+/* ============================================================ */
+.name-builder{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap}
+.name-part{flex:2;min-width:100px}
+.name-part-sm{flex:1;min-width:70px}
+.name-sep{font-size:1.1rem;font-weight:900;color:var(--g300);flex-shrink:0;user-select:none;padding:0 .1rem}
+.name-preview{
+  display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;
+  margin-top:.6rem;padding:.55rem .85rem;
+  background:var(--brand-50);border:1.5px solid var(--brand);border-radius:var(--r);
+}
+.name-preview-label{font-size:.75rem;font-weight:700;color:var(--brand-dark);white-space:nowrap}
+.name-preview-value{flex:1;font-size:.95rem;font-weight:900;color:var(--brand-dark);word-break:break-all}
+
 .grade-tab-strip{display:flex;gap:.3rem;flex-wrap:wrap;margin-bottom:.85rem}
 .grade-tab{
   padding:.3rem .75rem;border-radius:var(--r);font-size:.82rem;font-weight:700;
@@ -747,11 +762,47 @@ a{color:inherit;text-decoration:none}
 
     <div class="card">
       <div class="card-title">🏫 학교 기본 정보</div>
+
+      <!-- 학교 이름 입력 -->
       <div class="form-group">
         <label class="form-label">학교 이름 <span style="color:var(--danger)">*</span></label>
-        <input type="text" id="create-name" class="form-input" placeholder="예: 행복초등학교">
+
+        <!-- 조합 빌더 -->
+        <div class="name-builder">
+          <input type="text" id="create-region" class="form-input name-part"
+                 placeholder="지역명 (예: 서울, 강남, 행복동)"
+                 oninput="buildSchoolName()">
+          <span class="name-sep">+</span>
+          <input type="text" id="create-school" class="form-input name-part"
+                 placeholder="학교명 (예: 행복초등학교)"
+                 oninput="buildSchoolName()">
+          <span class="name-sep">+</span>
+          <input type="text" id="create-suffix" class="form-input name-part name-part-sm"
+                 placeholder="구분번호 (선택)"
+                 oninput="buildSchoolName()">
+        </div>
+        <div class="form-hint" style="margin-top:.5rem">
+          💡 같은 이름의 학교가 많습니다. <strong>지역명 + 학교명</strong> 또는 <strong>학교명 + 숫자</strong> 조합으로 구분하세요.<br>
+          <span style="color:var(--g400)">예시: <em>서울행복초등학교</em> · <em>행복초등학교(강남)</em> · <em>행복초-2반그룹</em></span>
+        </div>
+
+        <!-- 최종 이름 미리보기 -->
+        <div class="name-preview" id="name-preview" style="display:none">
+          <span class="name-preview-label">생성될 이름</span>
+          <span class="name-preview-value" id="name-preview-value"></span>
+          <button class="btn btn-ghost btn-sm" style="font-size:.72rem;padding:.2rem .5rem"
+                  onclick="useCustomName()">직접 수정</button>
+        </div>
+
+        <!-- 직접 입력 (고급) -->
+        <input type="text" id="create-name" class="form-input" placeholder="학교 이름 (위에서 자동 완성됩니다)"
+               style="margin-top:.5rem" oninput="onCreateNameInput()">
         <div id="create-name-err" class="form-error">⚠️ 학교 이름을 입력해주세요.</div>
+        <div id="create-name-dup-warn" class="form-error" style="display:none;color:var(--brand)">
+          ⚠️ 이미 같은 이름의 학교가 있습니다. 지역명이나 구분번호를 추가해 구분해 주세요.
+        </div>
       </div>
+
       <div class="form-group">
         <label class="form-label">관리자(접속) 비밀번호 <span style="color:var(--danger)">*</span></label>
         <input type="password" id="create-pw" class="form-input" placeholder="교직원에게 공유할 비밀번호">
@@ -1897,6 +1948,62 @@ async function changeSchoolPw() {
 window.changeSchoolPw = changeSchoolPw;
 
 /* ===========================================================
+   CREATE SCHOOL NAME BUILDER
+   =========================================================== */
+let _nameManuallyEdited = false;
+
+function buildSchoolName() {
+  const region = (q('#create-region')?.value || '').trim();
+  const school = (q('#create-school')?.value || '').trim();
+  const suffix = (q('#create-suffix')?.value || '').trim();
+
+  let combined = '';
+  if (region && school) combined = region + school;
+  else if (school) combined = school;
+  else if (region) combined = region;
+  if (combined && suffix) combined += suffix;
+
+  const preview    = q('#name-preview');
+  const previewVal = q('#name-preview-value');
+  const nameInput  = q('#create-name');
+
+  if (combined) {
+    if (preview)    { preview.style.display = 'flex'; }
+    if (previewVal)   previewVal.textContent = combined;
+    if (nameInput && !_nameManuallyEdited) nameInput.value = combined;
+    checkDuplicateName(combined);
+  } else {
+    if (preview)    preview.style.display = 'none';
+    if (nameInput && !_nameManuallyEdited) nameInput.value = '';
+  }
+}
+window.buildSchoolName = buildSchoolName;
+
+function useCustomName() {
+  _nameManuallyEdited = true;
+  const el = q('#create-name');
+  if (el) { el.focus(); el.select(); }
+}
+window.useCustomName = useCustomName;
+
+function onCreateNameInput() {
+  _nameManuallyEdited = true;
+  const val = (q('#create-name')?.value || '').trim();
+  checkDuplicateName(val);
+}
+window.onCreateNameInput = onCreateNameInput;
+
+async function checkDuplicateName(name) {
+  const warn = q('#create-name-dup-warn');
+  if (!warn) return;
+  if (!name) { warn.style.display = 'none'; return; }
+  try {
+    const schools = await fetchSchools();
+    warn.style.display = schools.some(s => s.name.trim() === name) ? 'block' : 'none';
+  } catch { warn.style.display = 'none'; }
+}
+
+/* ===========================================================
    LANDING ACTIONS
    =========================================================== */
 function goToManage() {
@@ -1961,6 +2068,15 @@ function goToCreate() {
   document.getElementById('create-limit-alert').style.display = canCreate ? 'none' : 'flex';
   document.getElementById('create-quota-info').style.display = canCreate ? 'flex' : 'none';
   document.getElementById('create-btn').disabled = !canCreate;
+  // 빌더 초기화
+  _nameManuallyEdited = false;
+  ['create-region','create-school','create-suffix','create-name','create-pw'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  const prev = document.getElementById('name-preview');
+  if (prev) prev.style.display = 'none';
+  const warn = document.getElementById('create-name-dup-warn');
+  if (warn) warn.style.display = 'none';
   goTo('screen-create');
 }
 window.goToCreate = goToCreate;
@@ -1972,52 +2088,73 @@ async function createSchool() {
   const { canCreate } = rlCheck();
   if (!canCreate) { toast('오늘 생성 한도(30개)에 도달했습니다.','error'); return; }
 
-  const name = q('#create-name').value.trim();
-  const pw   = q('#create-pw').value.trim();
-  q('#create-name-err').style.display = name ? 'none' : 'block';
-  q('#create-pw-err').style.display   = pw   ? 'none' : 'block';
-  if (!name || !pw) return;
+  // ── 빌더 필드 → #create-name 강제 동기화 ──────────────────
+  if (!_nameManuallyEdited) {
+    const region = (q('#create-region')?.value || '').trim();
+    const school = (q('#create-school')?.value || '').trim();
+    const suffix = (q('#create-suffix')?.value || '').trim();
+    let combined = '';
+    if (region && school) combined = region + school;
+    else if (school) combined = school;
+    else if (region) combined = region;
+    if (combined && suffix) combined += suffix;
+    if (combined) {
+      const nameEl = q('#create-name');
+      if (nameEl) nameEl.value = combined;
+    }
+  }
+  // ───────────────────────────────────────────────────────────
 
-  q('#create-btn').disabled = true;
-  q('#create-btn').textContent = '⏳ 생성 중...';
+  const name = (q('#create-name')?.value || '').trim();
+  const pw   = (q('#create-pw')?.value   || '').trim();
 
-  const id = 'sch_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
-  // 학년별 교과목 기본값 생성
-  const sbg = {};
-  [1,2,3,4,5,6].forEach(g => {
-    sbg[g] = DEFAULT_SUBJECTS_BY_GRADE[g].map((s,i) => ({...s, id:`sub${g}_${i}`}));
-  });
-  const schoolData = {
-    id, name,
-    adminPassword: pw,
-    subjectsByGrade: sbg,
-    subjects:     [],          // 하위호환 보존용 (빈 배열)
-    specialRooms: DEFAULT_ROOMS.map((r,i) => ({id:'rm'+i, name:r})),
-    classes:      [],
-    gradeConfig:  [3,3,3,3,3,3],
-    periodTimes:  { default: DEFAULT_PERIOD_TIMES.map(t=>({...t})) },
-    teacherTypes: DEFAULT_TEACHER_TYPES.map(t => ({...t})),
-    specialtyTeacherCount: 0,
-    specialtySubjects:     [],
-    createdAt:    Date.now(),
-  };
+  const nameErr = q('#create-name-err');
+  const pwErr   = q('#create-pw-err');
+  if (nameErr) nameErr.style.display = name ? 'none' : 'block';
+  if (pwErr)   pwErr.style.display   = pw   ? 'none' : 'block';
+  if (!name || !pw) { toast('학교 이름과 비밀번호를 입력해주세요.', 'error'); return; }
 
-  await saveSchool(schoolData);
-  rlRecord();
+  const btn = q('#create-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ 생성 중...'; }
 
-  S.school = schoolData;
-  S.user   = { name: '관리자', role: 'admin', className: null, classId: null };
-  saveSession();
+  try {
+    const id = 'sch_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+    const sbg = {};
+    [1,2,3,4,5,6].forEach(g => {
+      sbg[g] = DEFAULT_SUBJECTS_BY_GRADE[g].map((s,i) => ({...s, id:`sub${g}_${i}`}));
+    });
+    const schoolData = {
+      id, name,
+      adminPassword: pw,
+      subjectsByGrade: sbg,
+      subjects:     [],
+      specialRooms: DEFAULT_ROOMS.map((r,i) => ({id:'rm'+i, name:r})),
+      classes:      [],
+      gradeConfig:  [3,3,3,3,3,3],
+      periodTimes:  { default: DEFAULT_PERIOD_TIMES.map(t=>({...t})) },
+      teacherTypes: DEFAULT_TEACHER_TYPES.map(t => ({...t})),
+      specialtyTeacherCount: 0,
+      specialtySubjects:     [],
+      createdAt:    Date.now(),
+    };
 
-  toast(`"${name}" 학교 생성 완료! 🎉`, 'success');
+    await saveSchool(schoolData);
+    rlRecord();
 
-  // Init setup screen
-  q('#setup-school-label').textContent = name;
-  initSetup();
-  goTo('screen-setup');
+    S.school = schoolData;
+    S.user   = { name: '관리자', role: 'admin', className: null, classId: null };
+    saveSession();
 
-  q('#create-btn').disabled = false;
-  q('#create-btn').textContent = '🏫 학교 만들고 기초 설정하기 →';
+    toast(`"${name}" 생성 완료! 🎉`, 'success');
+    q('#setup-school-label').textContent = name;
+    initSetup();
+    goTo('screen-setup');
+  } catch(err) {
+    console.error('createSchool error:', err);
+    toast('학교 생성 중 오류가 발생했습니다. 다시 시도해주세요.', 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🏫 학교 만들고 기초 설정하기 →'; }
+  }
 }
 window.createSchool = createSchool;
 
@@ -2026,21 +2163,22 @@ window.createSchool = createSchool;
    =========================================================== */
 function initSetup() {
   setupSubjGrade = 1;
-  // 기본 활성 탭: 학급 구성 (교과목은 자동 설정되므로)
+  // 기본 활성 탭: 학급 구성
   document.querySelectorAll('#screen-setup .tab-panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('#screen-setup .tab-btn').forEach(b => b.classList.remove('active'));
   q('#tab-classes')?.classList.add('active');
-  // 탭 버튼 중 학급 구성 활성화
   document.querySelectorAll('#screen-setup .tab-btn').forEach(b => {
     if (b.textContent.includes('학급')) b.classList.add('active');
   });
-  // 학년 탭 초기화
-  document.querySelectorAll('.grade-tab').forEach((b,i) => {
+  // 학년 탭 초기화 (설정 화면 내부로 범위 한정)
+  document.querySelectorAll('#subj-grade-tabs .grade-tab').forEach((b,i) => {
+    b.classList.toggle('active', i === 0);
+  });
+  timesGrade = 0;
+  document.querySelectorAll('#times-grade-tabs .grade-tab').forEach((b,i) => {
     b.classList.toggle('active', i === 0);
   });
   ensureSubjectsByGrade();
-  timesGrade = 0;
-  document.querySelectorAll('#times-grade-tabs .grade-tab').forEach((b,i) => b.classList.toggle('active', i===0));
   renderSubjectList();
   renderRoomList();
   renderGradeGrid();
