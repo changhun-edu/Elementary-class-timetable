@@ -1,0 +1,1782 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>스마트 시간표 · 선생님 협업 플랫폼</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet">
+<style>
+/* ============================================================ */
+/* CSS VARIABLES & RESET                                        */
+/* ============================================================ */
+:root {
+  --brand:        #2563eb;
+  --brand-dark:   #1e40af;
+  --brand-50:     #eff6ff;
+  --brand-100:    #dbeafe;
+  --success:      #059669;
+  --success-bg:   #d1fae5;
+  --danger:       #dc2626;
+  --danger-bg:    #fee2e2;
+  --warn:         #d97706;
+  --warn-bg:      #fef3c7;
+  --purple:       #7c3aed;
+  --purple-bg:    #f5f3ff;
+  --g50:#f9fafb; --g100:#f3f4f6; --g200:#e5e7eb;
+  --g300:#d1d5db; --g400:#9ca3af; --g500:#6b7280;
+  --g600:#4b5563; --g700:#374151; --g800:#1f2937; --g900:#111827;
+  --white:#ffffff;
+  --sh-sm: 0 1px 2px rgba(0,0,0,.05);
+  --sh:    0 1px 3px rgba(0,0,0,.1),0 1px 2px rgba(0,0,0,.06);
+  --sh-md: 0 4px 6px rgba(0,0,0,.07),0 2px 4px rgba(0,0,0,.06);
+  --sh-lg: 0 10px 15px rgba(0,0,0,.1),0 4px 6px rgba(0,0,0,.05);
+  --sh-xl: 0 20px 25px rgba(0,0,0,.1),0 8px 10px rgba(0,0,0,.04);
+  --r-sm:4px; --r:8px; --r-md:12px; --r-lg:16px; --r-xl:20px; --r-2xl:28px;
+  --t:.18s ease;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px;scroll-behavior:smooth}
+body{
+  font-family:'Pretendard Variable','Pretendard',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+  background:var(--g50);color:var(--g800);line-height:1.6;min-height:100vh;
+}
+input,select,button{font-family:inherit}
+a{color:inherit;text-decoration:none}
+
+/* ============================================================ */
+/* SCREEN SYSTEM                                                */
+/* ============================================================ */
+.screen{display:none;min-height:100vh;flex-direction:column}
+.screen.active{display:flex;animation:screenIn .28s ease}
+@keyframes screenIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* ============================================================ */
+/* BUTTONS                                                      */
+/* ============================================================ */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:.45rem;
+  padding:.65rem 1.25rem;border-radius:var(--r);font-size:.9rem;font-weight:600;
+  cursor:pointer;transition:all var(--t);border:none;white-space:nowrap;
+}
+.btn-primary{background:var(--brand);color:#fff;box-shadow:0 2px 8px rgba(37,99,235,.25)}
+.btn-primary:hover{background:var(--brand-dark);box-shadow:0 4px 12px rgba(37,99,235,.35);transform:translateY(-1px)}
+.btn-primary:active{transform:translateY(0)}
+.btn-secondary{background:var(--g100);color:var(--g700)}
+.btn-secondary:hover{background:var(--g200)}
+.btn-outline{background:transparent;color:var(--brand);border:2px solid var(--brand-100)}
+.btn-outline:hover{background:var(--brand-50);border-color:var(--brand)}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-danger:hover{background:#b91c1c}
+.btn-ghost{background:transparent;color:var(--g500);border:1px solid var(--g200)}
+.btn-ghost:hover{background:var(--g100);color:var(--g700)}
+.btn-sm{padding:.38rem .85rem;font-size:.82rem}
+.btn-lg{padding:.9rem 1.75rem;font-size:1rem;border-radius:var(--r-lg)}
+.btn-block{width:100%}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none!important;box-shadow:none!important}
+.btn-icon{
+  width:30px;height:30px;border-radius:6px;display:flex;align-items:center;
+  justify-content:center;background:transparent;border:none;cursor:pointer;
+  font-size:.82rem;color:var(--g400);transition:all var(--t);
+}
+.btn-icon:hover{background:var(--g100);color:var(--g700)}
+.btn-icon.red:hover{background:var(--danger-bg);color:var(--danger)}
+.btn-icon.blue:hover{background:var(--brand-50);color:var(--brand)}
+
+/* ============================================================ */
+/* FORM ELEMENTS                                                */
+/* ============================================================ */
+.form-group{margin-bottom:.9rem}
+.form-label{display:block;font-size:.82rem;font-weight:600;color:var(--g700);margin-bottom:.35rem}
+.form-input,.form-select{
+  width:100%;padding:.62rem .85rem;border:1.5px solid var(--g200);border-radius:var(--r);
+  font-size:.9rem;color:var(--g800);background:#fff;transition:border-color var(--t),box-shadow var(--t);
+}
+.form-input:focus,.form-select:focus{
+  outline:none;border-color:var(--brand);box-shadow:0 0 0 3px rgba(37,99,235,.1)
+}
+.form-hint{font-size:.78rem;color:var(--g400);margin-top:.3rem}
+.form-error{font-size:.78rem;color:var(--danger);margin-top:.3rem;display:none}
+.hours-input{
+  width:58px;padding:.35rem .5rem;border:1.5px solid var(--g200);border-radius:6px;
+  font-size:.85rem;text-align:center;
+}
+.hours-input:focus{outline:none;border-color:var(--brand)}
+
+/* ============================================================ */
+/* PAGE SHELL                                                   */
+/* ============================================================ */
+.page-header{
+  background:#fff;border-bottom:1px solid var(--g200);padding:.85rem 1.5rem;
+  display:flex;align-items:center;gap:1rem;position:sticky;top:0;z-index:50;
+}
+.page-header-title{font-size:1.05rem;font-weight:800;color:var(--g900)}
+.page-body{flex:1;padding:1.75rem 1.5rem;max-width:720px;margin:0 auto;width:100%}
+.page-body-wide{flex:1;padding:1.75rem 1.5rem;max-width:960px;margin:0 auto;width:100%}
+
+/* ============================================================ */
+/* CARDS                                                        */
+/* ============================================================ */
+.card{background:#fff;border-radius:var(--r-lg);padding:1.4rem;box-shadow:var(--sh);border:1px solid var(--g200);margin-bottom:1rem}
+.card-title{font-size:.9rem;font-weight:700;color:var(--g900);margin-bottom:1rem;padding-bottom:.75rem;border-bottom:1px solid var(--g100)}
+
+/* ============================================================ */
+/* BADGES & ALERTS                                              */
+/* ============================================================ */
+.badge{display:inline-flex;align-items:center;gap:.3rem;padding:.22rem .6rem;border-radius:20px;font-size:.75rem;font-weight:700}
+.badge-blue{background:var(--brand-100);color:var(--brand-dark)}
+.badge-green{background:var(--success-bg);color:var(--success)}
+.badge-red{background:var(--danger-bg);color:var(--danger)}
+.badge-gray{background:var(--g100);color:var(--g600)}
+.badge-purple{background:var(--purple-bg);color:var(--purple)}
+.badge-orange{background:var(--warn-bg);color:var(--warn)}
+
+.alert{padding:.75rem 1rem;border-radius:var(--r);font-size:.85rem;display:flex;align-items:flex-start;gap:.6rem;margin-bottom:1rem}
+.alert-info{background:var(--brand-50);color:var(--brand-dark);border:1px solid var(--brand-100)}
+.alert-warn{background:var(--warn-bg);color:#92400e;border:1px solid #fde68a}
+.alert-danger{background:var(--danger-bg);color:#991b1b;border:1px solid #fecaca}
+.alert-success{background:var(--success-bg);color:#065f46;border:1px solid #a7f3d0}
+
+/* ============================================================ */
+/* TABS                                                         */
+/* ============================================================ */
+.tabs{display:flex;gap:.2rem;background:var(--g100);padding:4px;border-radius:var(--r);margin-bottom:1.2rem}
+.tab-btn{
+  flex:1;padding:.48rem;border:none;background:transparent;border-radius:7px;
+  font-size:.85rem;font-weight:600;font-family:inherit;color:var(--g500);cursor:pointer;transition:all var(--t);
+}
+.tab-btn.active{background:#fff;color:var(--brand);box-shadow:var(--sh-sm)}
+.tab-panel{display:none}
+.tab-panel.active{display:block;animation:fadePanel .2s ease}
+@keyframes fadePanel{from{opacity:0}to{opacity:1}}
+
+/* ============================================================ */
+/* LIST ITEMS                                                   */
+/* ============================================================ */
+.list-wrap{display:flex;flex-direction:column;gap:.45rem}
+.list-item{
+  display:flex;align-items:center;gap:.7rem;padding:.7rem .9rem;
+  background:var(--g50);border:1px solid var(--g200);border-radius:var(--r);
+  transition:all var(--t);
+}
+.list-item:hover{background:#fff;box-shadow:var(--sh-sm)}
+.item-icon{
+  width:32px;height:32px;border-radius:8px;display:flex;align-items:center;
+  justify-content:center;font-size:.82rem;font-weight:800;flex-shrink:0;
+}
+.item-text{flex:1;min-width:0}
+.item-title{font-size:.88rem;font-weight:600;color:var(--g800)}
+.item-sub{font-size:.75rem;color:var(--g400)}
+.item-actions{display:flex;gap:.3rem;flex-shrink:0}
+.add-row{display:flex;gap:.5rem;margin-top:.85rem;flex-wrap:wrap}
+.add-row .form-input{flex:1;min-width:100px}
+
+/* ============================================================ */
+/* LANDING                                                      */
+/* ============================================================ */
+#screen-landing{
+  background:linear-gradient(140deg,#1e3a8a 0%,#1d4ed8 35%,#2563eb 65%,#3b82f6 100%);
+  align-items:center;justify-content:center;padding:2rem;position:relative;overflow:hidden;
+}
+#screen-landing::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(circle at 20% 30%,rgba(255,255,255,.06) 0%,transparent 50%),
+             radial-gradient(circle at 80% 70%,rgba(255,255,255,.04) 0%,transparent 40%);
+}
+.landing-card{
+  background:rgba(255,255,255,.97);backdrop-filter:blur(20px);border-radius:var(--r-2xl);
+  padding:2.75rem 2.5rem;max-width:420px;width:100%;
+  box-shadow:var(--sh-xl),0 0 0 1px rgba(255,255,255,.15);position:relative;z-index:1;
+}
+.logo-row{display:flex;align-items:center;gap:.75rem;margin-bottom:.4rem}
+.logo-badge{
+  width:46px;height:46px;
+  background:linear-gradient(135deg,var(--brand) 0%,var(--brand-dark) 100%);
+  border-radius:var(--r-lg);display:flex;align-items:center;justify-content:center;
+  font-size:1.35rem;box-shadow:0 4px 14px rgba(37,99,235,.35);flex-shrink:0;
+}
+.logo-name{font-size:1.4rem;font-weight:900;color:var(--g900);letter-spacing:-.04em}
+.logo-tagline{color:var(--g400);font-size:.82rem;margin-left:58px;margin-bottom:2rem}
+.landing-hr{height:1px;background:var(--g100);margin:1.4rem 0}
+.landing-actions{display:flex;flex-direction:column;gap:.7rem}
+.easter-zone{
+  margin-top:1.75rem;text-align:center;color:var(--g300);font-size:.72rem;
+  cursor:default;user-select:none;transition:color .2s;
+}
+.easter-zone:hover{color:var(--g400)}
+
+/* ============================================================ */
+/* SCHOOL SEARCH                                                */
+/* ============================================================ */
+.school-result{
+  display:flex;align-items:center;gap:.75rem;padding:.7rem .9rem;
+  border:1.5px solid var(--g200);border-radius:var(--r);cursor:pointer;
+  transition:all var(--t);background:#fff;margin-bottom:.45rem;
+}
+.school-result:hover{border-color:var(--brand);background:var(--brand-50)}
+.school-result.selected{border-color:var(--brand);background:var(--brand-50);box-shadow:0 0 0 3px rgba(37,99,235,.08)}
+
+/* ============================================================ */
+/* TIMETABLE SCREEN                                             */
+/* ============================================================ */
+#screen-timetable{background:var(--g50)}
+.tt-header{
+  background:#fff;border-bottom:1px solid var(--g200);padding:.65rem 1.25rem;
+  display:flex;align-items:center;justify-content:space-between;gap:1rem;
+  position:sticky;top:0;z-index:100;box-shadow:var(--sh-sm);flex-wrap:wrap;
+}
+.tt-header-left{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap}
+.tt-school-name{font-size:.98rem;font-weight:900;color:var(--g900);letter-spacing:-.02em}
+.tt-user-chip{
+  font-size:.78rem;color:var(--g500);padding:.22rem .7rem;
+  background:var(--g100);border-radius:20px;font-weight:500;
+}
+.tt-header-right{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}
+.sync-dot{
+  width:8px;height:8px;border-radius:50%;background:var(--g300);
+  display:inline-block;margin-right:.3rem;transition:background .3s;
+}
+.sync-dot.live{background:var(--success);box-shadow:0 0 0 3px rgba(5,150,105,.15);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+.class-select{
+  padding:.42rem .75rem;border:1.5px solid var(--g200);border-radius:var(--r);
+  font-size:.85rem;font-family:inherit;color:var(--g700);background:#fff;
+  cursor:pointer;font-weight:700;
+}
+.class-select:focus{outline:none;border-color:var(--brand)}
+
+.tt-layout{display:flex;flex:1;overflow:hidden;min-height:0}
+
+/* Sidebar */
+.tt-sidebar{
+  width:210px;background:#fff;border-right:1px solid var(--g200);
+  display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;
+}
+.sidebar-header{
+  padding:.85rem .85rem .65rem;font-size:.72rem;font-weight:700;
+  color:var(--g400);text-transform:uppercase;letter-spacing:.06em;
+  border-bottom:1px solid var(--g100);
+}
+.subject-palette{flex:1;overflow-y:auto;padding:.6rem;display:flex;flex-direction:column;gap:.35rem}
+
+.subject-chip{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:.48rem .7rem;border-radius:var(--r);cursor:grab;
+  transition:all var(--t);border:1.5px solid transparent;user-select:none;
+}
+.subject-chip:hover{transform:translateX(3px);box-shadow:var(--sh-sm)}
+.subject-chip:active{cursor:grabbing}
+.subject-chip.dragging{opacity:.4;transform:scale(.95)}
+.chip-name{font-size:.83rem;font-weight:700}
+.chip-badge{font-size:.72rem;padding:.08rem .42rem;border-radius:10px;font-weight:800}
+
+/* Main grid area */
+.tt-main{flex:1;overflow:auto;padding:1.1rem}
+.tt-grid-wrap{
+  background:#fff;border-radius:var(--r-lg);box-shadow:var(--sh-md);
+  border:1px solid var(--g200);overflow:hidden;display:inline-block;min-width:100%;
+}
+.tt-table{border-collapse:collapse;width:100%;min-width:580px}
+.tt-table th,.tt-table td{border:1px solid var(--g200)}
+.tt-table thead th{
+  background:var(--g50);padding:.7rem 1rem;font-size:.82rem;font-weight:800;
+  color:var(--g600);text-align:center;white-space:nowrap;
+}
+.tt-table thead th:first-child{background:var(--g100);min-width:56px;color:var(--g400);font-size:.75rem}
+.period-cell{
+  background:var(--g50);padding:.5rem .65rem;font-size:.75rem;font-weight:700;
+  color:var(--g500);text-align:center;white-space:nowrap;
+}
+.tt-cell{
+  width:116px;min-width:96px;height:70px;padding:3px;vertical-align:middle;
+  position:relative;transition:background var(--t);
+}
+.tt-cell.over-ok{background:var(--brand-50);outline:2px dashed var(--brand);outline-offset:-2px}
+.tt-cell.over-bad{background:var(--danger-bg);outline:2px dashed var(--danger);outline-offset:-2px}
+
+.cell-inner{
+  width:100%;height:100%;border-radius:6px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:1px;cursor:pointer;
+  position:relative;overflow:hidden;transition:all var(--t);
+}
+.cell-inner.empty{border:1.5px dashed var(--g200);color:var(--g300);font-size:.85rem}
+.cell-inner.empty:hover{border-color:var(--brand);color:var(--brand);background:var(--brand-50)}
+.cell-inner.filled{cursor:grab;border:1px solid transparent}
+.cell-inner.filled:active{cursor:grabbing}
+.cell-inner.locked{cursor:not-allowed!important}
+.cell-inner.locked::after{
+  content:'🔒';position:absolute;top:2px;right:3px;font-size:.6rem;opacity:.55;
+}
+.cell-subj{font-size:.82rem;font-weight:800;text-align:center;line-height:1.2}
+.cell-teacher{font-size:.68rem;opacity:.7;text-align:center;line-height:1.2}
+.cell-room{font-size:.65rem;opacity:.6;text-align:center;line-height:1.2}
+
+/* Tracker */
+.tt-tracker{
+  width:196px;background:#fff;border-left:1px solid var(--g200);
+  display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;
+}
+.tracker-head{
+  padding:.85rem .85rem .65rem;font-size:.72rem;font-weight:700;
+  color:var(--g400);text-transform:uppercase;letter-spacing:.06em;
+  border-bottom:1px solid var(--g100);
+}
+.tracker-list{flex:1;overflow-y:auto;padding:.6rem;display:flex;flex-direction:column;gap:.4rem}
+.tracker-item{padding:.5rem .6rem;border-radius:var(--r);background:var(--g50);cursor:default}
+.tracker-row{display:flex;align-items:center;gap:.45rem;margin-bottom:3px}
+.tracker-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.tracker-name{flex:1;font-size:.78rem;font-weight:600;color:var(--g700)}
+.tracker-count{font-size:.78rem;font-weight:800}
+.tracker-count.ok{color:var(--success)}
+.tracker-count.short{color:var(--danger)}
+.tracker-count.over{color:var(--warn)}
+.tracker-bar{height:3px;border-radius:2px;background:var(--g200);overflow:hidden}
+.tracker-fill{height:100%;border-radius:2px;transition:width .35s ease}
+
+/* ============================================================ */
+/* SUPER ADMIN                                                  */
+/* ============================================================ */
+#screen-super-admin{background:var(--g900)}
+.sa-header{
+  padding:1.75rem 2rem 1rem;border-bottom:1px solid rgba(255,255,255,.08);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.sa-title{font-size:1.1rem;font-weight:900;color:#fff;display:flex;align-items:center;gap:.5rem}
+.sa-body{flex:1;padding:1.5rem 2rem;overflow-y:auto}
+.sa-login-wrap{padding:2rem;max-width:380px;margin:1.5rem auto}
+.sa-card{
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
+  border-radius:var(--r-lg);padding:1.1rem 1.25rem;display:flex;align-items:center;
+  gap:1rem;margin-bottom:.65rem;transition:all var(--t);
+}
+.sa-card:hover{background:rgba(255,255,255,.09)}
+.sa-icon{
+  width:42px;height:42px;background:linear-gradient(135deg,var(--brand),var(--brand-dark));
+  border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;
+}
+.sa-school-name{font-size:.9rem;font-weight:700;color:#fff}
+.sa-meta{font-size:.75rem;color:rgba(255,255,255,.35);margin-top:2px}
+
+/* ============================================================ */
+/* MODAL                                                        */
+/* ============================================================ */
+.modal-bg{
+  position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(5px);
+  z-index:2000;display:flex;align-items:center;justify-content:center;padding:1rem;
+  opacity:0;pointer-events:none;transition:opacity var(--t);
+}
+.modal-bg.open{opacity:1;pointer-events:all}
+.modal-box{
+  background:#fff;border-radius:var(--r-xl);padding:1.85rem;max-width:430px;width:100%;
+  box-shadow:var(--sh-xl);transform:translateY(18px);transition:transform var(--t);
+}
+.modal-bg.open .modal-box{transform:translateY(0)}
+.modal-title{font-size:1.05rem;font-weight:800;color:var(--g900);margin-bottom:.35rem}
+.modal-desc{font-size:.85rem;color:var(--g500);margin-bottom:1.4rem}
+.modal-actions{display:flex;gap:.65rem;justify-content:flex-end;margin-top:1.4rem;flex-wrap:wrap}
+
+/* ============================================================ */
+/* TOAST                                                        */
+/* ============================================================ */
+#toast-wrap{
+  position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);
+  z-index:9999;display:flex;flex-direction:column;align-items:center;gap:.45rem;pointer-events:none;
+}
+.toast{
+  background:var(--g900);color:#fff;padding:.6rem 1.2rem;border-radius:50px;
+  font-size:.85rem;font-weight:500;box-shadow:var(--sh-lg);white-space:nowrap;
+  animation:toastIn .22s ease, toastOut .22s ease 2.6s forwards;
+}
+.toast.success{background:#065f46}
+.toast.error{background:#991b1b}
+.toast.warn{background:#92400e}
+@keyframes toastIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes toastOut{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(10px)}}
+
+/* ============================================================ */
+/* MISC                                                         */
+/* ============================================================ */
+.spinner{
+  width:22px;height:22px;border:2.5px solid var(--g200);border-top-color:var(--brand);
+  border-radius:50%;animation:spin .55s linear infinite;display:inline-block;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.divider{height:1px;background:var(--g100);margin:1.2rem 0}
+.text-sm{font-size:.82rem}
+.text-muted{color:var(--g400)}
+.mt-1{margin-top:.5rem}
+.empty-state{text-align:center;padding:2.5rem 1.5rem;color:var(--g400)}
+.empty-state .ei{font-size:2.5rem;margin-bottom:.75rem}
+.empty-state .et{font-size:.9rem;font-weight:600;margin-bottom:.3rem}
+.empty-state .ed{font-size:.8rem}
+
+@media(max-width:768px){
+  .tt-sidebar,.tt-tracker{display:none}
+  .tt-sidebar.mobile-open{display:flex;position:fixed;left:0;top:0;bottom:0;z-index:200;box-shadow:var(--sh-xl)}
+  .tt-cell{min-width:70px;height:60px}
+  .page-body,.page-body-wide{padding:1.25rem 1rem}
+  .mobile-only{display:flex!important}
+}
+@media(min-width:769px){
+  .mobile-only{display:none}
+}
+
+/* ============================================================ */
+/* PRINT STYLES                                                 */
+/* ============================================================ */
+@media print {
+  body{background:#fff}
+  .tt-header,.tt-sidebar,.tt-tracker,.modal-bg,#toast-wrap{display:none!important}
+  #screen-timetable{display:block!important;min-height:auto}
+  .tt-layout{display:block;overflow:visible}
+  .tt-main{overflow:visible;padding:0}
+  .tt-grid-wrap{box-shadow:none;border:1px solid #ccc}
+  .tt-table{width:100%}
+  .print-header{display:block!important;padding:1rem 0 .75rem;text-align:center}
+  .print-header h2{font-size:1.25rem;font-weight:900;margin-bottom:.2rem}
+  .print-header p{font-size:.85rem;color:#666}
+  @page{size:A4 landscape;margin:1.5cm}
+}
+.print-header{display:none}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SCREEN 1: LANDING                                       -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div id="screen-landing" class="screen active">
+  <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:2rem;
+              background:linear-gradient(140deg,#1e3a8a 0%,#1d4ed8 35%,#2563eb 65%,#3b82f6 100%);
+              position:relative;overflow:hidden;">
+    <div style="position:absolute;top:-120px;right:-80px;width:380px;height:380px;background:rgba(255,255,255,.04);border-radius:50%"></div>
+    <div style="position:absolute;bottom:-80px;left:-60px;width:280px;height:280px;background:rgba(255,255,255,.03);border-radius:50%"></div>
+    <div class="landing-card">
+      <div class="logo-row">
+        <div class="logo-badge">📅</div>
+        <span class="logo-name">스마트 시간표</span>
+      </div>
+      <div class="logo-tagline">선생님을 위한 실시간 협업 플랫폼</div>
+      <div class="landing-actions">
+        <button class="btn btn-primary btn-lg btn-block" onclick="goToJoin()">
+          🏫 학교 시간표 참여하기
+        </button>
+        <button class="btn btn-outline btn-lg btn-block" onclick="goToCreate()">
+          ✨ 새 학교 만들기 <span class="badge badge-orange" style="font-size:.7rem">연구부장</span>
+        </button>
+      </div>
+      <div class="landing-hr"></div>
+      <div class="easter-zone" id="easter-zone" onclick="easterClick()" title="클릭 5회">
+        ⚙ v1.0.0 — Powered by 스마트시간표
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SCREEN 2: JOIN SCHOOL                                   -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div id="screen-join" class="screen">
+  <div class="page-header">
+    <button class="btn btn-ghost btn-sm" onclick="goTo('screen-landing')">← 뒤로</button>
+    <h1 class="page-header-title">🏫 학교 시간표 참여</h1>
+  </div>
+  <div class="page-body">
+    <div class="card">
+      <div class="card-title">학교 검색</div>
+      <div class="form-group">
+        <label class="form-label">학교 이름</label>
+        <input type="text" id="join-search" class="form-input" placeholder="학교 이름을 입력하세요 (1글자 이상)..." oninput="searchSchools(this.value)">
+      </div>
+      <div id="school-results"></div>
+    </div>
+
+    <div id="join-form" style="display:none">
+      <div class="card">
+        <div class="card-title">✍️ 내 정보 입력</div>
+        <div class="form-group">
+          <label class="form-label">이름 / 담당</label>
+          <input type="text" id="join-name" class="form-input" placeholder="예: 3-1 담임, 영어 전담, 박○○ 선생님">
+          <div class="form-hint">💡 이름에 <strong>'전담'</strong>이 포함되면 전담교사로 분류됩니다.</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">담당 학급 <span class="text-muted text-sm">(선택)</span></label>
+          <select id="join-class" class="form-select">
+            <option value="">-- 학급을 선택하세요 --</option>
+          </select>
+          <div class="form-hint">📌 전담교사이거나 전체 학급 담당이면 선택하지 않아도 됩니다.</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">학교 비밀번호</label>
+          <input type="password" id="join-pw" class="form-input" placeholder="연구부장 선생님께 문의하세요">
+          <div id="join-pw-err" class="form-error">⚠️ 비밀번호가 맞지 않습니다.</div>
+        </div>
+        <button class="btn btn-primary btn-block" onclick="joinSchool()">🚀 시간표 입력 시작</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SCREEN 3: CREATE SCHOOL                                 -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div id="screen-create" class="screen">
+  <div class="page-header">
+    <button class="btn btn-ghost btn-sm" onclick="goTo('screen-landing')">← 뒤로</button>
+    <h1 class="page-header-title">✨ 새 학교(그룹) 만들기</h1>
+  </div>
+  <div class="page-body">
+    <div id="create-limit-alert" class="alert alert-danger" style="display:none">
+      🚫 오늘 하루 학교 생성 한도(3개)에 도달했습니다. 내일(24시간 후) 다시 시도해주세요.
+    </div>
+    <div id="create-quota-info" class="alert alert-info">
+      📊 오늘 <strong id="quota-count">0</strong>개 생성됨 (이 기기에서 하루 최대 3개)
+    </div>
+
+    <div class="card">
+      <div class="card-title">🏫 학교 기본 정보</div>
+      <div class="form-group">
+        <label class="form-label">학교 이름 <span style="color:var(--danger)">*</span></label>
+        <input type="text" id="create-name" class="form-input" placeholder="예: 행복초등학교">
+        <div id="create-name-err" class="form-error">⚠️ 학교 이름을 입력해주세요.</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">관리자(접속) 비밀번호 <span style="color:var(--danger)">*</span></label>
+        <input type="password" id="create-pw" class="form-input" placeholder="교직원에게 공유할 비밀번호">
+        <div class="form-hint">📌 이 비밀번호로 모든 선생님이 접속합니다. 안전한 곳에 보관하세요.</div>
+        <div id="create-pw-err" class="form-error">⚠️ 비밀번호를 입력해주세요.</div>
+      </div>
+    </div>
+    <button class="btn btn-primary btn-lg btn-block" onclick="createSchool()" id="create-btn">
+      🏫 학교 만들고 기초 설정하기 →
+    </button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SCREEN 4: ADMIN SETUP                                   -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div id="screen-setup" class="screen">
+  <div class="page-header">
+    <div>
+      <div class="page-header-title">⚙️ 기초 설정</div>
+      <div class="text-sm text-muted" id="setup-school-label">학교 이름</div>
+    </div>
+    <div style="display:flex;gap:.5rem;margin-left:auto;flex-wrap:wrap">
+      <button class="btn btn-ghost btn-sm" onclick="skipSetup()">나중에 설정</button>
+      <button class="btn btn-primary btn-sm" onclick="saveSetup()">💾 저장하고 시작 →</button>
+    </div>
+  </div>
+  <div class="page-body-wide">
+    <div class="alert alert-info">
+      💡 표준 초등 교육과정 기반의 기본값을 미리 세팅해 드렸습니다. 학교 실정에 맞게 자유롭게 수정하세요.
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('tab-subjects',this)">📚 교과목 (시수)</button>
+      <button class="tab-btn" onclick="switchTab('tab-rooms',this)">🏛️ 특별실</button>
+      <button class="tab-btn" onclick="switchTab('tab-classes',this)">🎓 학급 구성</button>
+    </div>
+
+    <!-- TAB: Subjects -->
+    <div id="tab-subjects" class="tab-panel active">
+      <div class="card">
+        <div class="card-title">교과목 목록 및 주간 필수 시수</div>
+        <div class="list-wrap" id="subject-list"></div>
+        <div class="divider"></div>
+        <div class="add-row">
+          <input type="text" id="new-subj-name" class="form-input" placeholder="교과명 (예: 도덕)" style="flex:2">
+          <input type="number" id="new-subj-hours" class="hours-input" placeholder="시수" min="1" max="15" value="2">
+          <input type="color" id="new-subj-color" value="#6366f1" style="width:40px;height:38px;border-radius:var(--r);border:1.5px solid var(--g200);cursor:pointer;padding:2px;flex-shrink:0">
+          <button class="btn btn-primary btn-sm" onclick="addSubject()">+ 추가</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: Rooms -->
+    <div id="tab-rooms" class="tab-panel">
+      <div class="card">
+        <div class="card-title">특별실 목록</div>
+        <div class="form-hint" style="margin-bottom:.75rem">특별실이 배정된 시간은 자동으로 잠금(Lock) 처리됩니다.</div>
+        <div class="list-wrap" id="room-list"></div>
+        <div class="add-row" style="margin-top:.85rem">
+          <input type="text" id="new-room-name" class="form-input" placeholder="특별실 이름 (예: 미술실)">
+          <button class="btn btn-primary btn-sm" onclick="addRoom()">+ 추가</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: Classes -->
+    <div id="tab-classes" class="tab-panel">
+      <div class="card">
+        <div class="card-title">학급 구성</div>
+        <div class="list-wrap" id="class-list"></div>
+        <div class="add-row" style="margin-top:.85rem">
+          <input type="text" id="new-class-name" class="form-input" placeholder="학급 이름 (예: 3-1, 특수학급)">
+          <button class="btn btn-primary btn-sm" onclick="addClassItem()">+ 추가</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SCREEN 5: TIMETABLE                                     -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div id="screen-timetable" class="screen">
+  <!-- Header -->
+  <div class="tt-header">
+    <div class="tt-header-left">
+      <button class="btn btn-ghost btn-sm mobile-only" id="btn-sidebar-toggle" onclick="toggleSidebar()" title="과목 팔레트">📚</button>
+      <div class="logo-badge" style="width:34px;height:34px;font-size:1rem;flex-shrink:0">📅</div>
+      <div>
+        <div class="tt-school-name" id="tt-school-name">학교</div>
+        <div class="text-sm text-muted">주간 시간표</div>
+      </div>
+      <select class="class-select" id="tt-class-select" onchange="changeClass(this.value)">
+        <option value="">학급 선택</option>
+      </select>
+      <span id="tt-user-chip" class="tt-user-chip">사용자</span>
+      <span id="tt-role-badge"></span>
+    </div>
+    <div class="tt-header-right">
+      <span id="sync-indicator" title="저장 방식"><span class="sync-dot" id="sync-dot"></span><span id="sync-label" class="text-sm text-muted">로컬</span></span>
+      <button class="btn btn-ghost btn-sm" id="btn-clear-all" onclick="confirmClearAll()" style="display:none">🗑️ 초기화</button>
+      <button class="btn btn-ghost btn-sm" onclick="printTimetable()">🖨️ 인쇄</button>
+      <button class="btn btn-ghost btn-sm" id="btn-admin-setup" onclick="goAdminSetup()" style="display:none">⚙️ 설정</button>
+      <button class="btn btn-ghost btn-sm" onclick="logout()">로그아웃</button>
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div class="tt-layout">
+    <!-- Left sidebar: subjects -->
+    <div class="tt-sidebar" id="tt-sidebar">
+      <div class="sidebar-header">📚 과목 팔레트 (드래그)</div>
+      <div class="subject-palette" id="subject-palette"></div>
+    </div>
+
+    <!-- Center: grid -->
+    <div class="tt-main" onclick="closeSidebarOnMain(event)">
+      <div class="print-header">
+        <h2 id="print-school-name">학교 시간표</h2>
+        <p id="print-class-name">학급</p>
+      </div>
+      <div class="tt-grid-wrap">
+        <table class="tt-table" id="tt-table">
+          <thead>
+            <tr>
+              <th>교시</th>
+              <th>월요일</th>
+              <th>화요일</th>
+              <th>수요일</th>
+              <th>목요일</th>
+              <th>금요일</th>
+            </tr>
+          </thead>
+          <tbody id="tt-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Right: hour tracker -->
+    <div class="tt-tracker">
+      <div class="tracker-head">📊 시수 현황</div>
+      <div class="tracker-list" id="hour-tracker"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SCREEN 6: SUPER ADMIN                                   -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div id="screen-superadmin" class="screen">
+  <div class="sa-header">
+    <div class="sa-title">🔐 총괄 관리자 패널</div>
+    <button class="btn btn-ghost btn-sm" onclick="goTo('screen-landing')" style="color:#fff;border-color:rgba(255,255,255,.2)">← 나가기</button>
+  </div>
+
+  <div id="sa-login" class="sa-login-wrap">
+    <div style="color:rgba(255,255,255,.55);font-size:.85rem;margin-bottom:1rem">관리자 비밀번호를 입력하세요.</div>
+    <div class="form-group">
+      <input type="password" id="sa-pw" class="form-input" placeholder="슈퍼 관리자 비밀번호"
+             style="background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.15);color:#fff"
+             onkeydown="if(event.key==='Enter') saLogin()">
+    </div>
+    <button class="btn btn-primary btn-block" onclick="saLogin()">접속하기</button>
+  </div>
+
+  <div id="sa-dashboard" class="sa-body" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+      <span style="color:rgba(255,255,255,.45);font-size:.85rem">등록된 학교 목록</span>
+      <button class="btn btn-ghost btn-sm" onclick="loadAllSchools()" style="color:#fff;border-color:rgba(255,255,255,.2)">🔄 새로고침</button>
+    </div>
+    <div id="sa-list"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- MODALS                                                  -->
+<!-- ═══════════════════════════════════════════════════════ -->
+
+<!-- Cell edit modal -->
+<div class="modal-bg" id="modal-cell">
+  <div class="modal-box">
+    <div class="modal-title" id="mcell-title">시간표 입력</div>
+    <div class="modal-desc" id="mcell-desc">과목을 선택하고 확인을 눌러 배정하세요.</div>
+    <div class="form-group">
+      <label class="form-label">과목 선택</label>
+      <select id="mcell-subject" class="form-select"></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">특별실 사용 <span class="text-muted text-sm">(선택)</span></label>
+      <select id="mcell-room" class="form-select">
+        <option value="">사용 안 함</option>
+      </select>
+      <div class="form-hint">특별실을 선택하면 이 셀이 자동으로 잠금(🔒) 처리됩니다.</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-danger btn-sm" id="mcell-clear" onclick="clearCell()" style="display:none">🗑️ 삭제</button>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-cell')">취소</button>
+      <button class="btn btn-primary btn-sm" onclick="saveCellModal()">✔ 확인</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm delete modal -->
+<div class="modal-bg" id="modal-confirm">
+  <div class="modal-box">
+    <div class="modal-title" id="mconf-title">삭제 확인</div>
+    <div class="modal-desc" id="mconf-desc">정말 삭제하시겠습니까?</div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-confirm')">취소</button>
+      <button class="btn btn-danger btn-sm" id="mconf-ok">삭제</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div id="toast-wrap"></div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SCRIPT                                                  -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<script type="module">
+/* ===========================================================
+   FIREBASE IMPORTS
+   =========================================================== */
+import { initializeApp }   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import {
+  getFirestore, doc, getDoc, getDocs, setDoc, deleteDoc,
+  collection, onSnapshot, serverTimestamp
+} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+/* ===========================================================
+   FIREBASE CONFIG  ← 아래 주석을 해제하고 본인 설정으로 교체하세요
+   =========================================================== */
+/*
+const firebaseConfig = {
+  apiKey:            "YOUR_API_KEY",
+  authDomain:        "YOUR_PROJECT.firebaseapp.com",
+  projectId:         "YOUR_PROJECT_ID",
+  storageBucket:     "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId:             "YOUR_APP_ID"
+};
+const _app = initializeApp(firebaseConfig);
+const db   = getFirestore(_app);
+*/
+let db = null;  // Firebase 미설정 시 null → localStorage 모드
+
+/* ===========================================================
+   CONSTANTS
+   =========================================================== */
+const DAYS    = ['월','화','수','목','금'];
+const PERIODS = [1,2,3,4,5,6];
+const SA_PW   = 'SMARTTT2024!';        // ← 슈퍼관리자 비밀번호 (변경 권장)
+
+const DEFAULT_SUBJECTS = [
+  { name:'국어', weeklyHours:6,  color:'#ef4444' },
+  { name:'수학', weeklyHours:4,  color:'#f97316' },
+  { name:'사회', weeklyHours:3,  color:'#ca8a04' },
+  { name:'과학', weeklyHours:3,  color:'#16a34a' },
+  { name:'영어', weeklyHours:2,  color:'#2563eb' },
+  { name:'체육', weeklyHours:3,  color:'#7c3aed' },
+  { name:'음악', weeklyHours:2,  color:'#db2777' },
+  { name:'미술', weeklyHours:2,  color:'#0891b2' },
+  { name:'실과', weeklyHours:2,  color:'#65a30d' },
+  { name:'창체', weeklyHours:3,  color:'#d97706' },
+];
+const DEFAULT_ROOMS   = ['체육관','과학실','컴퓨터실','도서실','음악실','영어실'];
+const DEFAULT_CLASSES = ['1반','2반','3반','4반','5반','6반'];
+
+/* ===========================================================
+   STATE
+   =========================================================== */
+const S = {
+  school:      null,   // { id, name, adminPassword, subjects[], specialRooms[], classes[] }
+  user:        null,   // { name, role:'homeroom'|'specialty'|'admin', className, classId }
+  classId:     null,   // currently viewed class id
+  ttData:      {},     // { "월-1": { subject, teacher, role, specialRoom, isSpecialRoom } }
+  editingKey:  null,   // cell key being edited
+  dragSrc:     null,   // { type:'palette'|'cell', subject?, key? }
+  unsub:       null,   // onSnapshot unsubscriber
+};
+
+/* ===========================================================
+   RATE LIMIT  (localStorage, 3 per 24 h per device)
+   =========================================================== */
+const RL_KEY = 'stt_creation_log';
+const RL_MAX = 3;
+const RL_WIN = 24 * 60 * 60 * 1000;
+
+function rlGetLog() {
+  try { return JSON.parse(localStorage.getItem(RL_KEY) || '[]'); } catch { return []; }
+}
+function rlCheck() {
+  const now  = Date.now();
+  const valid = rlGetLog().filter(t => now - t < RL_WIN);
+  return { count: valid.length, canCreate: valid.length < RL_MAX };
+}
+function rlRecord() {
+  const now   = Date.now();
+  const valid = rlGetLog().filter(t => now - t < RL_WIN);
+  valid.push(now);
+  localStorage.setItem(RL_KEY, JSON.stringify(valid));
+}
+
+/* ===========================================================
+   SCREEN NAVIGATION
+   =========================================================== */
+function goTo(id) {
+  document.querySelectorAll('.screen').forEach(s => {
+    s.classList.remove('active');
+    s.style.display = 'none';
+  });
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.style.display = 'flex';
+  requestAnimationFrame(() => el.classList.add('active'));
+}
+window.goTo = goTo;
+
+/* ===========================================================
+   EASTER EGG → SUPER ADMIN
+   =========================================================== */
+let eClicks = 0, eTimer = null;
+function easterClick() {
+  eClicks++;
+  if (eTimer) clearTimeout(eTimer);
+  eTimer = setTimeout(() => { eClicks = 0; }, 2200);
+  if (eClicks >= 5) {
+    eClicks = 0;
+    document.getElementById('sa-login').style.display = 'block';
+    document.getElementById('sa-dashboard').style.display = 'none';
+    document.getElementById('sa-pw').value = '';
+    goTo('screen-superadmin');
+  }
+}
+window.easterClick = easterClick;
+
+/* ===========================================================
+   SUPER ADMIN
+   =========================================================== */
+async function saLogin() {
+  if (document.getElementById('sa-pw').value === SA_PW) {
+    document.getElementById('sa-login').style.display = 'none';
+    document.getElementById('sa-dashboard').style.display = 'block';
+    await loadAllSchools();
+  } else {
+    toast('비밀번호가 올바르지 않습니다.', 'error');
+  }
+}
+window.saLogin = saLogin;
+
+async function loadAllSchools() {
+  const list = document.getElementById('sa-list');
+  list.innerHTML = '<div style="color:rgba(255,255,255,.3);text-align:center;padding:2rem"><div class="spinner"></div></div>';
+  const schools = await fetchSchools();
+  if (!schools.length) {
+    list.innerHTML = '<div style="color:rgba(255,255,255,.3);text-align:center;padding:2rem">등록된 학교가 없습니다.</div>';
+    return;
+  }
+  list.innerHTML = schools.map(s => `
+    <div class="sa-card">
+      <div class="sa-icon">🏫</div>
+      <div style="flex:1">
+        <div class="sa-school-name">${escHtml(s.name)}</div>
+        <div class="sa-meta">ID: ${s.id.slice(-10)} · ${new Date(s.createdAt||0).toLocaleDateString('ko-KR')} · 학급 ${(s.classes||[]).length}개</div>
+      </div>
+      <button class="btn btn-danger btn-sm" onclick="confirmDeleteSchool('${s.id}','${escHtml(s.name)}')">🗑️ 삭제</button>
+    </div>
+  `).join('');
+}
+window.loadAllSchools = loadAllSchools;
+
+function confirmDeleteSchool(id, name) {
+  openConfirm(`"${name}" 삭제`, `학교와 모든 시간표 데이터가 영구 삭제됩니다. 계속하시겠습니까?`, async () => {
+    await removeSchool(id);
+    toast(`${name} 삭제 완료`, 'success');
+    loadAllSchools();
+  });
+}
+window.confirmDeleteSchool = confirmDeleteSchool;
+
+/* ===========================================================
+   LANDING ACTIONS
+   =========================================================== */
+function goToJoin() { goTo('screen-join'); }
+window.goToJoin = goToJoin;
+
+function goToCreate() {
+  const { count, canCreate } = rlCheck();
+  document.getElementById('quota-count').textContent = count;
+  document.getElementById('create-limit-alert').style.display = canCreate ? 'none' : 'flex';
+  document.getElementById('create-quota-info').style.display = canCreate ? 'flex' : 'none';
+  document.getElementById('create-btn').disabled = !canCreate;
+  goTo('screen-create');
+}
+window.goToCreate = goToCreate;
+
+/* ===========================================================
+   CREATE SCHOOL
+   =========================================================== */
+async function createSchool() {
+  const { canCreate } = rlCheck();
+  if (!canCreate) { toast('오늘 생성 한도(3개)에 도달했습니다.','error'); return; }
+
+  const name = q('#create-name').value.trim();
+  const pw   = q('#create-pw').value.trim();
+  q('#create-name-err').style.display = name ? 'none' : 'block';
+  q('#create-pw-err').style.display   = pw   ? 'none' : 'block';
+  if (!name || !pw) return;
+
+  q('#create-btn').disabled = true;
+  q('#create-btn').textContent = '⏳ 생성 중...';
+
+  const id = 'sch_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+  const schoolData = {
+    id, name,
+    adminPassword: pw,
+    subjects:     DEFAULT_SUBJECTS.map((s,i) => ({...s, id:'sub'+i})),
+    specialRooms: DEFAULT_ROOMS.map((r,i) => ({id:'rm'+i, name:r})),
+    classes:      DEFAULT_CLASSES.map((c,i) => ({id:'cls'+i, name:c})),
+    createdAt:    Date.now(),
+  };
+
+  await saveSchool(schoolData);
+  rlRecord();
+
+  S.school = schoolData;
+  S.user   = { name:'연구부장', role:'admin', className:null, classId:null };
+  saveSession();
+
+  toast(`"${name}" 학교 생성 완료! 🎉`, 'success');
+
+  // Init setup screen
+  q('#setup-school-label').textContent = name;
+  initSetup();
+  goTo('screen-setup');
+
+  q('#create-btn').disabled = false;
+  q('#create-btn').textContent = '🏫 학교 만들고 기초 설정하기 →';
+}
+window.createSchool = createSchool;
+
+/* ===========================================================
+   ADMIN SETUP
+   =========================================================== */
+function initSetup() {
+  renderSubjectList();
+  renderRoomList();
+  renderClassList();
+}
+
+function renderSubjectList() {
+  const subjects = S.school?.subjects || [];
+  q('#subject-list').innerHTML = subjects.length ? subjects.map((s,i) => `
+    <div class="list-item" id="subj-${i}">
+      <div class="item-icon" style="background:${hexAlpha(s.color,.12)};color:${s.color}">${s.name[0]}</div>
+      <div class="item-text">
+        <div class="item-title">${escHtml(s.name)}</div>
+        <div class="item-sub">주 ${s.weeklyHours}시간</div>
+      </div>
+      <input type="number" class="hours-input" value="${s.weeklyHours}" min="1" max="20"
+             onchange="updateSubjHours(${i},this.value)" title="주간 시수">
+      <div class="item-actions">
+        <button class="btn-icon red" onclick="removeSubject(${i})" title="삭제">🗑️</button>
+      </div>
+    </div>
+  `).join('') : '<div class="text-muted text-sm" style="padding:.5rem">교과목이 없습니다.</div>';
+}
+
+function renderRoomList() {
+  const rooms = S.school?.specialRooms || [];
+  q('#room-list').innerHTML = rooms.length ? rooms.map((r,i) => `
+    <div class="list-item">
+      <div class="item-icon" style="background:var(--purple-bg);color:var(--purple)">🏛️</div>
+      <div class="item-text"><div class="item-title">${escHtml(r.name)}</div></div>
+      <div class="item-actions">
+        <button class="btn-icon red" onclick="removeRoom(${i})">🗑️</button>
+      </div>
+    </div>
+  `).join('') : '<div class="text-muted text-sm" style="padding:.5rem">특별실이 없습니다.</div>';
+}
+
+function renderClassList() {
+  const classes = S.school?.classes || [];
+  q('#class-list').innerHTML = classes.length ? classes.map((c,i) => `
+    <div class="list-item">
+      <div class="item-icon" style="background:var(--success-bg);color:var(--success)">🎓</div>
+      <div class="item-text"><div class="item-title">${escHtml(c.name)}</div></div>
+      <div class="item-actions">
+        <button class="btn-icon red" onclick="removeClassItem(${i})">🗑️</button>
+      </div>
+    </div>
+  `).join('') : '<div class="text-muted text-sm" style="padding:.5rem">학급이 없습니다.</div>';
+}
+
+function updateSubjHours(i, v) {
+  if (!S.school) return;
+  S.school.subjects[i].weeklyHours = Math.max(1, parseInt(v)||1);
+}
+window.updateSubjHours = updateSubjHours;
+
+function addSubject() {
+  const name  = q('#new-subj-name').value.trim();
+  const hours = parseInt(q('#new-subj-hours').value) || 2;
+  const color = q('#new-subj-color').value;
+  if (!name) { toast('교과명을 입력하세요.','error'); return; }
+  if (!S.school) return;
+  S.school.subjects.push({ id:'sub'+Date.now(), name, weeklyHours:hours, color });
+  q('#new-subj-name').value = '';
+  renderSubjectList();
+  toast(`${name} 추가됨`,'success');
+}
+window.addSubject = addSubject;
+
+function removeSubject(i) {
+  if (!S.school) return;
+  const name = S.school.subjects[i]?.name;
+  S.school.subjects.splice(i,1);
+  renderSubjectList();
+  toast(`${name} 삭제됨`);
+}
+window.removeSubject = removeSubject;
+
+function addRoom() {
+  const name = q('#new-room-name').value.trim();
+  if (!name) { toast('특별실 이름을 입력하세요.','error'); return; }
+  if (!S.school) return;
+  S.school.specialRooms.push({ id:'rm'+Date.now(), name });
+  q('#new-room-name').value = '';
+  renderRoomList();
+  toast(`${name} 추가됨`,'success');
+}
+window.addRoom = addRoom;
+
+function removeRoom(i) {
+  if (!S.school) return;
+  S.school.specialRooms.splice(i,1);
+  renderRoomList();
+}
+window.removeRoom = removeRoom;
+
+function addClassItem() {
+  const name = q('#new-class-name').value.trim();
+  if (!name) { toast('학급 이름을 입력하세요.','error'); return; }
+  if (!S.school) return;
+  S.school.classes.push({ id:'cls'+Date.now(), name });
+  q('#new-class-name').value = '';
+  renderClassList();
+  toast(`${name} 추가됨`,'success');
+}
+window.addClassItem = addClassItem;
+
+function removeClassItem(i) {
+  if (!S.school) return;
+  S.school.classes.splice(i,1);
+  renderClassList();
+}
+window.removeClassItem = removeClassItem;
+
+function switchTab(tabId, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  q('#'+tabId).classList.add('active');
+  btn.classList.add('active');
+}
+window.switchTab = switchTab;
+
+async function saveSetup() {
+  if (!S.school) return;
+  await saveSchool(S.school);
+  toast('설정 저장 완료 ✔','success');
+  initTimetable();
+  goTo('screen-timetable');
+}
+window.saveSetup = saveSetup;
+
+function skipSetup() {
+  initTimetable();
+  goTo('screen-timetable');
+}
+window.skipSetup = skipSetup;
+
+function goAdminSetup() {
+  if (!S.school) return;
+  q('#setup-school-label').textContent = S.school.name;
+  initSetup();
+  goTo('screen-setup');
+}
+window.goAdminSetup = goAdminSetup;
+
+/* ===========================================================
+   JOIN SCHOOL
+   =========================================================== */
+let joinSchoolRef = null;
+
+async function searchSchools(keyword) {
+  const resEl  = q('#school-results');
+  const formEl = q('#join-form');
+  if (!keyword.trim()) { resEl.innerHTML=''; formEl.style.display='none'; return; }
+  const all = await fetchSchools();
+  const hit = all.filter(s => s.name.includes(keyword));
+  if (!hit.length) {
+    resEl.innerHTML = '<div class="text-muted text-sm" style="padding:.6rem">검색 결과가 없습니다.</div>';
+    formEl.style.display='none'; joinSchoolRef=null; return;
+  }
+  resEl.innerHTML = hit.map(s => `
+    <div class="school-result" onclick="selectSchool('${s.id}',this)">
+      <span style="font-size:1.3rem">🏫</span>
+      <div>
+        <div style="font-weight:700;font-size:.9rem">${escHtml(s.name)}</div>
+        <div class="text-sm text-muted">ID: ...${s.id.slice(-8)}</div>
+      </div>
+    </div>
+  `).join('');
+}
+window.searchSchools = searchSchools;
+
+async function selectSchool(id, el) {
+  document.querySelectorAll('.school-result').forEach(e=>e.classList.remove('selected'));
+  el.classList.add('selected');
+  const all = await fetchSchools();
+  joinSchoolRef = all.find(s=>s.id===id);
+  if (!joinSchoolRef) return;
+  // populate class dropdown
+  const sel = q('#join-class');
+  sel.innerHTML = '<option value="">-- 선택 없음 --</option>';
+  (joinSchoolRef.classes||[]).forEach(c => {
+    const o=document.createElement('option'); o.value=c.id; o.textContent=c.name; sel.appendChild(o);
+  });
+  q('#join-form').style.display = 'block';
+}
+window.selectSchool = selectSchool;
+
+async function joinSchool() {
+  if (!joinSchoolRef) { toast('학교를 선택해주세요.','error'); return; }
+  const name  = q('#join-name').value.trim();
+  const clsId = q('#join-class').value;
+  const pw    = q('#join-pw').value;
+  const err   = q('#join-pw-err');
+  err.style.display='none';
+  if (!name) { toast('이름을 입력해주세요.','error'); return; }
+  if (pw !== joinSchoolRef.adminPassword) { err.style.display='block'; return; }
+  const role = name.includes('전담')||name.includes('교감')||name.includes('교장') ? 'specialty' : 'homeroom';
+  const cls  = joinSchoolRef.classes?.find(c=>c.id===clsId);
+  S.school = joinSchoolRef;
+  S.user   = { name, role, className: cls?.name||'', classId: clsId||null };
+  saveSession();
+  toast(`${joinSchoolRef.name}에 오신 것을 환영합니다! 👋`, 'success');
+  initTimetable();
+  goTo('screen-timetable');
+}
+window.joinSchool = joinSchool;
+
+/* ===========================================================
+   TIMETABLE INIT
+   =========================================================== */
+function initTimetable() {
+  if (!S.school || !S.user) return;
+  const { school, user } = S;
+
+  q('#tt-school-name').textContent  = school.name;
+  q('#tt-user-chip').textContent    = user.name + (user.className ? ' · '+user.className : '');
+
+  const rb = q('#tt-role-badge');
+  if (user.role==='admin')     rb.innerHTML = '<span class="badge badge-purple">👑 관리자</span>';
+  else if (user.role==='specialty') rb.innerHTML = '<span class="badge badge-blue">⭐ 전담교사</span>';
+  else rb.innerHTML = '<span class="badge badge-green">🏠 담임교사</span>';
+
+  const isAdmin = user.role==='admin';
+  q('#btn-admin-setup').style.display = isAdmin ? 'flex' : 'none';
+  q('#btn-clear-all').style.display   = isAdmin ? 'flex' : 'none';
+
+  // Populate class select
+  const sel = q('#tt-class-select');
+  sel.innerHTML = '';
+  const classes = school.classes || [];
+  if (isAdmin || user.role==='specialty') {
+    classes.forEach(c => { const o=document.createElement('option'); o.value=c.id; o.textContent=c.name; sel.appendChild(o); });
+  } else {
+    if (user.classId) {
+      const c = classes.find(x=>x.id===user.classId);
+      if (c) { const o=document.createElement('option'); o.value=c.id; o.textContent=c.name; sel.appendChild(o); }
+    } else {
+      classes.forEach(c => { const o=document.createElement('option'); o.value=c.id; o.textContent=c.name; sel.appendChild(o); });
+    }
+  }
+
+  if (sel.options.length > 0) {
+    S.classId = user.classId && !isAdmin && user.role!=='specialty' ? user.classId : sel.options[0].value;
+    sel.value = S.classId;
+  }
+
+  renderSubjectPalette();
+  subscribeToClass();
+  setSyncDot();
+}
+
+function setSyncDot() {
+  const dot   = q('#sync-dot');
+  const label = q('#sync-label');
+  if (db) {
+    dot.classList.add('live');
+    label.textContent = '실시간 연동';
+  } else {
+    dot.classList.remove('live');
+    label.textContent = '로컬 모드';
+  }
+}
+
+/* ===========================================================
+   CHANGE CLASS
+   =========================================================== */
+function changeClass(id) {
+  S.classId = id;
+  S.ttData  = {};
+  if (S.unsub) { S.unsub(); S.unsub=null; }
+  subscribeToClass();
+}
+window.changeClass = changeClass;
+
+/* ===========================================================
+   SUBSCRIBE / LOAD TIMETABLE
+   =========================================================== */
+function subscribeToClass() {
+  if (!S.classId || !S.school) return;
+
+  // Load from localStorage first (fast)
+  const lsKey = `stt_${S.school.id}_${S.classId}`;
+  try {
+    const raw = localStorage.getItem(lsKey);
+    S.ttData = raw ? JSON.parse(raw) : {};
+  } catch { S.ttData={}; }
+
+  renderGrid();
+  renderSubjectPalette();
+  renderTracker();
+
+  // If Firebase configured, subscribe via onSnapshot
+  if (db) {
+    try {
+      const ref = doc(db, 'schools', S.school.id, 'timetables', S.classId);
+      S.unsub = onSnapshot(ref, snap => {
+        if (snap.exists()) {
+          const d = snap.data();
+          const nd = {};
+          DAYS.forEach(day => PERIODS.forEach(p => {
+            const k=`${day}-${p}`; if(d[k]) nd[k]=d[k];
+          }));
+          S.ttData = nd;
+          localStorage.setItem(lsKey, JSON.stringify(nd));
+          renderGrid();
+          renderSubjectPalette();
+          renderTracker();
+        }
+      });
+    } catch(e) { console.warn('Firestore subscribe error:',e); }
+  }
+}
+
+/* ===========================================================
+   SAVE CELL DATA
+   =========================================================== */
+async function saveCellToStorage(key, data) {
+  if (!S.classId || !S.school) return;
+
+  if (data === null) { delete S.ttData[key]; }
+  else { S.ttData[key] = data; }
+
+  const lsKey = `stt_${S.school.id}_${S.classId}`;
+  localStorage.setItem(lsKey, JSON.stringify(S.ttData));
+
+  if (db) {
+    try {
+      const ref = doc(db, 'schools', S.school.id, 'timetables', S.classId);
+      const payload = { ...S.ttData, _updatedAt: Date.now() };
+      if (data === null) payload[key] = null; // Firestore: set null to remove-ish
+      await setDoc(ref, payload, { merge: true });
+    } catch(e) { console.warn('Firestore save error:',e); }
+  }
+
+  renderGrid();
+  renderSubjectPalette();
+  renderTracker();
+}
+
+/* ===========================================================
+   RENDER GRID
+   =========================================================== */
+function renderGrid() {
+  const tbody = q('#tt-tbody');
+  tbody.innerHTML = PERIODS.map(p => `
+    <tr>
+      <td class="period-cell">${p}교시</td>
+      ${DAYS.map(day => {
+        const key  = `${day}-${p}`;
+        const cell = S.ttData[key];
+        const locked = isCellLocked(cell);
+        const color  = cell ? getSubjColor(cell.subject) : null;
+
+        if (cell) {
+          const bg = hexAlpha(color, .11);
+          const border = hexAlpha(color, .35);
+          return `
+            <td class="tt-cell" data-key="${key}"
+                ondragover="onDragOver(event,'${key}',this)"
+                ondragleave="onDragLeave(event,this)"
+                ondrop="onDrop(event,'${key}',this)">
+              <div class="cell-inner filled ${locked?'locked':''}"
+                   style="background:${bg};border-color:${border};border-width:1.5px;border-style:solid;"
+                   draggable="${!locked}"
+                   ondragstart="${!locked?`onCellDragStart(event,'${key}')`:'return false'}"
+                   ondragend="onDragEnd(event)"
+                   onclick="onCellClick('${key}')">
+                <span class="cell-subj" style="color:${color}">${escHtml(cell.subject)}</span>
+                ${cell.teacher?`<span class="cell-teacher" style="color:${color}">${escHtml(cell.teacher)}</span>`:''}
+                ${cell.specialRoom?`<span class="cell-room" style="color:${color}">📍${escHtml(cell.specialRoom)}</span>`:''}
+              </div>
+            </td>`;
+        } else {
+          return `
+            <td class="tt-cell" data-key="${key}"
+                ondragover="onDragOver(event,'${key}',this)"
+                ondragleave="onDragLeave(event,this)"
+                ondrop="onDrop(event,'${key}',this)">
+              <div class="cell-inner empty" onclick="onCellClick('${key}')">+</div>
+            </td>`;
+        }
+      }).join('')}
+    </tr>
+  `).join('');
+}
+
+function isCellLocked(cell) {
+  if (!cell) return false;
+  if (!S.user) return false;
+  if (S.user.role === 'admin') return false;
+  if (S.user.role === 'homeroom' && cell.role === 'specialty') return true;
+  if (cell.isSpecialRoom) return true;
+  return false;
+}
+
+function getSubjColor(name) {
+  const found = (S.school?.subjects||[]).find(s=>s.name===name);
+  return found?.color || '#6b7280';
+}
+
+/* ===========================================================
+   SUBJECT PALETTE
+   =========================================================== */
+function renderSubjectPalette() {
+  const subjects = S.school?.subjects || [];
+  q('#subject-palette').innerHTML = subjects.map(s => {
+    const cur = countSubj(s.name);
+    const req = s.weeklyHours;
+    const cls = cur >= req ? 'ok' : 'short';
+    return `
+      <div class="subject-chip"
+           style="background:${hexAlpha(s.color,.1)};border-color:${hexAlpha(s.color,.25)}"
+           draggable="true"
+           data-subject="${escHtml(s.name)}"
+           ondragstart="onPaletteDragStart(event,'${escHtml(s.name)}','${s.color}')"
+           ondragend="onDragEnd(event)">
+        <span class="chip-name" style="color:${s.color}">${escHtml(s.name)}</span>
+        <span class="chip-badge ${cls}" style="background:${hexAlpha(s.color,.18)};color:${s.color}">${cur}/${req}</span>
+      </div>`;
+  }).join('');
+}
+
+function countSubj(name) {
+  return Object.values(S.ttData).filter(c=>c&&c.subject===name).length;
+}
+
+/* ===========================================================
+   HOUR TRACKER
+   =========================================================== */
+function renderTracker() {
+  const subjects = S.school?.subjects || [];
+  q('#hour-tracker').innerHTML = subjects.map(s => {
+    const cur = countSubj(s.name);
+    const req = s.weeklyHours;
+    const pct = Math.min(100, Math.round(cur/req*100));
+    let cls='short', fillColor=getComputedStyle(document.documentElement).getPropertyValue('--danger').trim()||'#dc2626';
+    let label = `${cur}/${req}`;
+    if (cur >= req) { cls='ok'; fillColor=getComputedStyle(document.documentElement).getPropertyValue('--success').trim()||'#059669'; label=`✔ ${cur}`; }
+    if (cur > req)  { cls='over'; fillColor='#d97706'; label=`⚠ ${cur}/${req}`; }
+    return `
+      <div class="tracker-item">
+        <div class="tracker-row">
+          <div class="tracker-dot" style="background:${s.color}"></div>
+          <span class="tracker-name">${escHtml(s.name)}</span>
+          <span class="tracker-count ${cls}">${label}</span>
+        </div>
+        <div class="tracker-bar">
+          <div class="tracker-fill" style="width:${pct}%;background:${fillColor}"></div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+/* ===========================================================
+   CELL CLICK → MODAL
+   =========================================================== */
+function onCellClick(key) {
+  if (!S.user || !S.classId) return;
+  const cell = S.ttData[key];
+  if (isCellLocked(cell)) { toast('🔒 이 시간은 수정할 수 없습니다.','warn'); return; }
+
+  const [day, period] = key.split('-');
+  S.editingKey = key;
+
+  q('#mcell-title').textContent = `${day}요일 ${period}교시`;
+  q('#mcell-desc').textContent  = `과목을 선택하거나 드래그로 배정하세요.`;
+
+  // Populate subject select
+  const sel = q('#mcell-subject');
+  sel.innerHTML = '<option value="">-- 과목 선택 --</option>';
+  (S.school?.subjects||[]).forEach(s => {
+    const o=document.createElement('option'); o.value=s.name;
+    o.textContent=`${s.name} (주 ${s.weeklyHours}시간)`;
+    if(cell?.subject===s.name) o.selected=true;
+    sel.appendChild(o);
+  });
+
+  // Populate room select
+  const rsel = q('#mcell-room');
+  rsel.innerHTML = '<option value="">사용 안 함</option>';
+  (S.school?.specialRooms||[]).forEach(r => {
+    const o=document.createElement('option'); o.value=r.name; o.textContent=r.name;
+    if(cell?.specialRoom===r.name) o.selected=true;
+    rsel.appendChild(o);
+  });
+
+  q('#mcell-clear').style.display = cell ? 'flex' : 'none';
+  openModal('modal-cell');
+}
+window.onCellClick = onCellClick;
+
+async function saveCellModal() {
+  const subject = q('#mcell-subject').value;
+  const room    = q('#mcell-room').value;
+  if (!subject) { toast('과목을 선택해주세요.','error'); return; }
+
+  const data = {
+    subject,
+    teacher:      S.user.name,
+    role:         S.user.role,
+    specialRoom:  room || null,
+    isSpecialRoom:!!room,
+    updatedAt:    Date.now(),
+  };
+  await saveCellToStorage(S.editingKey, data);
+  closeModal('modal-cell');
+  toast(`${subject} 배정 완료 ✔`, 'success');
+}
+window.saveCellModal = saveCellModal;
+
+async function clearCell() {
+  await saveCellToStorage(S.editingKey, null);
+  closeModal('modal-cell');
+  toast('삭제되었습니다.');
+}
+window.clearCell = clearCell;
+
+/* ===========================================================
+   DRAG & DROP
+   =========================================================== */
+function onPaletteDragStart(event, name, color) {
+  S.dragSrc = { type:'palette', subject:name, color };
+  event.dataTransfer.effectAllowed = 'copy';
+  event.dataTransfer.setData('text/plain', name);
+  const el = event.target || event.currentTarget;
+  if (el) el.classList.add('dragging');
+}
+window.onPaletteDragStart = onPaletteDragStart;
+
+function onCellDragStart(event, key) {
+  S.dragSrc = { type:'cell', key };
+  event.dataTransfer.effectAllowed = 'move';
+  event.dataTransfer.setData('text/plain', key);
+}
+window.onCellDragStart = onCellDragStart;
+
+function onDragOver(event, key, el) {
+  event.preventDefault();
+  const cell   = S.ttData[key];
+  const locked = isCellLocked(cell);
+  const td     = el || event.currentTarget;
+  td.classList.remove('over-ok','over-bad');
+  if (locked) {
+    event.dataTransfer.dropEffect = 'none';
+    td.classList.add('over-bad');
+  } else {
+    event.dataTransfer.dropEffect = S.dragSrc?.type==='palette' ? 'copy' : 'move';
+    td.classList.add('over-ok');
+  }
+}
+window.onDragOver = onDragOver;
+
+function onDragLeave(event, el) {
+  const td = el || event.currentTarget;
+  td.classList.remove('over-ok','over-bad');
+}
+window.onDragLeave = onDragLeave;
+
+async function onDrop(event, targetKey, el) {
+  event.preventDefault();
+  const td = el || event.currentTarget;
+  td.classList.remove('over-ok','over-bad');
+
+  const targetCell = S.ttData[targetKey];
+  if (isCellLocked(targetCell)) {
+    toast('🚫 배정 불가 — 잠긴 시간입니다.', 'error');
+    S.dragSrc = null; return;
+  }
+  if (!S.dragSrc) return;
+
+  if (S.dragSrc.type === 'palette') {
+    await saveCellToStorage(targetKey, {
+      subject:      S.dragSrc.subject,
+      teacher:      S.user.name,
+      role:         S.user.role,
+      specialRoom:  null,
+      isSpecialRoom:false,
+      updatedAt:    Date.now(),
+    });
+    toast(`${S.dragSrc.subject} 배정`, 'success');
+  } else if (S.dragSrc.type === 'cell') {
+    const srcKey  = S.dragSrc.key;
+    if (srcKey === targetKey) { S.dragSrc=null; return; }
+    const srcData = S.ttData[srcKey];
+    if (!srcData) { S.dragSrc=null; return; }
+    const tgtData = S.ttData[targetKey] || null;
+    // Swap
+    await saveCellToStorage(targetKey, {...srcData, updatedAt:Date.now()});
+    await saveCellToStorage(srcKey,    tgtData ? {...tgtData, updatedAt:Date.now()} : null);
+    toast('이동 완료', 'success');
+  }
+  S.dragSrc = null;
+}
+window.onDrop = onDrop;
+
+function onDragEnd(event) {
+  if (event.currentTarget) event.currentTarget.classList.remove('dragging');
+  document.querySelectorAll('.tt-cell').forEach(el=>el.classList.remove('over-ok','over-bad'));
+  document.querySelectorAll('.subject-chip').forEach(el=>el.classList.remove('dragging'));
+  S.dragSrc = null;
+}
+window.onDragEnd = onDragEnd;
+
+/* ===========================================================
+   MODAL HELPERS
+   =========================================================== */
+function openModal(id) { q('#'+id).classList.add('open'); }
+function closeModal(id) { q('#'+id).classList.remove('open'); }
+window.openModal = openModal;
+window.closeModal = closeModal;
+
+document.querySelectorAll('.modal-bg').forEach(bg => {
+  bg.addEventListener('click', e => { if(e.target===bg) bg.classList.remove('open'); });
+});
+
+function openConfirm(title, desc, onOk) {
+  q('#mconf-title').textContent = title;
+  q('#mconf-desc').textContent  = desc;
+  const btn = q('#mconf-ok');
+  btn.onclick = () => { closeModal('modal-confirm'); onOk(); };
+  openModal('modal-confirm');
+}
+
+/* ===========================================================
+   TOAST
+   =========================================================== */
+function toast(msg, type='') {
+  const wrap = q('#toast-wrap');
+  const el   = document.createElement('div');
+  el.className = `toast${type?' '+type:''}`;
+  el.textContent = msg;
+  wrap.appendChild(el);
+  setTimeout(() => { if(el.parentNode) el.parentNode.removeChild(el); }, 3100);
+}
+
+/* ===========================================================
+   SESSION
+   =========================================================== */
+function saveSession() {
+  localStorage.setItem('stt_session', JSON.stringify({ school:S.school, user:S.user }));
+}
+function loadSession() {
+  try {
+    const raw = localStorage.getItem('stt_session');
+    if (!raw) return false;
+    const { school, user } = JSON.parse(raw);
+    if (!school || !user) return false;
+    S.school = school;
+    S.user   = user;
+    return true;
+  } catch { return false; }
+}
+function logout() {
+  localStorage.removeItem('stt_session');
+  if (S.unsub) { S.unsub(); S.unsub=null; }
+  S.school=null; S.user=null; S.ttData={}; S.classId=null;
+  goTo('screen-landing');
+  toast('로그아웃되었습니다.', 'success');
+}
+window.logout = logout;
+
+/* ===========================================================
+   STORAGE ABSTRACTION (Firestore + localStorage)
+   =========================================================== */
+async function saveSchool(data) {
+  const all = await fetchSchools();
+  const i   = all.findIndex(s=>s.id===data.id);
+  if (i>=0) all[i]=data; else all.push(data);
+  localStorage.setItem('stt_schools', JSON.stringify(all));
+  if (db) {
+    try { await setDoc(doc(db,'schools',data.id), data); } catch(e) { console.warn(e); }
+  }
+}
+
+async function fetchSchools() {
+  if (db) {
+    try {
+      const snap = await getDocs(collection(db,'schools'));
+      return snap.docs.map(d=>d.data());
+    } catch(e) { console.warn(e); }
+  }
+  try {
+    return JSON.parse(localStorage.getItem('stt_schools')||'[]');
+  } catch { return []; }
+}
+
+async function removeSchool(id) {
+  let all = await fetchSchools();
+  all = all.filter(s=>s.id!==id);
+  localStorage.setItem('stt_schools', JSON.stringify(all));
+  if (db) {
+    try { await deleteDoc(doc(db,'schools',id)); } catch(e) { console.warn(e); }
+  }
+}
+
+/* ===========================================================
+   UTILITIES
+   =========================================================== */
+function q(sel) { return document.querySelector(sel); }
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function hexAlpha(hex, alpha) {
+  try {
+    const r = parseInt(hex.slice(1,3),16);
+    const g = parseInt(hex.slice(3,5),16);
+    const b = parseInt(hex.slice(5,7),16);
+    return `rgba(${r},${g},${b},${alpha})`;
+  } catch { return `rgba(100,100,100,${alpha})`; }
+}
+
+function closeSidebarOnMain(e) {
+  const sb = document.getElementById('tt-sidebar');
+  if (sb && sb.classList.contains('mobile-open')) sb.classList.remove('mobile-open');
+}
+window.closeSidebarOnMain = closeSidebarOnMain;
+
+/* ===========================================================
+   PRINT
+   =========================================================== */
+function printTimetable() {
+  if (!S.school || !S.classId) { toast('먼저 학급을 선택해주세요.','error'); return; }
+  const cls = (S.school.classes||[]).find(c=>c.id===S.classId);
+  const el1 = document.getElementById('print-school-name');
+  const el2 = document.getElementById('print-class-name');
+  if (el1) el1.textContent = S.school.name + ' — 주간 시간표';
+  if (el2) el2.textContent = cls ? cls.name : '';
+  window.print();
+}
+window.printTimetable = printTimetable;
+
+/* ===========================================================
+   CLEAR ALL CELLS (admin only)
+   =========================================================== */
+function confirmClearAll() {
+  const cls = (S.school?.classes||[]).find(c=>c.id===S.classId);
+  openConfirm(
+    `${cls?.name||'학급'} 시간표 전체 초기화`,
+    '이 학급의 모든 시간표가 삭제됩니다. 계속하시겠습니까?',
+    async () => {
+      S.ttData = {};
+      const lsKey = `stt_${S.school.id}_${S.classId}`;
+      localStorage.setItem(lsKey, JSON.stringify({}));
+      if (db) {
+        try {
+          const ref = doc(db, 'schools', S.school.id, 'timetables', S.classId);
+          await setDoc(ref, { _updatedAt: Date.now() });
+        } catch(e) { console.warn(e); }
+      }
+      renderGrid(); renderSubjectPalette(); renderTracker();
+      toast('시간표가 초기화되었습니다.', 'success');
+    }
+  );
+}
+window.confirmClearAll = confirmClearAll;
+
+/* ===========================================================
+   MOBILE SIDEBAR TOGGLE
+   =========================================================== */
+function toggleSidebar() {
+  const sb = document.getElementById('tt-sidebar');
+  if (sb) sb.classList.toggle('mobile-open');
+}
+window.toggleSidebar = toggleSidebar;
+
+/* ===========================================================
+   KEYBOARD SHORTCUTS
+   =========================================================== */
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-bg.open').forEach(m => m.classList.remove('open'));
+    const sb = document.getElementById('tt-sidebar');
+    if (sb) sb.classList.remove('mobile-open');
+  }
+});
+
+/* ===========================================================
+   INIT
+   =========================================================== */
+(function init() {
+  // Try to restore session
+  if (loadSession()) {
+    initTimetable();
+    goTo('screen-timetable');
+  }
+
+  // Attempt Firebase init (no-op if config commented out)
+  // To enable: uncomment firebaseConfig block above → db will be set automatically
+})();
+</script>
+</body>
+</html>
