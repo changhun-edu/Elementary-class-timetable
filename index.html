@@ -409,6 +409,66 @@ a{color:inherit;text-decoration:none}
 .empty-state .et{font-size:.9rem;font-weight:600;margin-bottom:.3rem}
 .empty-state .ed{font-size:.8rem}
 
+/* ============================================================ */
+/* GRADE GRID (class setup)                                     */
+/* ============================================================ */
+.grade-grid{display:flex;flex-direction:column;gap:.5rem}
+.grade-row{
+  display:flex;align-items:center;gap:.85rem;padding:.65rem .9rem;
+  background:var(--g50);border:1px solid var(--g200);border-radius:var(--r);
+}
+.grade-label{
+  font-size:.88rem;font-weight:800;color:var(--g700);min-width:52px;
+}
+.grade-count-ctrl{display:flex;align-items:center;gap:.4rem}
+.grade-cnt-btn{
+  width:28px;height:28px;border-radius:6px;border:1.5px solid var(--g200);
+  background:#fff;font-size:1rem;font-weight:700;color:var(--g600);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:all var(--t);line-height:1;user-select:none;
+}
+.grade-cnt-btn:hover{background:var(--brand-50);border-color:var(--brand);color:var(--brand)}
+.grade-cnt-btn:disabled{opacity:.35;cursor:not-allowed}
+.grade-cnt-val{
+  min-width:32px;text-align:center;font-size:1rem;font-weight:800;color:var(--g900);
+}
+.grade-chips{display:flex;flex-wrap:wrap;gap:.3rem;flex:1}
+.grade-chip{
+  font-size:.75rem;font-weight:700;padding:.18rem .5rem;border-radius:12px;
+  background:var(--brand-100);color:var(--brand-dark);white-space:nowrap;
+}
+.grade-chip.zero{background:var(--g100);color:var(--g400)}
+.grade-no-class{font-size:.78rem;color:var(--g300);font-style:italic}
+
+/* ============================================================ */
+/* ROOM SCHEDULE SCREEN (특별실 배정)                           */
+/* ============================================================ */
+#screen-room-schedule{background:var(--g50)}
+.rs-body{flex:1;overflow-y:auto;padding:1rem}
+.rs-grid-wrap{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:1rem}
+.rs-block{background:#fff;border-radius:var(--r-lg);border:1px solid var(--g200);box-shadow:var(--sh);overflow:hidden}
+.rs-block-hdr{
+  padding:.62rem .9rem;font-size:.9rem;font-weight:900;color:#fff;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.rs-block-hdr .rs-sub{font-size:.72rem;opacity:.75;font-weight:600}
+.rs-table{border-collapse:collapse;width:100%}
+.rs-table th,.rs-table td{border:1px solid var(--g200)}
+.rs-table thead th{background:var(--g50);padding:.4rem .3rem;font-size:.72rem;font-weight:800;color:var(--g500);text-align:center}
+.rs-table thead th:first-child{background:var(--g100);min-width:38px;font-size:.68rem}
+.rs-period{background:var(--g50);padding:.28rem .4rem;font-size:.68rem;font-weight:700;color:var(--g400);text-align:center}
+.rs-cell{width:48px;height:42px;padding:2px;vertical-align:middle;cursor:pointer}
+.rs-ci{
+  width:100%;height:100%;border-radius:5px;display:flex;align-items:center;
+  justify-content:center;font-size:.73rem;font-weight:800;text-align:center;line-height:1.2;transition:all .12s;
+}
+.rs-ci.empty{border:1.5px dashed var(--g200);color:var(--g300)}
+.rs-cell:hover .rs-ci.empty{border-color:var(--brand);color:var(--brand);background:var(--brand-50)}
+.rs-count-row{display:flex;flex-wrap:wrap;gap:.3rem;padding:.5rem .8rem;border-top:1px solid var(--g100)}
+.rs-count-chip{font-size:.72rem;font-weight:700;padding:.15rem .45rem;border-radius:10px}
+/* Room-assigned cell in class timetable */
+.cell-inner.room-cell.locked{cursor:pointer!important}
+
 @media(max-width:768px){
   .tt-sidebar,.tt-tracker{display:none}
   .tt-sidebar.mobile-open{display:flex;position:fixed;left:0;top:0;bottom:0;z-index:200;box-shadow:var(--sh-xl)}
@@ -607,15 +667,58 @@ a{color:inherit;text-decoration:none}
 
     <!-- TAB: Classes -->
     <div id="tab-classes" class="tab-panel">
+
+      <!-- Grade config card -->
       <div class="card">
-        <div class="card-title">학급 구성</div>
+        <div class="card-title">🏫 학년별 반 수 설정</div>
+        <div class="form-hint" style="margin-bottom:1rem">
+          각 학년의 학급 수를 설정한 뒤 <strong>자동 생성</strong> 버튼을 눌러주세요. 특수학급 등은 아래에서 개별 추가할 수 있습니다.
+        </div>
+        <div class="grade-grid" id="grade-grid">
+          <!-- rendered by JS -->
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:1rem;flex-wrap:wrap;gap:.5rem">
+          <span class="text-sm text-muted" id="grade-preview-count"></span>
+          <button class="btn btn-primary btn-sm" onclick="applyGradeConfig()">🔄 학급 목록 자동 생성</button>
+        </div>
+      </div>
+
+      <!-- Manual class list -->
+      <div class="card">
+        <div class="card-title">📋 현재 학급 목록</div>
+        <div class="form-hint" style="margin-bottom:.75rem">자동 생성 후 특수학급 등을 직접 추가·삭제할 수 있습니다.</div>
         <div class="list-wrap" id="class-list"></div>
         <div class="add-row" style="margin-top:.85rem">
-          <input type="text" id="new-class-name" class="form-input" placeholder="학급 이름 (예: 3-1, 특수학급)">
+          <input type="text" id="new-class-name" class="form-input" placeholder="직접 추가 (예: 특수학급, 병설유치원)">
           <button class="btn btn-primary btn-sm" onclick="addClassItem()">+ 추가</button>
         </div>
       </div>
+
     </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SCREEN: ROOM SCHEDULE (특별실 배정)                     -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div id="screen-room-schedule" class="screen">
+  <div class="page-header">
+    <button class="btn btn-ghost btn-sm" onclick="goTo('screen-timetable')">← 시간표로</button>
+    <h1 class="page-header-title">🏛️ 특별실 배정</h1>
+    <span style="flex:1"></span>
+    <span class="text-sm text-muted" id="rs-school-label" style="margin-right:.5rem"></span>
+    <button class="btn btn-ghost btn-sm" onclick="goAdminSetup()">⚙️ 특별실 관리</button>
+  </div>
+  <div class="rs-body">
+    <div class="alert alert-info" style="margin-bottom:1rem">
+      💡 특별실별로 사용 학급을 배정하세요. 배정된 시간은 해당 학급 시간표에 🔒 표시되며, 담임교사는 과목 입력만 가능합니다.
+    </div>
+    <div id="rs-empty" class="empty-state" style="display:none">
+      <div class="ei">🏛️</div>
+      <div class="et">등록된 특별실이 없습니다</div>
+      <div class="ed">⚙️ 특별실 관리에서 추가해 주세요</div>
+    </div>
+    <div class="rs-grid-wrap" id="rs-grid-wrap"></div>
   </div>
 </div>
 
@@ -640,6 +743,7 @@ a{color:inherit;text-decoration:none}
     </div>
     <div class="tt-header-right">
       <span id="sync-indicator" title="저장 방식"><span class="sync-dot" id="sync-dot"></span><span id="sync-label" class="text-sm text-muted">로컬</span></span>
+      <button class="btn btn-ghost btn-sm" id="btn-room-schedule" onclick="goToRoomSchedule()" style="display:none">🏛️ 특별실 배정</button>
       <button class="btn btn-ghost btn-sm" id="btn-clear-all" onclick="confirmClearAll()" style="display:none">🗑️ 초기화</button>
       <button class="btn btn-ghost btn-sm" onclick="printTimetable()">🖨️ 인쇄</button>
       <button class="btn btn-ghost btn-sm" id="btn-admin-setup" onclick="goAdminSetup()" style="display:none">⚙️ 설정</button>
@@ -754,6 +858,25 @@ a{color:inherit;text-decoration:none}
   </div>
 </div>
 
+<!-- Room cell assignment modal -->
+<div class="modal-bg" id="modal-rs-cell">
+  <div class="modal-box">
+    <div class="modal-title" id="mrs-title">특별실 배정</div>
+    <div class="modal-desc" id="mrs-desc">사용 학급을 선택하세요.</div>
+    <div class="form-group">
+      <label class="form-label">학급 선택</label>
+      <select id="mrs-class" class="form-select">
+        <option value="">-- 배정 안 함 (비우기) --</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-danger btn-sm" id="mrs-clear" onclick="clearRsCell()" style="display:none">🗑️ 배정 취소</button>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-rs-cell')">취소</button>
+      <button class="btn btn-primary btn-sm" onclick="saveRsCell()">✔ 배정</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast container -->
 <div id="toast-wrap"></div>
 
@@ -807,7 +930,6 @@ const DEFAULT_SUBJECTS = [
   { name:'창체', weeklyHours:3,  color:'#d97706' },
 ];
 const DEFAULT_ROOMS   = ['체육관','과학실','컴퓨터실','도서실','음악실','영어실'];
-const DEFAULT_CLASSES = ['1반','2반','3반','4반','5반','6반'];
 
 /* ===========================================================
    STATE
@@ -959,7 +1081,8 @@ async function createSchool() {
     adminPassword: pw,
     subjects:     DEFAULT_SUBJECTS.map((s,i) => ({...s, id:'sub'+i})),
     specialRooms: DEFAULT_ROOMS.map((r,i) => ({id:'rm'+i, name:r})),
-    classes:      DEFAULT_CLASSES.map((c,i) => ({id:'cls'+i, name:c})),
+    classes:      [],
+    gradeConfig:  [3,3,3,3,3,3],   // 기본값: 전 학년 3반
     createdAt:    Date.now(),
   };
 
@@ -988,6 +1111,7 @@ window.createSchool = createSchool;
 function initSetup() {
   renderSubjectList();
   renderRoomList();
+  renderGradeGrid();
   renderClassList();
 }
 
@@ -1027,13 +1151,88 @@ function renderClassList() {
   q('#class-list').innerHTML = classes.length ? classes.map((c,i) => `
     <div class="list-item">
       <div class="item-icon" style="background:var(--success-bg);color:var(--success)">🎓</div>
-      <div class="item-text"><div class="item-title">${escHtml(c.name)}</div></div>
+      <div class="item-text">
+        <div class="item-title">${escHtml(c.name)}</div>
+        ${c.grade ? `<div class="item-sub">${c.grade}학년</div>` : ''}
+      </div>
       <div class="item-actions">
         <button class="btn-icon red" onclick="removeClassItem(${i})">🗑️</button>
       </div>
     </div>
-  `).join('') : '<div class="text-muted text-sm" style="padding:.5rem">학급이 없습니다.</div>';
+  `).join('') : '<div class="text-muted text-sm" style="padding:.5rem">학급이 없습니다. 위에서 학년별로 자동 생성하거나 직접 추가하세요.</div>';
 }
+
+/* --- Grade config grid --- */
+function renderGradeGrid() {
+  if (!S.school) return;
+  // 기존 데이터 호환: gradeConfig 없으면 classes에서 역산
+  if (!S.school.gradeConfig) {
+    const cfg = [0,0,0,0,0,0];
+    (S.school.classes||[]).forEach(c => {
+      if (c.grade && c.grade >= 1 && c.grade <= 6) cfg[c.grade-1]++;
+    });
+    S.school.gradeConfig = cfg;
+  }
+  const cfg = S.school.gradeConfig;
+  const total = cfg.reduce((a,b)=>a+b,0);
+
+  q('#grade-grid').innerHTML = cfg.map((cnt, gi) => {
+    const grade = gi + 1;
+    const chips = cnt === 0
+      ? `<span class="grade-no-class">학급 없음</span>`
+      : Array.from({length:cnt}, (_,i) =>
+          `<span class="grade-chip">${grade}-${i+1}</span>`
+        ).join('');
+    return `
+      <div class="grade-row">
+        <span class="grade-label">${grade}학년</span>
+        <div class="grade-count-ctrl">
+          <button class="grade-cnt-btn" onclick="changeGradeCount(${gi},-1)" ${cnt===0?'disabled':''}>−</button>
+          <span class="grade-cnt-val">${cnt}</span>
+          <button class="grade-cnt-btn" onclick="changeGradeCount(${gi},+1)" ${cnt>=15?'disabled':''}>+</button>
+        </div>
+        <div class="grade-chips">${chips}</div>
+      </div>`;
+  }).join('');
+
+  q('#grade-preview-count').textContent = total > 0
+    ? `총 ${total}개 학급 (${cfg.map((n,i)=>n?`${i+1}학년 ${n}반`:'').filter(Boolean).join(', ')})`
+    : '반 수를 설정해주세요.';
+}
+
+function changeGradeCount(gradeIdx, delta) {
+  if (!S.school) return;
+  if (!S.school.gradeConfig) S.school.gradeConfig = [0,0,0,0,0,0];
+  const next = (S.school.gradeConfig[gradeIdx] || 0) + delta;
+  if (next < 0 || next > 15) return;
+  S.school.gradeConfig[gradeIdx] = next;
+  renderGradeGrid();
+}
+window.changeGradeCount = changeGradeCount;
+
+function applyGradeConfig() {
+  if (!S.school) return;
+  const cfg = S.school.gradeConfig || [0,0,0,0,0,0];
+  const total = cfg.reduce((a,b)=>a+b,0);
+  if (total === 0) { toast('먼저 반 수를 설정해주세요.', 'error'); return; }
+
+  // Keep non-grade classes (manually added, grade===undefined)
+  const manual = (S.school.classes||[]).filter(c => !c.grade);
+
+  // Generate grade classes
+  const generated = [];
+  cfg.forEach((cnt, gi) => {
+    const grade = gi + 1;
+    for (let i = 1; i <= cnt; i++) {
+      generated.push({ id: `cls_${grade}_${i}`, name: `${grade}-${i}`, grade });
+    }
+  });
+
+  S.school.classes = [...generated, ...manual];
+  renderClassList();
+  toast(`학급 ${S.school.classes.length}개 생성 완료 ✔`, 'success');
+}
+window.applyGradeConfig = applyGradeConfig;
 
 function updateSubjHours(i, v) {
   if (!S.school) return;
@@ -1163,12 +1362,26 @@ async function selectSchool(id, el) {
   const all = await fetchSchools();
   joinSchoolRef = all.find(s=>s.id===id);
   if (!joinSchoolRef) return;
-  // populate class dropdown
+  // populate class dropdown (grouped by grade)
   const sel = q('#join-class');
   sel.innerHTML = '<option value="">-- 선택 없음 --</option>';
+  const graded = {};
+  const ungraded = [];
   (joinSchoolRef.classes||[]).forEach(c => {
-    const o=document.createElement('option'); o.value=c.id; o.textContent=c.name; sel.appendChild(o);
+    if (c.grade) { (graded[c.grade] = graded[c.grade]||[]).push(c); }
+    else ungraded.push(c);
   });
+  [1,2,3,4,5,6].forEach(g => {
+    if (!graded[g]) return;
+    const og = document.createElement('optgroup'); og.label = `${g}학년`;
+    graded[g].forEach(c => { const o=document.createElement('option'); o.value=c.id; o.textContent=c.name; og.appendChild(o); });
+    sel.appendChild(og);
+  });
+  if (ungraded.length) {
+    const og = document.createElement('optgroup'); og.label = '기타';
+    ungraded.forEach(c => { const o=document.createElement('option'); o.value=c.id; o.textContent=c.name; og.appendChild(o); });
+    sel.appendChild(og);
+  }
   q('#join-form').style.display = 'block';
 }
 window.selectSchool = selectSchool;
@@ -1209,21 +1422,52 @@ function initTimetable() {
   else rb.innerHTML = '<span class="badge badge-green">🏠 담임교사</span>';
 
   const isAdmin = user.role==='admin';
-  q('#btn-admin-setup').style.display = isAdmin ? 'flex' : 'none';
-  q('#btn-clear-all').style.display   = isAdmin ? 'flex' : 'none';
+  q('#btn-admin-setup').style.display    = isAdmin ? 'flex' : 'none';
+  q('#btn-clear-all').style.display      = isAdmin ? 'flex' : 'none';
+  q('#btn-room-schedule').style.display  = isAdmin ? 'flex' : 'none';
 
-  // Populate class select
+  // Populate class select (grouped by grade)
   const sel = q('#tt-class-select');
   sel.innerHTML = '';
   const classes = school.classes || [];
+
+  function buildOptions(list) {
+    // Group by grade
+    const graded = {};
+    const ungraded = [];
+    list.forEach(c => {
+      if (c.grade) { (graded[c.grade] = graded[c.grade]||[]).push(c); }
+      else ungraded.push(c);
+    });
+    // Render grade groups
+    [1,2,3,4,5,6].forEach(g => {
+      if (!graded[g]) return;
+      const og = document.createElement('optgroup');
+      og.label = `${g}학년`;
+      graded[g].forEach(c => {
+        const o = document.createElement('option'); o.value = c.id; o.textContent = c.name; og.appendChild(o);
+      });
+      sel.appendChild(og);
+    });
+    // Ungraded (특수학급 등)
+    if (ungraded.length) {
+      const og = document.createElement('optgroup');
+      og.label = '기타';
+      ungraded.forEach(c => {
+        const o = document.createElement('option'); o.value = c.id; o.textContent = c.name; og.appendChild(o);
+      });
+      sel.appendChild(og);
+    }
+  }
+
   if (isAdmin || user.role==='specialty') {
-    classes.forEach(c => { const o=document.createElement('option'); o.value=c.id; o.textContent=c.name; sel.appendChild(o); });
+    buildOptions(classes);
   } else {
     if (user.classId) {
       const c = classes.find(x=>x.id===user.classId);
       if (c) { const o=document.createElement('option'); o.value=c.id; o.textContent=c.name; sel.appendChild(o); }
     } else {
-      classes.forEach(c => { const o=document.createElement('option'); o.value=c.id; o.textContent=c.name; sel.appendChild(o); });
+      buildOptions(classes);
     }
   }
 
@@ -1334,14 +1578,40 @@ function renderGrid() {
     <tr>
       <td class="period-cell">${p}교시</td>
       ${DAYS.map(day => {
-        const key  = `${day}-${p}`;
-        const cell = S.ttData[key];
-        const locked = isCellLocked(cell);
-        const color  = cell ? getSubjColor(cell.subject) : null;
+        const key        = `${day}-${p}`;
+        const cell       = S.ttData[key];
+        const roomAssign = getRoomAssignmentForKey(key);
+        const lockState  = getCellLockState(cell, key);
+        const isLocked   = lockState !== 'none';
 
-        if (cell) {
-          const bg = hexAlpha(color, .11);
+        if (roomAssign) {
+          // ── 특별실 배정된 칸 ─────────────────────────
+          const color  = cell?.subject ? getSubjColor(cell.subject) : '#7c3aed';
+          const bg     = hexAlpha(color, .1);
+          const border = hexAlpha(color, .3);
+          const canDrag = !isLocked && !!cell?.subject;
+          return `
+            <td class="tt-cell" data-key="${key}"
+                ondragover="onDragOver(event,'${key}',this)"
+                ondragleave="onDragLeave(event,this)"
+                ondrop="onDrop(event,'${key}',this)">
+              <div class="cell-inner filled room-cell ${isLocked?'locked':''}"
+                   style="background:${bg};border-color:${border};border-width:1.5px;border-style:solid;"
+                   draggable="${canDrag}"
+                   ${canDrag?`ondragstart="onCellDragStart(event,'${key}')" ondragend="onDragEnd(event)"` : ''}
+                   onclick="onCellClick('${key}')">
+                ${cell?.subject
+                  ? `<span class="cell-subj" style="color:${color}">${escHtml(cell.subject)}</span>`
+                  : `<span class="cell-subj" style="color:#7c3aed;font-size:.68rem;opacity:.7">과목 입력</span>`}
+                <span class="cell-room" style="color:#7c3aed">📍${escHtml(roomAssign.roomName)}</span>
+              </div>
+            </td>`;
+        } else if (cell) {
+          // ── 일반 과목 배정된 칸 ───────────────────────
+          const color  = getSubjColor(cell.subject);
+          const bg     = hexAlpha(color, .11);
           const border = hexAlpha(color, .35);
+          const locked = lockState === 'full';
           return `
             <td class="tt-cell" data-key="${key}"
                 ondragover="onDragOver(event,'${key}',this)"
@@ -1359,6 +1629,7 @@ function renderGrid() {
               </div>
             </td>`;
         } else {
+          // ── 빈 칸 ─────────────────────────────────────
           return `
             <td class="tt-cell" data-key="${key}"
                 ondragover="onDragOver(event,'${key}',this)"
@@ -1372,13 +1643,36 @@ function renderGrid() {
   `).join('');
 }
 
-function isCellLocked(cell) {
-  if (!cell) return false;
-  if (!S.user) return false;
-  if (S.user.role === 'admin') return false;
-  if (S.user.role === 'homeroom' && cell.role === 'specialty') return true;
-  if (cell.isSpecialRoom) return true;
-  return false;
+/* ===========================================================
+   ROOM ASSIGNMENT HELPERS
+   =========================================================== */
+function getRoomAssignmentForKey(key) {
+  // Returns {roomId, roomName, classId, className} for the current class at this key, or null
+  if (!S.classId || !S.school?.roomSchedule) return null;
+  for (const [roomId, schedule] of Object.entries(S.school.roomSchedule)) {
+    const entry = schedule[key];
+    if (entry && entry.classId === S.classId) {
+      const room = (S.school.specialRooms||[]).find(r=>r.id===roomId);
+      return { roomId, roomName: room?.name || '특별실', ...entry };
+    }
+  }
+  return null;
+}
+
+function getCellLockState(cell, key) {
+  // 'none' = fully editable
+  // 'room' = room-assigned: can set subject, cannot drag/delete (non-admin)
+  // 'full' = fully locked (cannot do anything)
+  if (!S.user) return 'none';
+  if (S.user.role === 'admin') return 'none';
+  if (key && getRoomAssignmentForKey(key)) return 'room';
+  if (cell && S.user.role === 'homeroom' && cell.role === 'specialty') return 'full';
+  if (cell?.isSpecialRoom) return 'full';
+  return 'none';
+}
+
+function isCellLocked(cell, key) {
+  return getCellLockState(cell, key) === 'full';
 }
 
 function getSubjColor(name) {
@@ -1444,43 +1738,63 @@ function renderTracker() {
    =========================================================== */
 function onCellClick(key) {
   if (!S.user || !S.classId) return;
-  const cell = S.ttData[key];
-  if (isCellLocked(cell)) { toast('🔒 이 시간은 수정할 수 없습니다.','warn'); return; }
+  const cell       = S.ttData[key];
+  const roomAssign = getRoomAssignmentForKey(key);
+  const lockState  = getCellLockState(cell, key);
+
+  // 완전 잠금 = 클릭 불가
+  if (lockState === 'full') { toast('🔒 이 시간은 수정할 수 없습니다.', 'warn'); return; }
 
   const [day, period] = key.split('-');
   S.editingKey = key;
 
   q('#mcell-title').textContent = `${day}요일 ${period}교시`;
-  q('#mcell-desc').textContent  = `과목을 선택하거나 드래그로 배정하세요.`;
+  q('#mcell-desc').textContent  = roomAssign
+    ? `📍 ${roomAssign.roomName} 배정됨 — 과목을 선택해 주세요.`
+    : '과목을 선택하거나 드래그로 배정하세요.';
 
-  // Populate subject select
+  // 과목 선택
   const sel = q('#mcell-subject');
   sel.innerHTML = '<option value="">-- 과목 선택 --</option>';
   (S.school?.subjects||[]).forEach(s => {
-    const o=document.createElement('option'); o.value=s.name;
-    o.textContent=`${s.name} (주 ${s.weeklyHours}시간)`;
-    if(cell?.subject===s.name) o.selected=true;
+    const o = document.createElement('option'); o.value = s.name;
+    o.textContent = `${s.name} (주 ${s.weeklyHours}시간)`;
+    if (cell?.subject === s.name) o.selected = true;
     sel.appendChild(o);
   });
 
-  // Populate room select
+  // 특별실 선택 (특별실 배정 시 고정, 일반 셀은 선택 가능)
   const rsel = q('#mcell-room');
-  rsel.innerHTML = '<option value="">사용 안 함</option>';
-  (S.school?.specialRooms||[]).forEach(r => {
-    const o=document.createElement('option'); o.value=r.name; o.textContent=r.name;
-    if(cell?.specialRoom===r.name) o.selected=true;
-    rsel.appendChild(o);
-  });
+  rsel.disabled = false;
+  if (roomAssign) {
+    rsel.innerHTML = `<option value="${escHtml(roomAssign.roomName)}" selected>${escHtml(roomAssign.roomName)} (배정됨)</option>`;
+    rsel.disabled = true;
+  } else {
+    rsel.innerHTML = '<option value="">사용 안 함</option>';
+    (S.school?.specialRooms||[]).forEach(r => {
+      const o = document.createElement('option'); o.value = r.name; o.textContent = r.name;
+      if (cell?.specialRoom === r.name) o.selected = true;
+      rsel.appendChild(o);
+    });
+  }
 
-  q('#mcell-clear').style.display = cell ? 'flex' : 'none';
+  // 삭제 버튼: 특별실 배정 칸은 비관리자 숨김
+  const canDelete = cell && (S.user.role === 'admin' || !roomAssign);
+  q('#mcell-clear').style.display = canDelete ? 'flex' : 'none';
+
   openModal('modal-cell');
 }
 window.onCellClick = onCellClick;
 
 async function saveCellModal() {
-  const subject = q('#mcell-subject').value;
-  const room    = q('#mcell-room').value;
-  if (!subject) { toast('과목을 선택해주세요.','error'); return; }
+  const subject    = q('#mcell-subject').value;
+  const rsel       = q('#mcell-room');
+  const roomAssign = getRoomAssignmentForKey(S.editingKey);
+  if (!subject) { toast('과목을 선택해주세요.', 'error'); return; }
+
+  const room = roomAssign
+    ? roomAssign.roomName                         // 특별실 배정에서 온 경우 고정
+    : (rsel.disabled ? null : rsel.value || null); // 일반 셀
 
   const data = {
     subject,
@@ -1524,11 +1838,16 @@ window.onCellDragStart = onCellDragStart;
 
 function onDragOver(event, key, el) {
   event.preventDefault();
-  const cell   = S.ttData[key];
-  const locked = isCellLocked(cell);
-  const td     = el || event.currentTarget;
+  const cell      = S.ttData[key];
+  const lockState = getCellLockState(cell, key);
+  const td        = el || event.currentTarget;
   td.classList.remove('over-ok','over-bad');
-  if (locked) {
+
+  const fromCell  = S.dragSrc?.type === 'cell';
+  // Full lock or (room lock + cell-to-cell move) = blocked
+  const blocked   = lockState === 'full' || (lockState === 'room' && fromCell);
+
+  if (blocked) {
     event.dataTransfer.dropEffect = 'none';
     td.classList.add('over-bad');
   } else {
@@ -1549,20 +1868,30 @@ async function onDrop(event, targetKey, el) {
   const td = el || event.currentTarget;
   td.classList.remove('over-ok','over-bad');
 
-  const targetCell = S.ttData[targetKey];
-  if (isCellLocked(targetCell)) {
+  const targetCell  = S.ttData[targetKey];
+  const targetRoom  = getRoomAssignmentForKey(targetKey);
+  const targetLock  = getCellLockState(targetCell, targetKey);
+
+  if (!S.dragSrc) return;
+
+  // Full lock: reject all drops
+  if (targetLock === 'full') {
     toast('🚫 배정 불가 — 잠긴 시간입니다.', 'error');
     S.dragSrc = null; return;
   }
-  if (!S.dragSrc) return;
+  // Room lock + cell-to-cell: reject (can't swap into room-assigned slots)
+  if (targetRoom && S.dragSrc.type === 'cell') {
+    toast('🔒 특별실 배정 시간은 이동할 수 없습니다.', 'warn');
+    S.dragSrc = null; return;
+  }
 
   if (S.dragSrc.type === 'palette') {
     await saveCellToStorage(targetKey, {
       subject:      S.dragSrc.subject,
       teacher:      S.user.name,
       role:         S.user.role,
-      specialRoom:  null,
-      isSpecialRoom:false,
+      specialRoom:  targetRoom ? targetRoom.roomName : null,
+      isSpecialRoom:!!targetRoom,
       updatedAt:    Date.now(),
     });
     toast(`${S.dragSrc.subject} 배정`, 'success');
@@ -1572,7 +1901,6 @@ async function onDrop(event, targetKey, el) {
     const srcData = S.ttData[srcKey];
     if (!srcData) { S.dragSrc=null; return; }
     const tgtData = S.ttData[targetKey] || null;
-    // Swap
     await saveCellToStorage(targetKey, {...srcData, updatedAt:Date.now()});
     await saveCellToStorage(srcKey,    tgtData ? {...tgtData, updatedAt:Date.now()} : null);
     toast('이동 완료', 'success');
@@ -1704,6 +2032,177 @@ function closeSidebarOnMain(e) {
   if (sb && sb.classList.contains('mobile-open')) sb.classList.remove('mobile-open');
 }
 window.closeSidebarOnMain = closeSidebarOnMain;
+
+/* ===========================================================
+   ROOM SCHEDULE (특별실 배정)  — Admin only
+   =========================================================== */
+const ROOM_HDR_COLORS = [
+  '#2563eb','#059669','#d97706','#7c3aed','#dc2626',
+  '#0891b2','#65a30d','#db2777','#ea580c','#6366f1',
+];
+
+// 학년별 칩 색상
+function gradeColor(cls) {
+  const palette = [
+    {bg:'#fee2e2',text:'#dc2626'}, // 1학년
+    {bg:'#ffedd5',text:'#ea580c'}, // 2학년
+    {bg:'#fefce8',text:'#ca8a04'}, // 3학년
+    {bg:'#dcfce7',text:'#16a34a'}, // 4학년
+    {bg:'#dbeafe',text:'#2563eb'}, // 5학년
+    {bg:'#f3e8ff',text:'#7c3aed'}, // 6학년
+  ];
+  if (!cls) return {bg:'#f3f4f6',text:'#6b7280'};
+  const g = cls.grade || parseInt(cls.name?.[0]);
+  if (g >= 1 && g <= 6) return palette[g-1];
+  return {bg:'#f3f4f6',text:'#6b7280'};
+}
+
+function goToRoomSchedule() {
+  if (!S.school) return;
+  if (!S.school.roomSchedule) S.school.roomSchedule = {};
+  q('#rs-school-label').textContent = S.school.name;
+  renderRoomSchedule();
+  goTo('screen-room-schedule');
+}
+window.goToRoomSchedule = goToRoomSchedule;
+
+function renderRoomSchedule() {
+  const rooms = S.school?.specialRooms || [];
+  const wrap  = q('#rs-grid-wrap');
+  const empty = q('#rs-empty');
+  if (!rooms.length) {
+    wrap.innerHTML = '';
+    if (empty) empty.style.display = 'block';
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+
+  wrap.innerHTML = rooms.map((room, ri) => {
+    const hdrColor = ROOM_HDR_COLORS[ri % ROOM_HDR_COLORS.length];
+    const schedule = S.school.roomSchedule?.[room.id] || {};
+
+    // 학급별 사용 시수 집계
+    const classCounts = {};
+    Object.values(schedule).forEach(v => {
+      if (v?.classId) classCounts[v.classId] = (classCounts[v.classId]||0) + 1;
+    });
+    const countChips = Object.entries(classCounts).map(([cid, cnt]) => {
+      const cls = (S.school.classes||[]).find(c=>c.id===cid);
+      const gc  = gradeColor(cls);
+      return `<span class="rs-count-chip" style="background:${gc.bg};color:${gc.text}">${escHtml(cls?.name||cid)} ${cnt}h</span>`;
+    }).join('');
+    const usedCount = Object.keys(classCounts).length;
+
+    const gridRows = PERIODS.map(p => {
+      const rowCells = DAYS.map(day => {
+        const key   = `${day}-${p}`;
+        const entry = schedule[key];
+        const cls   = entry ? (S.school.classes||[]).find(c=>c.id===entry.classId) : null;
+        const gc    = cls ? gradeColor(cls) : null;
+        const inner = cls
+          ? `<div class="rs-ci" style="background:${gc.bg};color:${gc.text}">${escHtml(cls.name)}</div>`
+          : `<div class="rs-ci empty">+</div>`;
+        return `<td class="rs-cell" onclick="openRsModal('${room.id}','${escHtml(room.name)}','${key}')">${inner}</td>`;
+      }).join('');
+      return `<tr><td class="rs-period">${p}교시</td>${rowCells}</tr>`;
+    }).join('');
+
+    return `
+      <div class="rs-block">
+        <div class="rs-block-hdr" style="background:${hdrColor}">
+          <span>🏛️ ${escHtml(room.name)}</span>
+          <span class="rs-sub">${usedCount ? `${usedCount}학급 사용중` : '배정 없음'}</span>
+        </div>
+        <table class="rs-table">
+          <thead>
+            <tr>
+              <th>교시</th>${DAYS.map(d=>`<th>${d}</th>`).join('')}
+            </tr>
+          </thead>
+          <tbody>${gridRows}</tbody>
+        </table>
+        ${countChips ? `<div class="rs-count-row">${countChips}</div>` : ''}
+      </div>`;
+  }).join('');
+}
+window.renderRoomSchedule = renderRoomSchedule;
+
+let rsCurrent = null; // { roomId, roomName, key }
+
+function openRsModal(roomId, roomName, key) {
+  rsCurrent = { roomId, roomName, key };
+  const [day, period] = key.split('-');
+  q('#mrs-title').textContent = `${roomName} — ${day}요일 ${period}교시`;
+
+  const current = S.school.roomSchedule?.[roomId]?.[key];
+  q('#mrs-desc').textContent  = current ? `현재: ${current.className} 배정됨` : '배정된 학급이 없습니다.';
+  q('#mrs-clear').style.display = current ? 'flex' : 'none';
+
+  // 학급 드롭다운 (학년별 그룹)
+  const sel = q('#mrs-class');
+  sel.innerHTML = '<option value="">-- 배정 안 함 (비우기) --</option>';
+  const classes = S.school.classes || [];
+  const graded  = {}, ungraded = [];
+  classes.forEach(c => { if (c.grade) (graded[c.grade]=graded[c.grade]||[]).push(c); else ungraded.push(c); });
+  [1,2,3,4,5,6].forEach(g => {
+    if (!graded[g]) return;
+    const og = document.createElement('optgroup'); og.label = `${g}학년`;
+    graded[g].forEach(c => {
+      const o = document.createElement('option'); o.value = c.id; o.textContent = c.name;
+      if (current?.classId === c.id) o.selected = true;
+      og.appendChild(o);
+    });
+    sel.appendChild(og);
+  });
+  if (ungraded.length) {
+    const og = document.createElement('optgroup'); og.label = '기타';
+    ungraded.forEach(c => {
+      const o = document.createElement('option'); o.value = c.id; o.textContent = c.name;
+      if (current?.classId === c.id) o.selected = true;
+      og.appendChild(o);
+    });
+    sel.appendChild(og);
+  }
+  openModal('modal-rs-cell');
+}
+window.openRsModal = openRsModal;
+
+async function saveRsCell() {
+  if (!rsCurrent || !S.school) return;
+  const { roomId, key } = rsCurrent;
+  const classId = q('#mrs-class').value;
+
+  if (!S.school.roomSchedule) S.school.roomSchedule = {};
+  if (!S.school.roomSchedule[roomId]) S.school.roomSchedule[roomId] = {};
+
+  if (!classId) {
+    delete S.school.roomSchedule[roomId][key];
+    if (!Object.keys(S.school.roomSchedule[roomId]).length) delete S.school.roomSchedule[roomId];
+  } else {
+    const cls = (S.school.classes||[]).find(c=>c.id===classId);
+    S.school.roomSchedule[roomId][key] = { classId, className: cls?.name || classId };
+  }
+
+  await saveSchool(S.school);
+  closeModal('modal-rs-cell');
+  renderRoomSchedule();
+  toast(classId ? '배정 완료 ✔' : '배정 취소됨', 'success');
+}
+window.saveRsCell = saveRsCell;
+
+async function clearRsCell() {
+  if (!rsCurrent || !S.school) return;
+  const { roomId, key } = rsCurrent;
+  if (S.school.roomSchedule?.[roomId]) {
+    delete S.school.roomSchedule[roomId][key];
+    if (!Object.keys(S.school.roomSchedule[roomId]).length) delete S.school.roomSchedule[roomId];
+  }
+  await saveSchool(S.school);
+  closeModal('modal-rs-cell');
+  renderRoomSchedule();
+  toast('배정 취소됨');
+}
+window.clearRsCell = clearRsCell;
 
 /* ===========================================================
    PRINT
