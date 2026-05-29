@@ -523,6 +523,20 @@ a{color:inherit;text-decoration:none}
 .grade-tab:hover{border-color:var(--brand);color:var(--brand);background:var(--brand-50)}
 .grade-tab.active{background:var(--brand);border-color:var(--brand);color:#fff;box-shadow:0 2px 6px rgba(37,99,235,.25)}
 
+/* Specialty teacher inline editor */
+.sp-editor{
+  background:var(--brand-50);border:1.5px solid var(--brand);border-radius:var(--r-lg);
+  padding:1rem;margin-top:.5rem;margin-bottom:.5rem;
+}
+.sp-editor-title{font-size:.88rem;font-weight:800;color:var(--brand-dark);margin-bottom:.75rem}
+.sp-pick-wrap{display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.35rem}
+.sp-pick-btn{
+  padding:.28rem .65rem;border-radius:12px;font-size:.78rem;font-weight:700;
+  border:1.5px solid var(--g200);background:#fff;cursor:pointer;transition:all var(--t);
+}
+.sp-pick-btn:hover{opacity:.85}
+.sp-pick-btn.sel{box-shadow:0 1px 4px rgba(0,0,0,.15)}
+
 /* ============================================================ */
 /* GRADE CLASS GRID (학년 반 설정)                             */
 /* ============================================================ */
@@ -808,8 +822,8 @@ a{color:inherit;text-decoration:none}
       <button class="tab-btn" onclick="switchTab('tab-subjects',this)">📚 교과목 (시수)</button>
       <button class="tab-btn" onclick="switchTab('tab-rooms',this)">🏛️ 특별실</button>
       <button class="tab-btn active" onclick="switchTab('tab-classes',this)">🎓 학급 구성</button>
-      <button class="tab-btn" onclick="switchTab('tab-teachers',this)">👩‍🏫 교담 교사</button>
       <button class="tab-btn" onclick="switchTab('tab-times',this)">⏰ 교시 시간</button>
+      <button class="tab-btn" onclick="switchTab('tab-teachers',this)">👩‍🏫 교담 교사</button>
       <button class="tab-btn" onclick="switchTab('tab-password',this)">🔑 비밀번호</button>
     </div>
 
@@ -895,50 +909,42 @@ a{color:inherit;text-decoration:none}
     <!-- TAB: Teachers (교담 교사) -->
     <div id="tab-teachers" class="tab-panel">
 
-      <!-- 안내 -->
-      <div class="alert alert-info" style="margin-bottom:.85rem">
-        💡 교담 교사 유형을 관리합니다. 추가한 유형은 로그인 화면의 역할 선택에 표시됩니다.
+      <!-- 섹션 1: 교담 교사 목록 -->
+      <div class="card">
+        <div class="card-title" style="margin-bottom:.5rem">👩‍🏫 교담 교사 목록</div>
+        <div class="form-hint" style="margin-bottom:.85rem">
+          교담 교사를 추가하세요. 각 교담에 담당 <strong>학년</strong>과 <strong>교과</strong>를 지정합니다. (복수 선택 가능)
+        </div>
+        <div class="list-wrap" id="specialty-teacher-list"></div>
+        <button class="btn btn-primary btn-sm" style="margin-top:.75rem" onclick="addSpecialtyTeacher()">+ 교담 추가</button>
       </div>
 
-      <!-- 교담 교사 유형 목록 -->
+      <!-- 섹션 2: 강사 유형 (기본 내장 + 커스텀) -->
       <div class="card">
-        <div class="card-title" style="margin-bottom:.75rem">교담 교사 유형 목록</div>
+        <div class="card-title" style="margin-bottom:.5rem">🏷️ 강사 유형</div>
+        <div class="form-hint" style="margin-bottom:.85rem">
+          기본 강사 유형은 수정할 수 없습니다. 필요한 경우 새 유형을 추가하세요.
+        </div>
         <div class="list-wrap" id="teacher-type-list"></div>
-      </div>
 
-      <!-- 새 유형 추가 -->
-      <div class="card">
-        <div class="card-title" style="margin-bottom:.85rem">✨ 새 유형 추가</div>
-        <div class="form-group">
-          <label class="form-label">유형 이름</label>
-          <input type="text" id="tt-name" class="form-input" placeholder="예: 영어회화 전문강사">
-        </div>
-        <div class="form-group">
-          <label class="form-label">수업 방식</label>
-          <select id="tt-mode" class="form-select" onchange="onTtModeChange()">
-            <option value="independent">🎓 단독 수업 가능 (교과전담)</option>
-            <option value="collaborative">🤝 협업 수업만 가능 (단독 불가)</option>
-          </select>
-          <div class="form-hint" id="tt-mode-hint">담임 또는 다른 교과전담 교사와 반드시 함께 수업합니다.</div>
-        </div>
-        <div id="tt-filter-group">
-          <div class="form-group">
-            <label class="form-label">담당 교과 제한 <span class="text-muted text-sm">(없으면 전 교과)</span></label>
-            <div id="tt-subj-chips" class="subject-pick-wrap" style="min-height:36px;border:1px solid var(--g200);border-radius:var(--r);padding:.4rem .5rem"></div>
-          </div>
-          <div class="form-group">
-            <label class="form-label">담당 학년 제한 <span class="text-muted text-sm">(없으면 전 학년)</span></label>
-            <div style="display:flex;gap:.35rem;flex-wrap:wrap" id="tt-grade-chips">
-              <button class="grade-tab" data-g="1" onclick="toggleGradeFilter(this,1)">1학년</button>
-              <button class="grade-tab" data-g="2" onclick="toggleGradeFilter(this,2)">2학년</button>
-              <button class="grade-tab" data-g="3" onclick="toggleGradeFilter(this,3)">3학년</button>
-              <button class="grade-tab" data-g="4" onclick="toggleGradeFilter(this,4)">4학년</button>
-              <button class="grade-tab" data-g="5" onclick="toggleGradeFilter(this,5)">5학년</button>
-              <button class="grade-tab" data-g="6" onclick="toggleGradeFilter(this,6)">6학년</button>
+        <!-- 새 유형 추가 (커스텀만 — 수업방식만 입력) -->
+        <div style="margin-top:1rem;padding-top:.85rem;border-top:1px solid var(--g100)">
+          <div style="font-size:.85rem;font-weight:700;color:var(--g700);margin-bottom:.6rem">✨ 새 강사 유형 추가</div>
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:flex-end">
+            <div style="flex:2;min-width:130px">
+              <label class="form-label" style="font-size:.78rem">유형 이름</label>
+              <input type="text" id="tt-name" class="form-input" placeholder="예: 독서 강사">
             </div>
+            <div style="flex:2;min-width:150px">
+              <label class="form-label" style="font-size:.78rem">수업 방식</label>
+              <select id="tt-mode" class="form-select">
+                <option value="independent">🎓 단독 수업</option>
+                <option value="collaborative">🤝 협업 수업</option>
+              </select>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="addTeacherType()" style="align-self:flex-end">+ 추가</button>
           </div>
         </div>
-        <button class="btn btn-primary btn-sm" onclick="addTeacherType()">+ 유형 추가</button>
       </div>
     </div>
 
@@ -946,8 +952,10 @@ a{color:inherit;text-decoration:none}
     <div id="tab-times" class="tab-panel">
       <div class="card">
         <div class="card-title" style="margin-bottom:.6rem">⏰ 학년별 교시 시간 설정</div>
-        <div class="form-hint" style="margin-bottom:.85rem">
-          학년별로 교시 시간이 다를 경우 각 탭에서 수정하세요. <strong>기본값</strong>은 별도 설정이 없는 모든 학년에 적용됩니다.
+        <div class="alert alert-info" style="margin-bottom:.85rem;font-size:.82rem">
+          💡 학년마다 교시 시간이 다를 수 있습니다. <strong>1~2학년 4교시 + 3~6학년 5교시</strong>가 같은 시간대이면,
+          특별실 배정 화면에서 해당 시간대가 별도 행으로 표시됩니다.
+          교시를 <strong>추가</strong>하면 방과후·맞춤형 수업 시간도 표현할 수 있습니다.
         </div>
         <div class="grade-tab-strip" id="times-grade-tabs" style="margin-bottom:.85rem">
           <button class="grade-tab active" onclick="setTimesGrade(0,this)">기본값</button>
@@ -960,7 +968,10 @@ a{color:inherit;text-decoration:none}
         </div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.65rem;flex-wrap:wrap;gap:.4rem">
           <span class="text-sm text-muted" id="times-grade-label">기본값 (전 학년 공통)</span>
-          <button class="btn btn-ghost btn-sm" onclick="resetPeriodTimes()">🔄 기본값으로 초기화</button>
+          <div style="display:flex;gap:.4rem">
+            <button class="btn btn-ghost btn-sm" onclick="addPeriodTime()">+ 교시 추가</button>
+            <button class="btn btn-ghost btn-sm" onclick="resetPeriodTimes()">🔄 초기화</button>
+          </div>
         </div>
         <div id="period-times-list"></div>
       </div>
@@ -1085,6 +1096,7 @@ a{color:inherit;text-decoration:none}
       <span id="sync-indicator" title="저장 방식"><span class="sync-dot" id="sync-dot"></span><span id="sync-label" class="text-sm text-muted">로컬</span></span>
       <button class="btn btn-ghost btn-sm" id="btn-room-schedule" onclick="goToRoomSchedule()" style="display:none">🏛️ 특별실 배정</button>
       <button class="btn btn-ghost btn-sm" id="btn-clear-all" onclick="confirmClearAll()" style="display:none">🗑️ 초기화</button>
+      <button class="btn btn-ghost btn-sm" onclick="exportAllToExcel()">📊 엑셀 저장</button>
       <button class="btn btn-ghost btn-sm" onclick="printTimetable()">🖨️ 인쇄</button>
       <button class="btn btn-ghost btn-sm" id="btn-admin-setup" onclick="goAdminSetup()" style="display:none">⚙️ 설정</button>
       <button class="btn btn-ghost btn-sm" onclick="logout()">로그아웃</button>
@@ -1143,6 +1155,9 @@ a{color:inherit;text-decoration:none}
   <div id="sa-login" class="sa-login-wrap">
     <div class="sa-login-title">🔑 관리자 인증</div>
     <div class="sa-login-sub">슈퍼 관리자 비밀번호를 입력하세요.</div>
+    <div style="background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);border-radius:var(--r);padding:.6rem .85rem;margin-bottom:.85rem;font-size:.78rem;color:#fcd34d">
+      📅 생성한 지 <strong>1년이 지난 학교(그룹)는 삭제될 수 있습니다.</strong> 불필요한 데이터는 정기적으로 정리해 주세요.
+    </div>
     <div class="form-group">
       <label class="form-label" style="color:#94a3b8">비밀번호</label>
       <input type="password" id="sa-pw" class="form-input" placeholder="비밀번호 입력"
@@ -1265,6 +1280,8 @@ a{color:inherit;text-decoration:none}
 <!-- ═══════════════════════════════════════════════════════ -->
 <!-- SCRIPT                                                  -->
 <!-- ═══════════════════════════════════════════════════════ -->
+<!-- SheetJS: 브라우저에서 Excel 생성 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script type="module">
 /* ===========================================================
    FIREBASE IMPORTS
@@ -1297,27 +1314,145 @@ const DAYS    = ['월','화','수','목','금'];
 const PERIODS = [1,2,3,4,5,6];
 
 /* 기본 교시 시간 (2022 개정 기준) */
-const DEFAULT_PERIOD_TIMES = [
-  { start: '09:00', end: '09:40' },
-  { start: '09:50', end: '10:30' },
-  { start: '10:50', end: '11:30' },
-  { start: '11:40', end: '12:10' },
-  { start: '13:10', end: '13:50' },
-  { start: '14:00', end: '14:40' },
-];
+/* 기본 교시 시간 — 학년 그룹별 */
+const DEFAULT_PERIOD_TIMES_BY_GROUP = {
+  '1-2': [   // 1~2학년: 5교시
+    { start: '09:00', end: '09:40' },
+    { start: '09:50', end: '10:30' },
+    { start: '10:50', end: '11:30' },
+    { start: '12:30', end: '13:10' },
+    { start: '13:10', end: '13:50' },
+  ],
+  '3-4': [   // 3~4학년: 6교시
+    { start: '09:00', end: '09:40' },
+    { start: '09:50', end: '10:30' },
+    { start: '10:50', end: '11:30' },
+    { start: '11:40', end: '12:20' },
+    { start: '12:30', end: '13:10' },
+    { start: '14:00', end: '14:40' },
+  ],
+  '5-6': [   // 5~6학년: 6교시
+    { start: '09:00', end: '09:40' },
+    { start: '09:50', end: '10:30' },
+    { start: '10:50', end: '11:30' },
+    { start: '11:40', end: '12:20' },
+    { start: '13:10', end: '13:50' },
+    { start: '14:00', end: '14:40' },
+  ],
+};
+
+/* 학년 → 그룹 키 */
+function gradeGroupKey(grade) {
+  if (grade === 1 || grade === 2) return '1-2';
+  if (grade === 3 || grade === 4) return '3-4';
+  if (grade === 5 || grade === 6) return '5-6';
+  return null;
+}
+
+/* 하위 호환용 기본값 (기본값 탭에서 사용) */
+const DEFAULT_PERIOD_TIMES = DEFAULT_PERIOD_TIMES_BY_GROUP['5-6'];
 
 /* 학교/학년에 맞는 교시 시간 반환 */
 function getPeriodTimes(grade) {
   const pt = S.school?.periodTimes;
+  // 학년별 커스텀 설정 우선
   if (grade && pt?.[grade]?.length) return pt[grade];
+  // 학교 기본값
   if (pt?.default?.length) return pt.default;
+  // 학년 그룹별 기본값
+  if (grade) {
+    const gk = gradeGroupKey(grade);
+    if (gk) return DEFAULT_PERIOD_TIMES_BY_GROUP[gk];
+  }
   return DEFAULT_PERIOD_TIMES;
+}
+
+/* 초기 periodTimes 보장 — 학년 그룹별 기본값 적용 */
+function ensurePeriodTimes() {
+  if (!S.school) return;
+  if (!S.school.periodTimes) S.school.periodTimes = {};
+  // default가 없으면 5-6학년 기준으로 설정
+  if (!S.school.periodTimes.default?.length) {
+    S.school.periodTimes.default = DEFAULT_PERIOD_TIMES.map(t => ({...t}));
+  }
+  // 1~6학년 각각에 그룹 기본값 초기화 (커스텀 없으면)
+  [1,2,3,4,5,6].forEach(g => {
+    if (!S.school.periodTimes[g]?.length) {
+      // 커스텀 없음 → getPeriodTimes가 그룹 기본값 반환하므로 별도 저장 불필요
+    }
+  });
 }
 
 /* 현재 학급의 교시 시간 반환 */
 function getCurrentClassPeriodTimes() {
   const grade = getCurrentClassGrade();
   return getPeriodTimes(grade);
+}
+
+/* 현재 학급의 교시 배열 (동적) */
+function getCurrentClassPeriods() {
+  const times = getCurrentClassPeriodTimes();
+  return times.map((_, i) => i + 1);
+}
+
+/* ===========================================================
+   UNIFIED SCHEDULE ROWS (학년별 교시 시간 합산 → 시간대별 행)
+   =========================================================== */
+/**
+ * 모든 학년의 교시 시간을 합산해 유일한 시간대 슬롯을 반환.
+ * 반환: [{ slotKey, start, end, label, gradeMap: {g: periodNum} }]
+ * slotKey = start time (e.g. "09:00")
+ * label = "1교시" (전체 동일) 또는 "(1,2학년)4교시\n(3,4학년)5교시"
+ */
+function getScheduleRows() {
+  const slotMap = new Map(); // start → {start, end, gradeMap}
+  [1,2,3,4,5,6].forEach(g => {
+    const times = getPeriodTimes(g);
+    times.forEach((t, i) => {
+      if (!slotMap.has(t.start)) {
+        slotMap.set(t.start, { slotKey: t.start, start: t.start, end: t.end, gradeMap: {} });
+      }
+      slotMap.get(t.start).gradeMap[g] = i + 1;
+    });
+  });
+  const rows = [...slotMap.values()].sort((a,b) => a.start.localeCompare(b.start));
+
+  // Generate labels
+  rows.forEach(slot => {
+    // Group grades by period number
+    const byPeriod = {};
+    Object.entries(slot.gradeMap).forEach(([g, p]) => {
+      if (!byPeriod[p]) byPeriod[p] = [];
+      byPeriod[p].push(parseInt(g));
+    });
+    const entries = Object.entries(byPeriod).sort((a,b) => a[0]-b[0]);
+    if (entries.length === 1) {
+      slot.label = `${entries[0][0]}교시`;
+      slot.shortLabel = `${entries[0][0]}교시`;
+    } else {
+      const allGrades = [1,2,3,4,5,6];
+      slot.label = entries.map(([p, gs]) => {
+        // Simplify grade list: consecutive ranges
+        const gradeStr = compressGrades(gs);
+        return `(${gradeStr})${p}교시`;
+      }).join('\n');
+      slot.shortLabel = entries.map(([p, gs]) => `${gs.join(',')}학년:${p}교시`).join(' / ');
+    }
+  });
+  return rows;
+}
+
+/* 학년 배열 압축 표시: [1,2,3,4] → "1~4학년", [1,3] → "1,3학년" */
+function compressGrades(grades) {
+  grades = [...grades].sort((a,b)=>a-b);
+  const ranges = [];
+  let start = grades[0], end = grades[0];
+  for (let i = 1; i < grades.length; i++) {
+    if (grades[i] === end + 1) { end = grades[i]; }
+    else { ranges.push(start===end ? `${start}` : `${start}~${end}`); start = end = grades[i]; }
+  }
+  ranges.push(start===end ? `${start}` : `${start}~${end}`);
+  return ranges.join(',') + '학년';
 }
 
 /* 교시 레이블 (예: "1교시\n09:00~09:40") */
@@ -1340,6 +1475,8 @@ const DEFAULT_SUBJECTS_BY_GRADE = {
     {name:'슬기로운생활',weeklyHours:3, color:'#16a34a'},
     {name:'즐거운생활', weeklyHours:5, color:'#2563eb'},
     {name:'자율',       weeklyHours:3, color:'#7c3aed'},
+    {name:'방과후', weeklyHours:0, color:'#94a3b8', special:true},
+    {name:'맞춤형', weeklyHours:0, color:'#a78bfa', special:true},
   ],
   2: [
     {name:'국어',       weeklyHours:6, color:'#ef4444'},
@@ -1348,6 +1485,8 @@ const DEFAULT_SUBJECTS_BY_GRADE = {
     {name:'슬기로운생활',weeklyHours:3, color:'#16a34a'},
     {name:'즐거운생활', weeklyHours:6, color:'#2563eb'},
     {name:'자율',       weeklyHours:2, color:'#7c3aed'},
+    {name:'방과후', weeklyHours:0, color:'#94a3b8', special:true},
+    {name:'맞춤형', weeklyHours:0, color:'#a78bfa', special:true},
   ],
   3: [
     {name:'국어',   weeklyHours:5, color:'#ef4444'},
@@ -1361,6 +1500,8 @@ const DEFAULT_SUBJECTS_BY_GRADE = {
     {name:'영어',   weeklyHours:2, color:'#2563eb'},
     {name:'창체',   weeklyHours:2, color:'#d97706'},
     {name:'학교자율',weeklyHours:1, color:'#6366f1'},
+    {name:'방과후', weeklyHours:0, color:'#94a3b8', special:true},
+    {name:'맞춤형', weeklyHours:0, color:'#a78bfa', special:true},
   ],
   4: [
     {name:'국어',   weeklyHours:5, color:'#ef4444'},
@@ -1374,6 +1515,8 @@ const DEFAULT_SUBJECTS_BY_GRADE = {
     {name:'영어',   weeklyHours:2, color:'#2563eb'},
     {name:'창체',   weeklyHours:2, color:'#d97706'},
     {name:'학교자율',weeklyHours:1, color:'#6366f1'},
+    {name:'방과후', weeklyHours:0, color:'#94a3b8', special:true},
+    {name:'맞춤형', weeklyHours:0, color:'#a78bfa', special:true},
   ],
   5: [
     {name:'국어',   weeklyHours:5, color:'#ef4444'},
@@ -1388,6 +1531,8 @@ const DEFAULT_SUBJECTS_BY_GRADE = {
     {name:'영어',   weeklyHours:3, color:'#2563eb'},
     {name:'창체',   weeklyHours:2, color:'#d97706'},
     {name:'학교자율',weeklyHours:1, color:'#6366f1'},
+    {name:'방과후', weeklyHours:0, color:'#94a3b8', special:true},
+    {name:'맞춤형', weeklyHours:0, color:'#a78bfa', special:true},
   ],
   6: [
     {name:'국어',   weeklyHours:5, color:'#ef4444'},
@@ -1402,30 +1547,27 @@ const DEFAULT_SUBJECTS_BY_GRADE = {
     {name:'영어',   weeklyHours:3, color:'#2563eb'},
     {name:'창체',   weeklyHours:2, color:'#d97706'},
     {name:'학교자율',weeklyHours:1, color:'#6366f1'},
+    {name:'방과후', weeklyHours:0, color:'#94a3b8', special:true},
+    {name:'맞춤형', weeklyHours:0, color:'#a78bfa', special:true},
   ],
 };
-const DEFAULT_ROOMS   = ['체육관','과학실','컴퓨터실','도서실','음악실','영어실'];
+const DEFAULT_ROOMS = ['강당','과학실1','과학실2','컴퓨터실','도서실','음악실','영어실'];
 
 const DEFAULT_TEACHER_TYPES = [
   {
-    id: 'tt_specialty', name: '교과전담교사',
-    mode: 'independent', subjectFilter: null, gradeFilter: null,
-    note: '단독 수업 가능 · 전 교과·전 학년',
+    id: 'tt_eng_conv', name: '영어회화 전문강사', builtin: true,
+    mode: 'independent', subjectFilter: ['영어'], gradeFilter: null,
+    note: '단독 수업 · 영어 교과만',
   },
   {
-    id: 'tt_eng_conv', name: '영어회화 전문강사',
-    mode: 'independent', subjectFilter: ['영어'], gradeFilter: [3,4,5,6],
-    note: '단독 수업 가능 · 3~6학년 영어만',
+    id: 'tt_sports', name: '스포츠 강사', builtin: true,
+    mode: 'collaborative', subjectFilter: ['체육'], gradeFilter: null,
+    note: '협업 수업 · 체육 교과만',
   },
   {
-    id: 'tt_sports', name: '스포츠 강사',
-    mode: 'collaborative', subjectFilter: null, gradeFilter: null,
-    note: '협업 수업만 가능 · 단독 수업 불가',
-  },
-  {
-    id: 'tt_native', name: '원어민 교사',
-    mode: 'collaborative', subjectFilter: null, gradeFilter: null,
-    note: '협업 수업만 가능 · 단독 수업 불가',
+    id: 'tt_native', name: '원어민 강사', builtin: true,
+    mode: 'collaborative', subjectFilter: ['영어'], gradeFilter: null,
+    note: '협업 수업 · 영어 교과만',
   },
 ];
 
@@ -1529,18 +1671,51 @@ async function loadAllSchools() {
     list.innerHTML = '<div class="sa-empty">🏫 등록된 학교가 없습니다.</div>';
     return;
   }
-  list.innerHTML = schools.map(s => `
-    <div class="sa-card">
-      <div class="sa-icon">🏫</div>
-      <div style="flex:1">
-        <div class="sa-school-name">${escHtml(s.name)}</div>
-        <div class="sa-meta">ID: ${s.id.slice(-10)} · ${new Date(s.createdAt||0).toLocaleDateString('ko-KR')} · 학급 ${(s.classes||[]).length}개</div>
-      </div>
-      <button class="btn btn-sm" onclick="saResetSchoolPw('${s.id}','${escHtml(s.name)}')"
-        style="color:#94a3b8;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);margin-right:.35rem">🔑 PW 초기화</button>
-      <button class="btn btn-danger btn-sm" onclick="confirmDeleteSchool('${s.id}','${escHtml(s.name)}')">🗑️ 삭제</button>
-    </div>
-  `).join('');
+
+  const now      = Date.now();
+  const ONE_YEAR = 365 * 24 * 60 * 60 * 1000;
+
+  // 생성일 오래된 순(삭제 우선순위)으로 정렬
+  const sorted = [...schools].sort((a, b) => (a.createdAt||0) - (b.createdAt||0));
+
+  // 안내 문구
+  const expiredCount = sorted.filter(s => now - (s.createdAt||0) >= ONE_YEAR).length;
+  const warnHtml = expiredCount ? `
+    <div style="background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);border-radius:var(--r);padding:.75rem 1rem;margin-bottom:1rem;font-size:.82rem;color:#fca5a5">
+      ⚠️ <strong>${expiredCount}개 학교</strong>가 생성한 지 1년이 지났습니다. 불필요한 데이터는 삭제해 주세요.
+    </div>` : '';
+
+  list.innerHTML = warnHtml + sorted.map(s => {
+    const age     = now - (s.createdAt || 0);
+    const days    = Math.floor(age / (24*60*60*1000));
+    const expired = age >= ONE_YEAR;
+    const warn11m = age >= ONE_YEAR * 0.9;
+    const dateStr = new Date(s.createdAt||0).toLocaleDateString('ko-KR');
+    const ageBadge = expired
+      ? `<span style="background:rgba(239,68,68,.25);color:#fca5a5;font-size:.7rem;font-weight:700;padding:.15rem .45rem;border-radius:8px">⚠ ${days}일 경과</span>`
+      : warn11m
+        ? `<span style="background:rgba(251,191,36,.2);color:#fcd34d;font-size:.7rem;font-weight:700;padding:.15rem .45rem;border-radius:8px">🕐 ${days}일 경과</span>`
+        : `<span style="font-size:.7rem;color:rgba(255,255,255,.35)">${days}일</span>`;
+    const cardBorder = expired
+      ? 'border:1px solid rgba(239,68,68,.4);'
+      : warn11m ? 'border:1px solid rgba(251,191,36,.25);' : '';
+
+    return `
+      <div class="sa-card" style="${cardBorder}">
+        <div class="sa-icon">🏫</div>
+        <div style="flex:1;min-width:0">
+          <div class="sa-school-name">${escHtml(s.name)}</div>
+          <div class="sa-meta">
+            생성: ${dateStr} &nbsp;${ageBadge}&nbsp;
+            · 학급 ${(s.classes||[]).length}개
+          </div>
+          ${expired ? `<div style="font-size:.73rem;color:#fca5a5;margin-top:2px">📅 생성 1년 경과 — 삭제를 검토하세요</div>` : ''}
+        </div>
+        <button class="btn btn-sm" onclick="saResetSchoolPw('${s.id}','${escHtml(s.name)}')"
+          style="color:#94a3b8;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);margin-right:.35rem;flex-shrink:0">🔑 PW</button>
+        <button class="btn btn-danger btn-sm" onclick="confirmDeleteSchool('${s.id}','${escHtml(s.name)}')" style="flex-shrink:0">🗑️ 삭제</button>
+      </div>`;
+  }).join('');
 }
 window.loadAllSchools = loadAllSchools;
 
@@ -1742,13 +1917,13 @@ function renderSpecialtyGrid() {
   const cnt = Object.keys(schedule).length;
   const el = q('#sp-stat-label');
   if (el) el.textContent = cnt ? `${subject}: ${cnt}개 시간 배정됨` : `${subject}: 배정 없음`;
-  q('#sp-tbody').innerHTML = PERIODS.map(p => {
-    const pt = getPeriodTimes(null);
+  q('#sp-tbody').innerHTML = getScheduleRows().map(slot => {
+    const key_prefix = `${slot.slotKey}`;
     return `
     <tr>
-      <td class="period-cell">${periodLabel(p, pt)}</td>
+      <td class="period-cell" style="font-size:.68rem;line-height:1.3">${slot.label.replace(/\n/g,'<br>')}<span class="period-time">${slot.start}</span></td>
       ${DAYS.map(day => {
-        const key   = `${day}-${p}`;
+        const key   = `${day}-${slot.slotKey}`;
         const entry = schedule[key];
         const cls   = entry ? classes.find(c => c.id === entry.classId) : null;
         const g     = cls?.grade || parseInt(cls?.name?.[0]);
@@ -1775,14 +1950,17 @@ window.renderSpecialtyGrid = renderSpecialtyGrid;
 
 function openSpModal(key) {
   spEditKey = key;
-  const [day, period] = key.split('-');
+  const day = key.split('-')[0];
+  const slotKey = key.slice(key.indexOf('-')+1);
+  const slotRow = getScheduleRows().find(r => r.slotKey === slotKey);
+  const slotLabel = slotRow?.shortLabel || slotKey;
   const subject  = spCurrentSubject;
   const isCollab = subject?.startsWith('__collab__');
   const schedule = getSpecialtySchedule(subject);
   const current  = schedule[key];
   const classes  = S.school?.classes || [];
 
-  q('#sp-modal-title').textContent = `${day}요일 ${period}교시${isCollab ? ` — ${S.user.name}` : ` — ${subject}`}`;
+  q('#sp-modal-title').textContent = `${day}요일 ${slotLabel}${isCollab ? ` — ${S.user.name}` : ` — ${subject}`}`;
   q('#sp-modal-desc').textContent  = current
     ? `현재: ${current.className} 배정됨`
     : isCollab ? '협업할 학급을 선택하세요 (기존 수업이 있는 학급만).' : '수업할 학급을 선택하세요.';
@@ -2062,8 +2240,12 @@ async function createSchool() {
       specialRooms: DEFAULT_ROOMS.map((r,i) => ({id:'rm'+i, name:r})),
       classes:      [],
       gradeConfig:  [4,4,4,4,4,4],
-      periodTimes:  { default: DEFAULT_PERIOD_TIMES.map(t=>({...t})) },
+      periodTimes: {
+        default: DEFAULT_PERIOD_TIMES.map(t=>({...t})),
+        // 학년 그룹별 기본값은 getPeriodTimes()가 동적으로 반환하므로 저장 불필요
+      },
       teacherTypes: DEFAULT_TEACHER_TYPES.map(t => ({...t})),
+      specialtyTeachers:     [],
       specialtyTeacherCount: 0,
       specialtySubjects:     [],
       createdAt:    Date.now(),
@@ -2230,14 +2412,28 @@ function renderRoomList() {
   const rooms = S.school?.specialRooms || [];
   q('#room-list').innerHTML = rooms.length ? rooms.map((r,i) => `
     <div class="list-item">
-      <div class="item-icon" style="background:var(--purple-bg);color:var(--purple)">🏛️</div>
-      <div class="item-text"><div class="item-title">${escHtml(r.name)}</div></div>
+      <div class="item-icon" style="background:var(--purple-bg,#f3e8ff);color:#7c3aed">🏛️</div>
+      <div class="item-text" style="flex:1">
+        <input type="text" class="form-input" value="${escHtml(r.name)}"
+               style="height:32px;font-size:.85rem;padding:.25rem .6rem"
+               onchange="updateRoomName(${i},this.value)"
+               title="이름 수정 가능">
+      </div>
       <div class="item-actions">
         <button class="btn-icon red" onclick="removeRoom(${i})">🗑️</button>
       </div>
     </div>
   `).join('') : '<div class="text-muted text-sm" style="padding:.5rem">특별실이 없습니다.</div>';
 }
+
+function updateRoomName(i, val) {
+  if (!S.school?.specialRooms) return;
+  const name = val.trim();
+  if (!name) { toast('이름을 입력하세요.', 'error'); return; }
+  S.school.specialRooms[i].name = name;
+  toast('이름 수정됨 ✔', 'success');
+}
+window.updateRoomName = updateRoomName;
 
 /* --- Grade config grid --- */
 /* ===========================================================
@@ -2246,16 +2442,6 @@ function renderRoomList() {
 /* ===========================================================
    PERIOD TIMES TAB
    =========================================================== */
-function ensurePeriodTimes() {
-  if (!S.school) return;
-  if (!S.school.periodTimes) {
-    S.school.periodTimes = { default: DEFAULT_PERIOD_TIMES.map(t => ({...t})) };
-  }
-  if (!S.school.periodTimes.default) {
-    S.school.periodTimes.default = DEFAULT_PERIOD_TIMES.map(t => ({...t}));
-  }
-}
-
 function setTimesGrade(grade, btn) {
   timesGrade = grade;
   document.querySelectorAll('#times-grade-tabs .grade-tab').forEach(b => b.classList.remove('active'));
@@ -2270,20 +2456,29 @@ window.setTimesGrade = setTimesGrade;
 
 function renderPeriodTimesList() {
   ensurePeriodTimes();
-  const key   = timesGrade === 0 ? 'default' : timesGrade;
-  const times = S.school.periodTimes[key] || DEFAULT_PERIOD_TIMES.map(t => ({...t}));
-  const isDefault = timesGrade === 0;
+  const hasOverride  = timesGrade !== 0 && !!(S.school.periodTimes?.[timesGrade]?.length);
+  const groupDefault = timesGrade !== 0
+    ? (DEFAULT_PERIOD_TIMES_BY_GROUP[gradeGroupKey(timesGrade)] || DEFAULT_PERIOD_TIMES)
+    : DEFAULT_PERIOD_TIMES;
+  const times = hasOverride
+    ? S.school.periodTimes[timesGrade]
+    : (timesGrade === 0 ? (S.school.periodTimes?.default || DEFAULT_PERIOD_TIMES) : groupDefault);
+  const grpKey  = gradeGroupKey(timesGrade);
+  const grpName = grpKey === '1-2' ? '1·2학년' : grpKey === '3-4' ? '3·4학년' : grpKey === '5-6' ? '5·6학년' : '';
 
-  // 학년별이면 기본값과 다른지 체크
-  const hasOverride = timesGrade !== 0 && !!S.school.periodTimes[timesGrade];
+  const lbl = q('#times-grade-label');
+  if (lbl) lbl.textContent = timesGrade === 0
+    ? '기본값 (별도 설정이 없는 학년에 적용)'
+    : `${timesGrade}학년 ${hasOverride ? '(커스텀 설정)' : `(${grpName} 그룹 기본값)`}`;
 
   const el = q('#period-times-list');
   if (!el) return;
-  el.innerHTML = PERIODS.map((p, i) => {
-    const t       = times[i] || { start:'', end:'' };
-    const defT    = DEFAULT_PERIOD_TIMES[i];
-    const diff    = !isDefault && hasOverride && (t.start !== defT.start || t.end !== defT.end);
+  el.innerHTML = times.map((t, i) => {
+    const p        = i + 1;
+    const defT     = groupDefault[i];
+    const diff     = hasOverride && defT && (t.start !== defT.start || t.end !== defT.end);
     const duration = calcDuration(t.start, t.end);
+    const isExtra  = i >= 6;
     return `
       <div class="pt-row" id="pt-row-${p}">
         <div class="pt-label">${p}교시${diff ? ' <span style="color:var(--brand);font-size:.65rem">●</span>' : ''}</div>
@@ -2295,16 +2490,52 @@ function renderPeriodTimesList() {
                  onchange="updatePeriodTime(${p},1,this.value)" title="종료 시간">
         </div>
         <span class="pt-badge">${duration ? duration+'분' : ''}</span>
+        ${isExtra ? `<button class="btn-icon red" onclick="removePeriodTime(${i})" title="삭제">🗑️</button>` : ''}
       </div>`;
   }).join('');
 
   if (timesGrade !== 0 && !hasOverride) {
     el.insertAdjacentHTML('afterbegin',
       `<div class="alert alert-info" style="margin-bottom:.65rem;font-size:.82rem">
-        ℹ️ 현재 기본값 사용 중. 수정하면 이 학년 전용으로 저장됩니다.
+        ℹ️ <strong>${grpName} 그룹 기본값</strong> 표시 중. 수정하면 ${timesGrade}학년 전용으로 저장됩니다.
       </div>`);
   }
 }
+
+function addPeriodTime() {
+  ensurePeriodTimes();
+  const key = timesGrade === 0 ? 'default' : timesGrade;
+  if (timesGrade !== 0 && !S.school.periodTimes[key]) {
+    S.school.periodTimes[key] = DEFAULT_PERIOD_TIMES.map(t => ({...t}));
+  }
+  const times = S.school.periodTimes[key];
+  const last  = times[times.length - 1];
+  // 마지막 교시 종료 10분 후를 시작으로 기본값 제안
+  let nextStart = '', nextEnd = '';
+  if (last?.end) {
+    const [h, m] = last.end.split(':').map(Number);
+    const s = h * 60 + m + 10;
+    nextStart = `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+    const e = s + 40;
+    nextEnd   = `${String(Math.floor(e/60)).padStart(2,'0')}:${String(e%60).padStart(2,'0')}`;
+  }
+  times.push({ start: nextStart, end: nextEnd });
+  renderPeriodTimesList();
+  toast(`${times.length}교시 추가됨`, 'success');
+}
+window.addPeriodTime = addPeriodTime;
+
+function removePeriodTime(idx) {
+  ensurePeriodTimes();
+  if (idx < 6) { toast('기본 6교시는 삭제할 수 없습니다.', 'warn'); return; }
+  const key = timesGrade === 0 ? 'default' : timesGrade;
+  const times = S.school.periodTimes[key];
+  if (!times || idx >= times.length) return;
+  times.splice(idx, 1);
+  renderPeriodTimesList();
+  toast('교시 삭제됨');
+}
+window.removePeriodTime = removePeriodTime;
 
 function calcDuration(start, end) {
   if (!start || !end) return '';
@@ -2317,17 +2548,17 @@ function calcDuration(start, end) {
 function updatePeriodTime(period, field, val) {
   ensurePeriodTimes();
   const key = timesGrade === 0 ? 'default' : timesGrade;
-  // 학년별이면 기본값에서 복사 후 수정
   if (timesGrade !== 0 && !S.school.periodTimes[key]) {
     S.school.periodTimes[key] = DEFAULT_PERIOD_TIMES.map(t => ({...t}));
   }
   if (!S.school.periodTimes[key]) S.school.periodTimes[key] = DEFAULT_PERIOD_TIMES.map(t => ({...t}));
-  const t = S.school.periodTimes[key][period - 1];
-  if (!t) return;
+  const idx = period - 1;
+  if (!S.school.periodTimes[key][idx]) S.school.periodTimes[key][idx] = {start:'',end:''};
+  const t = S.school.periodTimes[key][idx];
   if (field === 0) t.start = val;
   else t.end = val;
   // duration 업데이트
-  const row  = q(`#pt-row-${period}`);
+  const row   = q(`#pt-row-${period}`);
   const badge = row?.querySelector('.pt-badge');
   if (badge) badge.textContent = calcDuration(t.start, t.end) ? calcDuration(t.start, t.end) + '분' : '';
 }
@@ -2335,15 +2566,15 @@ window.updatePeriodTime = updatePeriodTime;
 
 function resetPeriodTimes() {
   ensurePeriodTimes();
-  const key   = timesGrade === 0 ? 'default' : timesGrade;
   const label = timesGrade === 0 ? '기본값' : `${timesGrade}학년`;
   openConfirm(
     `${label} 교시 시간 초기화`,
-    `${label}의 교시 시간을 기본값으로 되돌립니다. 계속하시겠습니까?`,
+    `${label}의 교시 시간을 그룹 기본값으로 되돌립니다. 계속하시겠습니까?`,
     () => {
       if (timesGrade === 0) {
         S.school.periodTimes.default = DEFAULT_PERIOD_TIMES.map(t => ({...t}));
       } else {
+        // 커스텀 삭제 → getPeriodTimes가 그룹 기본값 자동 반환
         delete S.school.periodTimes[timesGrade];
       }
       renderPeriodTimesList();
@@ -2355,132 +2586,251 @@ window.resetPeriodTimes = resetPeriodTimes;
 
 /* ===========================================================
    TEACHER TYPES MANAGEMENT
+/* ===========================================================
+   SPECIALTY TEACHERS (교담1, 교담2...) + TEACHER TYPES
+   =========================================================== */
+
 function ensureTeacherTypes() {
   if (!S.school) return;
   if (!S.school.teacherTypes || !S.school.teacherTypes.length) {
     S.school.teacherTypes = DEFAULT_TEACHER_TYPES.map(t => ({...t}));
+  } else {
+    // 기존 학교 데이터에 builtin 플래그 보정
+    DEFAULT_TEACHER_TYPES.forEach(def => {
+      const found = S.school.teacherTypes.find(t => t.id === def.id);
+      if (found) { found.builtin = true; found.subjectFilter = def.subjectFilter; found.note = def.note; }
+      else S.school.teacherTypes.unshift({...def});
+    });
   }
+  if (!S.school.specialtyTeachers) S.school.specialtyTeachers = [];
 }
 
-function getTeacherTypeById(id) {
-  ensureTeacherTypes();
-  return (S.school?.teacherTypes||[]).find(t => t.id === id) || null;
-}
-
-function renderTeacherTab() {
-  if (!S.school) return;
-  ensureTeacherTypes();
-  const types = S.school.teacherTypes;
-
-  const listEl = q('#teacher-type-list');
-  if (listEl) {
-    listEl.innerHTML = types.length ? types.map((t, i) => {
-      const isCollab = t.mode === 'collaborative';
-      const modeChip = isCollab
-        ? `<span class="tt-filter-chip tt-collab-chip">🤝 협업</span>`
-        : `<span class="tt-filter-chip tt-indep-chip">🎓 단독</span>`;
-      const subjChip = t.subjectFilter?.length
-        ? `<span class="tt-filter-chip">교과: ${t.subjectFilter.join(', ')}</span>`
-        : `<span class="tt-filter-chip" style="background:var(--g100);color:var(--g500)">전 교과</span>`;
-      const gradeChip = t.gradeFilter?.length
-        ? `<span class="tt-filter-chip">학년: ${t.gradeFilter.join(',')}학년</span>`
-        : `<span class="tt-filter-chip" style="background:var(--g100);color:var(--g500)">전 학년</span>`;
-      const icon = isCollab ? '🤝' : '🎓';
-      const iconBg = isCollab ? '#fef3c7' : '#dcfce7';
-      return `
-        <div class="tt-type-card">
-          <div class="tt-type-icon" style="background:${iconBg}">${icon}</div>
-          <div class="tt-type-info">
-            <div class="tt-type-name">${escHtml(t.name)}</div>
-            <div class="tt-type-meta">${modeChip}${subjChip}${gradeChip}</div>
-            ${t.note ? `<div style="font-size:.72rem;color:var(--g400);margin-top:3px">${escHtml(t.note)}</div>` : ''}
-          </div>
-          <button class="btn-icon red" onclick="removeTeacherType(${i})" title="삭제">🗑️</button>
-        </div>`;
-    }).join('') : '<div class="text-muted text-sm" style="padding:.5rem">등록된 유형이 없습니다.</div>';
-  }
-
-  // 교과 선택 칩 (추가 폼용)
-  renderTtSubjChips();
-}
-
-function renderTtSubjChips() {
-  const wrap = q('#tt-subj-chips');
-  if (!wrap) return;
-  const seen = new Set(), subjects = [];
+/* 전 학년 교과 합집합 */
+function getAllSubjectList() {
+  const seen = new Set(), list = [];
   ensureSubjectsByGrade();
   [1,2,3,4,5,6].forEach(g => {
     (S.school?.subjectsByGrade?.[g]||[]).forEach(s => {
-      if (!seen.has(s.name)) { seen.add(s.name); subjects.push(s); }
+      if (!seen.has(s.name)) { seen.add(s.name); list.push(s); }
     });
   });
-  wrap.innerHTML = subjects.map(s => `
-    <div class="subject-pick-chip" data-name="${escHtml(s.name)}"
-         style="font-size:.75rem;padding:.2rem .5rem;border-color:${hexAlpha(s.color,.4)}"
-         onclick="toggleTtSubjChip(this,'${escHtml(s.name)}','${s.color}')">
-      ${escHtml(s.name)}
-    </div>`).join('');
+  return list;
 }
 
-function toggleTtSubjChip(el, name, color) {
-  el.classList.toggle('selected');
-  if (el.classList.contains('selected')) {
-    el.style.background = color; el.style.borderColor = color; el.style.color = '#fff';
+/* ── 교담 교사 렌더 ─────────────────────────────────── */
+function renderSpecialtyTeacherList() {
+  if (!S.school) return;
+  ensureTeacherTypes();
+  const teachers = S.school.specialtyTeachers || [];
+  const allSubjs = getAllSubjectList();
+  const gradeColors = ['#ef4444','#f97316','#ca8a04','#16a34a','#2563eb','#7c3aed'];
+
+  const listEl = q('#specialty-teacher-list');
+  if (!listEl) return;
+
+  listEl.innerHTML = teachers.length ? teachers.map((t, ti) => {
+    const gradeChips = (t.grades||[]).map(g =>
+      `<span class="tt-filter-chip" style="background:${hexAlpha(gradeColors[g-1],.15)};color:${gradeColors[g-1]}">${g}학년</span>`
+    ).join('');
+    const subjChips = (t.subjects||[]).map(s => {
+      const color = allSubjs.find(x=>x.name===s)?.color || '#6366f1';
+      return `<span class="tt-filter-chip" style="background:${hexAlpha(color,.15)};color:${color}">${escHtml(s)}</span>`;
+    }).join('');
+    return `
+      <div class="tt-type-card">
+        <div class="tt-type-icon" style="background:#dcfce7">🎓</div>
+        <div class="tt-type-info">
+          <div class="tt-type-name">${escHtml(t.label)}</div>
+          <div class="tt-type-meta">
+            ${gradeChips || '<span class="tt-filter-chip" style="background:var(--g100);color:var(--g500)">전 학년</span>'}
+            ${subjChips  || '<span class="tt-filter-chip" style="background:var(--g100);color:var(--g500)">전 교과</span>'}
+          </div>
+        </div>
+        <button class="btn-icon" style="color:var(--brand)" onclick="editSpecialtyTeacher(${ti})" title="수정">✏️</button>
+        <button class="btn-icon red" onclick="removeSpecialtyTeacher(${ti})" title="삭제">🗑️</button>
+      </div>`;
+  }).join('') : '<div class="text-muted text-sm" style="padding:.4rem">교담 교사가 없습니다.</div>';
+}
+
+function addSpecialtyTeacher() {
+  if (!S.school) return;
+  ensureTeacherTypes();
+  const num   = (S.school.specialtyTeachers.length || 0) + 1;
+  const label = `교담${num}`;
+  S.school.specialtyTeachers.push({ id: 'sp_' + Date.now(), label, grades: [], subjects: [] });
+  renderTeacherTab();
+  // 바로 편집 모달 열기
+  editSpecialtyTeacher(S.school.specialtyTeachers.length - 1);
+}
+window.addSpecialtyTeacher = addSpecialtyTeacher;
+
+function removeSpecialtyTeacher(i) {
+  if (!S.school?.specialtyTeachers) return;
+  const name = S.school.specialtyTeachers[i]?.label;
+  S.school.specialtyTeachers.splice(i, 1);
+  renderTeacherTab();
+  toast(`${name} 삭제됨`);
+}
+window.removeSpecialtyTeacher = removeSpecialtyTeacher;
+
+/* 교담 편집 — 인라인 확장 방식 */
+let _editingSpIdx = -1;
+
+function editSpecialtyTeacher(idx) {
+  _editingSpIdx = idx;
+  const t = S.school.specialtyTeachers[idx];
+  if (!t) return;
+  const allSubjs = getAllSubjectList();
+  const gradeColors = ['#ef4444','#f97316','#ca8a04','#16a34a','#2563eb','#7c3aed'];
+
+  // 기존 인라인 에디터 제거
+  q('#sp-inline-editor')?.remove();
+
+  const gradeHtml = [1,2,3,4,5,6].map(g => {
+    const sel = (t.grades||[]).includes(g);
+    const col = gradeColors[g-1];
+    return `<button class="sp-pick-btn ${sel?'sel':''}" data-type="grade" data-val="${g}"
+               style="${sel?`background:${col};color:#fff;border-color:${col}`:`border-color:${hexAlpha(col,.4)};color:${col}`}"
+               onclick="toggleSpPick(this,'grade',${g})">${g}학년</button>`;
+  }).join('');
+
+  const subjHtml = allSubjs.map(s => {
+    const sel = (t.subjects||[]).includes(s.name);
+    return `<button class="sp-pick-btn ${sel?'sel':''}" data-type="subj" data-val="${escHtml(s.name)}"
+               style="${sel?`background:${s.color};color:#fff;border-color:${s.color}`:`border-color:${hexAlpha(s.color,.4)};color:${s.color}`}"
+               onclick="toggleSpPick(this,'subj','${escHtml(s.name)}')">${escHtml(s.name)}</button>`;
+  }).join('');
+
+  const editor = document.createElement('div');
+  editor.id = 'sp-inline-editor';
+  editor.className = 'sp-editor';
+  editor.innerHTML = `
+    <div class="sp-editor-title">✏️ ${escHtml(t.label)} 설정</div>
+    <div class="form-group" style="margin-bottom:.65rem">
+      <label class="form-label" style="font-size:.78rem">이름</label>
+      <input type="text" id="sp-label-input" class="form-input" value="${escHtml(t.label)}" style="max-width:180px">
+    </div>
+    <div class="form-group" style="margin-bottom:.65rem">
+      <label class="form-label" style="font-size:.78rem">담당 학년 <span class="text-muted text-sm">(미선택=전 학년)</span></label>
+      <div class="sp-pick-wrap">${gradeHtml}</div>
+    </div>
+    <div class="form-group" style="margin-bottom:.65rem">
+      <label class="form-label" style="font-size:.78rem">담당 교과 <span class="text-muted text-sm">(미선택=전 교과)</span></label>
+      <div class="sp-pick-wrap">${subjHtml}</div>
+    </div>
+    <div style="display:flex;gap:.5rem">
+      <button class="btn btn-primary btn-sm" onclick="saveSpEdit()">✔ 저장</button>
+      <button class="btn btn-ghost btn-sm" onclick="cancelSpEdit()">취소</button>
+    </div>`;
+
+  // 해당 카드 아래에 삽입
+  const listEl = q('#specialty-teacher-list');
+  listEl.insertAdjacentElement('afterend', editor);
+}
+window.editSpecialtyTeacher = editSpecialtyTeacher;
+
+function toggleSpPick(el, type, val) {
+  el.classList.toggle('sel');
+  const isSel = el.classList.contains('sel');
+  if (type === 'grade') {
+    const g = parseInt(val);
+    const colors = ['#ef4444','#f97316','#ca8a04','#16a34a','#2563eb','#7c3aed'];
+    const c = colors[g-1];
+    el.style.background    = isSel ? c : '';
+    el.style.color         = isSel ? '#fff' : c;
+    el.style.borderColor   = isSel ? c : hexAlpha(c,.4);
   } else {
-    el.style.background = ''; el.style.borderColor = hexAlpha(color,.4); el.style.color = '';
+    // 교과 색상은 data-color 없으므 border-color로 추정
+    if (!isSel) { el.style.background=''; el.style.color=''; }
   }
 }
-window.toggleTtSubjChip = toggleTtSubjChip;
+window.toggleSpPick = toggleSpPick;
 
-function toggleGradeFilter(el, g) {
-  el.classList.toggle('active');
+function saveSpEdit() {
+  if (_editingSpIdx < 0 || !S.school) return;
+  const t      = S.school.specialtyTeachers[_editingSpIdx];
+  const label  = q('#sp-label-input')?.value.trim();
+  if (label) t.label = label;
+  t.grades   = [...document.querySelectorAll('#sp-inline-editor .sp-pick-btn.sel[data-type="grade"]')]
+                .map(el => parseInt(el.dataset.val));
+  t.subjects = [...document.querySelectorAll('#sp-inline-editor .sp-pick-btn.sel[data-type="subj"]')]
+                .map(el => el.dataset.val);
+  q('#sp-inline-editor')?.remove();
+  _editingSpIdx = -1;
+  renderTeacherTab();
+  toast(`${t.label} 저장됨 ✔`, 'success');
 }
-window.toggleGradeFilter = toggleGradeFilter;
+window.saveSpEdit = saveSpEdit;
 
-function onTtModeChange() {
-  const mode = q('#tt-mode').value;
-  const hint = q('#tt-mode-hint');
-  if (hint) hint.textContent = mode === 'collaborative'
-    ? '담임 또는 다른 교과전담 교사와 반드시 함께 수업합니다.'
-    : '혼자 수업을 진행할 수 있습니다.';
+function cancelSpEdit() {
+  q('#sp-inline-editor')?.remove();
+  _editingSpIdx = -1;
 }
-window.onTtModeChange = onTtModeChange;
+window.cancelSpEdit = cancelSpEdit;
+
+/* ── 강사 유형(teacherTypes) 렌더 ─────────────────── */
+function renderTeacherTab() {
+  if (!S.school) return;
+  ensureTeacherTypes();
+  renderSpecialtyTeacherList();
+
+  const types = S.school.teacherTypes;
+  const listEl = q('#teacher-type-list');
+  if (!listEl) return;
+
+  listEl.innerHTML = types.length ? types.map((t, i) => {
+    const isCollab  = t.mode === 'collaborative';
+    const isBuiltin = !!t.builtin;
+    const modeChip  = isCollab
+      ? `<span class="tt-filter-chip tt-collab-chip">🤝 협업</span>`
+      : `<span class="tt-filter-chip tt-indep-chip">🎓 단독</span>`;
+    const subjChip  = t.subjectFilter?.length
+      ? `<span class="tt-filter-chip">교과: ${t.subjectFilter.join(', ')}</span>`
+      : '';
+    const icon   = isCollab ? '🤝' : '🎓';
+    const iconBg = isCollab ? '#fef3c7' : '#dcfce7';
+    const delBtn = isBuiltin
+      ? `<span class="text-muted text-sm" style="font-size:.7rem;white-space:nowrap">기본</span>`
+      : `<button class="btn-icon red" onclick="removeTeacherType(${i})" title="삭제">🗑️</button>`;
+    return `
+      <div class="tt-type-card">
+        <div class="tt-type-icon" style="background:${iconBg}">${icon}</div>
+        <div class="tt-type-info">
+          <div class="tt-type-name">${escHtml(t.name)}</div>
+          <div class="tt-type-meta">${modeChip}${subjChip}</div>
+          ${t.note ? `<div style="font-size:.72rem;color:var(--g400);margin-top:2px">${escHtml(t.note)}</div>` : ''}
+        </div>
+        ${delBtn}
+      </div>`;
+  }).join('') : '';
+}
 
 function addTeacherType() {
   if (!S.school) return;
   ensureTeacherTypes();
   const name = q('#tt-name').value.trim();
+  const mode = q('#tt-mode').value;
   if (!name) { toast('유형 이름을 입력하세요.', 'error'); return; }
   if (S.school.teacherTypes.find(t => t.name === name)) { toast('이미 있는 유형입니다.', 'warn'); return; }
 
-  const mode = q('#tt-mode').value;
-  const subjChips = [...document.querySelectorAll('#tt-subj-chips .subject-pick-chip.selected')];
-  const gradeChips = [...document.querySelectorAll('#tt-grade-chips .grade-tab.active')];
-  const subjectFilter = subjChips.length ? subjChips.map(c => c.dataset.name) : null;
-  const gradeFilter   = gradeChips.length ? gradeChips.map(c => parseInt(c.dataset.g)) : null;
-
   S.school.teacherTypes.push({
-    id: 'tt_' + Date.now(),
-    name, mode, subjectFilter, gradeFilter,
-    note: mode === 'collaborative' ? '협업 수업만 가능 · 단독 수업 불가' : '단독 수업 가능',
+    id: 'tt_' + Date.now(), name, mode, builtin: false,
+    subjectFilter: null, gradeFilter: null,
+    note: mode === 'collaborative' ? '협업 수업' : '단독 수업',
   });
-
   q('#tt-name').value = '';
-  document.querySelectorAll('#tt-subj-chips .selected, #tt-grade-chips .active').forEach(el => {
-    el.classList.remove('selected', 'active');
-    el.style.background = el.style.borderColor = el.style.color = '';
-  });
   renderTeacherTab();
-  toast(`${name} 유형 추가됨`, 'success');
+  toast(`${name} 추가됨`, 'success');
 }
 window.addTeacherType = addTeacherType;
 
 function removeTeacherType(i) {
   if (!S.school?.teacherTypes) return;
-  const name = S.school.teacherTypes[i]?.name;
+  const t = S.school.teacherTypes[i];
+  if (t?.builtin) { toast('기본 유형은 삭제할 수 없습니다.', 'warn'); return; }
   S.school.teacherTypes.splice(i, 1);
   renderTeacherTab();
-  toast(`${name} 삭제됨`);
+  toast(`${t?.name} 삭제됨`);
 }
 window.removeTeacherType = removeTeacherType;
 
@@ -2760,12 +3110,15 @@ async function selectSchool(id, el) {
   q('#join-form').style.display = 'block';
   const roleEl = q('#join-role');
   if (roleEl) {
-    // 역할 드롭다운을 학교의 teacherTypes에서 동적으로 생성
-    const types = joinSchoolRef.teacherTypes || DEFAULT_TEACHER_TYPES;
+    const spTeachers  = joinSchoolRef.specialtyTeachers || [];
+    const types       = joinSchoolRef.teacherTypes || DEFAULT_TEACHER_TYPES;
     roleEl.innerHTML = `
       <option value="homeroom">🏠 담임교사</option>
+      ${spTeachers.map(t =>
+        `<option value="sp:${escHtml(t.id)}">🎓 ${escHtml(t.label)}</option>`
+      ).join('')}
       ${types.map(t => {
-        const icon = t.mode === 'collaborative' ? '🤝' : '⭐';
+        const icon   = t.mode === 'collaborative' ? '🤝' : '⭐';
         const suffix = t.mode === 'collaborative' ? ' (협업)' : '';
         return `<option value="tt:${escHtml(t.id)}">${icon} ${escHtml(t.name)}${suffix}</option>`;
       }).join('')}
@@ -2798,18 +3151,21 @@ function onJoinRoleChange() {
   const val  = q('#join-role').value;
   const isAdmin    = val === 'admin';
   const isHomeroom = val === 'homeroom';
-  const isTt       = val.startsWith('tt:');
+  const isSp       = val.startsWith('sp:');   // 교담1, 교담2...
+  const isTt       = val.startsWith('tt:');   // 강사 유형
 
-  // teacherType 정보 조회
+  const spId   = isSp ? val.slice(3) : null;
   const ttId   = isTt ? val.slice(3) : null;
-  const ttInfo = ttId ? (joinSchoolRef?.teacherTypes || DEFAULT_TEACHER_TYPES).find(t => t.id === ttId) : null;
-  const isIndependent = ttInfo?.mode === 'independent';
-  const isCollab      = ttInfo?.mode === 'collaborative';
+  const spInfo = spId ? (joinSchoolRef?.specialtyTeachers||[]).find(t=>t.id===spId) : null;
+  const ttInfo = ttId ? (joinSchoolRef?.teacherTypes||DEFAULT_TEACHER_TYPES).find(t=>t.id===ttId) : null;
+
+  const isCollab = ttInfo?.mode === 'collaborative';
+  const isIndep  = (isSp) || (isTt && ttInfo?.mode === 'independent');
 
   q('#join-class-group').style.display   = isHomeroom ? 'block' : 'none';
-  q('#join-subject-group').style.display = (isTt && isIndependent) ? 'block' : 'none';
+  q('#join-subject-group').style.display = isIndep ? 'block' : 'none';
 
-  // 협업 교사 안내
+  // 협업 안내
   let hint = q('#join-collab-hint');
   if (!hint) {
     hint = document.createElement('div');
@@ -2818,15 +3174,27 @@ function onJoinRoleChange() {
     hint.style.marginTop = '.6rem';
     q('#join-subject-group').insertAdjacentElement('afterend', hint);
   }
-  if (isCollab) {
-    hint.innerHTML = `🤝 <strong>${escHtml(ttInfo.name)}</strong>는 협업 수업만 가능합니다. 담임 또는 교과전담 교사가 배정한 시간에 협업자로 추가됩니다.`;
+  if (isCollab && ttInfo) {
+    hint.innerHTML = `🤝 <strong>${escHtml(ttInfo.name)}</strong>는 협업 수업입니다. 담임/교담 교사와 시간이 겹칠 수 있습니다.`;
     hint.style.display = 'block';
   } else {
     hint.style.display = 'none';
   }
 
-  // 교과 필터 적용 (교과 선택 칩 재렌더)
-  if (isTt && isIndependent && ttInfo) {
+  // 교담(sp:) 선택 시 → 해당 교담의 과목 자동 pre-select
+  if (isSp && spInfo) {
+    renderSubjectPickerFiltered(spInfo.subjects?.length ? spInfo.subjects : null, spInfo.grades?.length ? spInfo.grades : null);
+    // 배정된 교과 자동 선택
+    setTimeout(() => {
+      document.querySelectorAll('#join-subject-chips .subject-pick-chip').forEach(el => {
+        if ((spInfo.subjects||[]).includes(el.dataset.name)) {
+          el.classList.add('selected');
+          const color = el.style.borderColor || '#6366f1';
+          el.style.background = color; el.style.color = '#fff';
+        }
+      });
+    }, 50);
+  } else if (isTt && isIndep && ttInfo) {
     renderSubjectPickerFiltered(ttInfo.subjectFilter, ttInfo.gradeFilter);
   }
 }
@@ -2866,15 +3234,18 @@ async function joinSchool() {
 
   const isAdmin    = val === 'admin';
   const isHomeroom = val === 'homeroom';
+  const isSp       = val.startsWith('sp:');
   const isTt       = val.startsWith('tt:');
+  const spId       = isSp ? val.slice(3) : null;
   const ttId       = isTt ? val.slice(3) : null;
-  const ttInfo     = ttId ? (joinSchoolRef.teacherTypes || DEFAULT_TEACHER_TYPES).find(t => t.id === ttId) : null;
+  const spInfo     = spId ? (joinSchoolRef.specialtyTeachers||[]).find(t=>t.id===spId) : null;
+  const ttInfo     = ttId ? (joinSchoolRef.teacherTypes||DEFAULT_TEACHER_TYPES).find(t=>t.id===ttId) : null;
   const isCollab   = ttInfo?.mode === 'collaborative';
-  const isIndep    = ttInfo?.mode === 'independent';
+  const isIndep    = isSp || (isTt && ttInfo?.mode === 'independent');
 
-  // 단독 교과전담: 교과 선택 필수
-  const selectedSubjects = (isTt && isIndep) ? getSelectedSubjects() : [];
-  if (isTt && isIndep && !selectedSubjects.length) {
+  // 단독 수업(교담/영어회화강사 등): 교과 선택 필수
+  const selectedSubjects = isIndep ? getSelectedSubjects() : [];
+  if (isIndep && !selectedSubjects.length) {
     q('#join-subject-err').style.display = 'block';
     toast('담당 교과목을 1개 이상 선택해주세요.', 'error'); return;
   }
@@ -2886,29 +3257,31 @@ async function joinSchool() {
 
   // 역할 결정
   let role = 'homeroom';
-  if (isAdmin)     role = 'admin';
-  else if (isTt)   role = isCollab ? 'collaborative' : 'specialty';
+  if (isAdmin)      role = 'admin';
+  else if (isCollab) role = 'collaborative';
+  else if (isSp || isTt) role = 'specialty';
 
   const roleLabel = isAdmin ? '관리자'
+    : isSp ? spInfo.label
     : isTt ? ttInfo.name
     : (cls?.name ? cls.name + ' 담임' : '담임교사');
 
   S.school = joinSchoolRef;
   S.user   = {
-    name:        roleLabel,
+    name:     roleLabel,
     role,
-    ttId,          // teacherType id (교담 전용)
-    ttInfo,        // teacherType 전체 정보
-    subjects:    selectedSubjects,
-    className:   (role === 'homeroom' && cls) ? cls.name : '',
-    classId:     role === 'homeroom' ? (clsId || null) : null,
+    spId,     spInfo,   // 교담(sp:) 전용
+    ttId,     ttInfo,   // 강사유형(tt:) 전용
+    subjects: selectedSubjects,
+    className: (role === 'homeroom' && cls) ? cls.name : '',
+    classId:   role === 'homeroom' ? (clsId || null) : null,
   };
   saveSession();
   toast(`${joinSchoolRef.name}에 접속했습니다. 👋`, 'success');
 
   if (isAdmin) {
     initTimetable(); goToRoomSchedule();
-  } else if (isTt) {
+  } else if (isSp || isTt) {
     goToSpecialtyScreen();
   } else {
     initTimetable(); goTo('screen-timetable');
@@ -3091,8 +3464,9 @@ function renderGrid() {
   const spAssign  = S.classId ? getSpecialtyAssignmentsForClass(S.classId) : {};
   const collabMap = S.classId ? getCollabForClass(S.classId) : {};
   const ptimes    = getCurrentClassPeriodTimes();
+  const periods   = ptimes.map((_, i) => i + 1);  // 학년별 교시 수 동적 적용
 
-  tbody.innerHTML = PERIODS.map(p => `
+  tbody.innerHTML = periods.map(p => `
     <tr>
       <td class="period-cell">${periodLabel(p, ptimes)}</td>
       ${DAYS.map(day => {
@@ -3230,14 +3604,17 @@ function renderSubjectPalette() {
   const grade    = getCurrentClassGrade();
   const gradeLbl = grade ? `${grade}학년` : '';
 
-  // 팔레트 헤더에 현재 학년 표시
   const hdr = q('.sidebar-header');
   if (hdr) hdr.textContent = `📚 ${gradeLbl} 과목 팔레트`;
 
   q('#subject-palette').innerHTML = subjects.map(s => {
-    const cur = countSubj(s.name);
-    const req = s.weeklyHours;
-    const cls = cur >= req ? 'ok' : 'short';
+    const cur     = countSubj(s.name);
+    const req     = s.weeklyHours;
+    const special = !!s.special;  // 방과후, 맞춤형
+    const cls     = special ? '' : (cur >= req ? 'ok' : 'short');
+    const badge   = special
+      ? `<span class="chip-badge" style="background:${hexAlpha(s.color,.18)};color:${s.color}">${cur}</span>`
+      : `<span class="chip-badge ${cls}" style="background:${hexAlpha(s.color,.18)};color:${s.color}">${cur}/${req}</span>`;
     return `
       <div class="subject-chip"
            style="background:${hexAlpha(s.color,.1)};border-color:${hexAlpha(s.color,.25)}"
@@ -3246,7 +3623,7 @@ function renderSubjectPalette() {
            ondragstart="onPaletteDragStart(event,'${escHtml(s.name)}','${s.color}')"
            ondragend="onDragEnd(event)">
         <span class="chip-name" style="color:${s.color}">${escHtml(s.name)}</span>
-        <span class="chip-badge ${cls}" style="background:${hexAlpha(s.color,.18)};color:${s.color}">${cur}/${req}</span>
+        ${badge}
       </div>`;
   }).join('');
 }
@@ -3259,18 +3636,19 @@ function countSubj(name) {
    HOUR TRACKER
    =========================================================== */
 function renderTracker() {
-  const subjects = getSubjectsForCurrentClass();
+  // special:true 과목(방과후·맞춤형)은 시수 계산에서 제외
+  const subjects    = getSubjectsForCurrentClass().filter(s => !s.special);
+  const specialSubj = getSubjectsForCurrentClass().filter(s => !!s.special);
   const total    = subjects.reduce((a,s)=>a+s.weeklyHours, 0);
-  const used     = Object.values(S.ttData).filter(c=>c?.subject).length;
+  const used     = Object.values(S.ttData).filter(c=>c?.subject && !getSubjectsForCurrentClass().find(s=>s.name===c.subject&&s.special)).length;
 
-  // 트래커 헤더에 총 시수 표시
   const hdr = q('.tracker-head');
   if (hdr) hdr.textContent = `📊 시수 현황 (${used}/${total}h)`;
 
-  q('#hour-tracker').innerHTML = subjects.map(s => {
+  const regularHtml = subjects.map(s => {
     const cur = countSubj(s.name);
     const req = s.weeklyHours;
-    const pct = Math.min(100, Math.round(cur/req*100));
+    const pct = req > 0 ? Math.min(100, Math.round(cur/req*100)) : 0;
     let cls='short', fillColor='#dc2626', label=`${cur}/${req}`;
     if (cur >= req) { cls='ok';   fillColor='#059669'; label=`✔ ${cur}`; }
     if (cur > req)  { cls='over'; fillColor='#d97706'; label=`⚠ ${cur}/${req}`; }
@@ -3286,6 +3664,22 @@ function renderTracker() {
         </div>
       </div>`;
   }).join('');
+
+  // 특수 과목(방과후·맞춤형) — 시수 표시 없이 사용 횟수만
+  const specialHtml = specialSubj.map(s => {
+    const cur = countSubj(s.name);
+    if (!cur) return '';
+    return `
+      <div class="tracker-item">
+        <div class="tracker-row">
+          <div class="tracker-dot" style="background:${s.color}"></div>
+          <span class="tracker-name">${escHtml(s.name)}</span>
+          <span class="tracker-count" style="color:${s.color}">${cur}회</span>
+        </div>
+      </div>`;
+  }).join('');
+
+  q('#hour-tracker').innerHTML = regularHtml + (specialHtml ? `<div class="divider" style="margin:.5rem 0"></div>${specialHtml}` : '');
 }
 
 /* ===========================================================
@@ -3685,11 +4079,13 @@ function renderRoomSchedule() {
     }).join('');
     const usedCount = Object.keys(classCounts).length;
 
-    const gridRows = PERIODS.map(p => {
-      const ptimes   = getPeriodTimes(null);
-      const ptLabel  = ptimes[p-1] ? `${p}교시<br><span style="font-size:.6rem;color:var(--g400)">${ptimes[p-1].start}</span>` : `${p}교시`;
+    const scheduleRows = getScheduleRows();
+    const gridRows = scheduleRows.map(slot => {
+      const slotLabel = slot.label.replace(/\n/g, '<br>');
+      const timeLabel = `<span style="font-size:.6rem;color:var(--g400);display:block">${slot.start}</span>`;
+      const ptLabel   = `${slotLabel}${timeLabel}`;
       const rowCells = DAYS.map(day => {
-        const key   = `${day}-${p}`;
+        const key   = `${day}-${slot.slotKey}`;
         const entry = schedule[key];
         const cls   = entry ? (S.school.classes||[]).find(c=>c.id===entry.classId) : null;
         const gc    = cls ? gradeColor(cls) : null;
@@ -3698,7 +4094,7 @@ function renderRoomSchedule() {
           : `<div class="rs-ci empty">+</div>`;
         return `<td class="rs-cell" onclick="openRsModal('${room.id}','${escHtml(room.name)}','${key}')">${inner}</td>`;
       }).join('');
-      return `<tr><td class="rs-period">${ptLabel}</td>${rowCells}</tr>`;
+      return `<tr><td class="rs-period" style="white-space:pre-line;font-size:.68rem;line-height:1.35">${ptLabel}</td>${rowCells}</tr>`;
     }).join('');
 
     return `
@@ -3725,8 +4121,11 @@ let rsCurrent = null; // { roomId, roomName, key }
 
 function openRsModal(roomId, roomName, key) {
   rsCurrent = { roomId, roomName, key };
-  const [day, period] = key.split('-');
-  q('#mrs-title').textContent = `${roomName} — ${day}요일 ${period}교시`;
+  const day2 = key.split('-')[0];
+  const slotKey2 = key.slice(key.indexOf('-')+1);
+  const slotRow2 = getScheduleRows().find(r => r.slotKey === slotKey2);
+  const slotLbl2 = slotRow2?.shortLabel || slotKey2;
+  q('#mrs-title').textContent = `${roomName} — ${day2}요일 ${slotLbl2}`;
 
   const current = S.school.roomSchedule?.[roomId]?.[key];
   q('#mrs-desc').textContent  = current ? `현재: ${current.className} 배정됨` : '배정된 학급이 없습니다.';
@@ -3837,6 +4236,219 @@ async function clearRsCell() {
   toast('배정 취소됨');
 }
 window.clearRsCell = clearRsCell;
+
+/* ===========================================================
+   EXCEL EXPORT (SheetJS)
+   =========================================================== */
+async function exportAllToExcel() {
+  if (!S.school) { toast('학교 정보가 없습니다.', 'error'); return; }
+  if (!window.XLSX) { toast('SheetJS 로딩 중입니다. 잠시 후 다시 시도하세요.', 'warn'); return; }
+  toast('엑셀 파일 생성 중…', '');
+
+  const XLSX   = window.XLSX;
+  const wb     = XLSX.utils.book_new();
+  const school = S.school;
+  const days   = ['월','화','수','목','금'];
+
+  // ── 헬퍼 ──────────────────────────────────────────────────
+  function cellStyle(bg='FFFFFF', bold=false, center=false) {
+    return {
+      fill: { fgColor: { rgb: bg } },
+      font: { bold, name: 'Arial', sz: 10 },
+      alignment: { horizontal: center ? 'center' : 'left', vertical: 'center', wrapText: true },
+      border: {
+        top:{style:'thin',color:{rgb:'CCCCCC'}}, bottom:{style:'thin',color:{rgb:'CCCCCC'}},
+        left:{style:'thin',color:{rgb:'CCCCCC'}}, right:{style:'thin',color:{rgb:'CCCCCC'}},
+      }
+    };
+  }
+  const HDR_BG  = 'C6EFCE';   // 연녹색 헤더
+  const ROOM_BG = 'DDEEFF';   // 연청색 특별실
+  const SP_BG   = 'FFF2CC';   // 연노랑 교담
+  const COLLAB_BG = 'FCE4EC'; // 연분홍 협업
+
+  // 학급 시간표 시트 생성
+  async function makeClassSheet(cls) {
+    const lsKey    = `stt_${school.id}_${cls.id}`;
+    let ttData = {};
+    try { ttData = JSON.parse(localStorage.getItem(lsKey) || '{}'); } catch {}
+
+    const ptimes   = getPeriodTimesForExport(cls.grade);
+    const periods  = ptimes.map((_, i) => i + 1);
+    const spAssign = getSpecialtyAssignmentsForClassData(ttData, cls.id);
+
+    const rows = [];
+    // 헤더
+    const hdr = ['교시', '시간', ...days];
+    rows.push(hdr);
+
+    periods.forEach((p, i) => {
+      const t = ptimes[i] || { start:'', end:'' };
+      const row = [`${p}교시`, `${t.start}~${t.end}`];
+      days.forEach(day => {
+        const key  = `${day}-${p}`;
+        const sp   = spAssign[key];
+        const cell = ttData[key];
+        // 특별실 배정 확인
+        const roomA = getRoomAssignmentForKeyData(school, cls.id, key);
+        if (sp)    row.push(`교담(${sp})`);
+        else if (cell?.subject) row.push(cell.subject + (roomA ? `\n📍${roomA}` : ''));
+        else row.push('');
+      });
+      rows.push(row);
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    // 열 너비
+    ws['!cols'] = [{ wch:8 },{ wch:13 }, ...days.map(()=>({ wch:10 }))];
+    return ws;
+  }
+
+  // 특별실 배정 시트
+  function makeRoomScheduleSheet() {
+    const rooms   = school.specialRooms || [];
+    const sched   = school.roomSchedule || {};
+    const classes = school.classes || [];
+    const slots   = getScheduleRowsForSchool(school);
+    const rows = [];
+
+    // 헤더 행: 특별실별 5열 (월~금) 그룹
+    const topHdr = [''];
+    rooms.forEach(r => { topHdr.push(r.name); days.forEach((_, i) => { if (i<4) topHdr.push(''); }); });
+    rows.push(topHdr);
+
+    const subHdr = ['교시/시간'];
+    rooms.forEach(() => days.forEach(d => subHdr.push(d)));
+    rows.push(subHdr);
+
+    slots.forEach(slot => {
+      const row = [`${slot.label.replace(/\n/g,' ')}\n${slot.start}`];
+      rooms.forEach(room => {
+        const rs = sched[room.id] || {};
+        days.forEach(day => {
+          const key   = `${day}-${slot.slotKey}`;
+          const entry = rs[key];
+          const cls   = entry ? classes.find(c=>c.id===entry.classId) : null;
+          row.push(cls ? cls.name : '');
+        });
+      });
+      rows.push(row);
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    const colW = [{ wch:12 }];
+    rooms.forEach(() => days.forEach(() => colW.push({ wch:8 })));
+    ws['!cols'] = colW;
+    return ws;
+  }
+
+  // 교과전담 시트
+  function makeSpecialtySheet() {
+    const spSched  = school.specialtySchedule || {};
+    const classes  = school.classes || [];
+    const subjects = Object.keys(spSched);
+    if (!subjects.length) return null;
+
+    const slots = getScheduleRowsForSchool(school);
+    const rows  = [];
+
+    // 헤더: 교과별 5열 그룹
+    const topHdr = [''];
+    subjects.forEach(s => { topHdr.push(s); days.forEach((_,i) => { if(i<4) topHdr.push(''); }); });
+    rows.push(topHdr);
+
+    const subHdr = ['교시/시간'];
+    subjects.forEach(() => days.forEach(d => subHdr.push(d)));
+    rows.push(subHdr);
+
+    slots.forEach(slot => {
+      const row = [`${slot.label.replace(/\n/g,' ')}\n${slot.start}`];
+      subjects.forEach(subj => {
+        days.forEach(day => {
+          const key   = `${day}-${slot.slotKey}`;
+          const entry = (spSched[subj] || {})[key];
+          const cls   = entry ? classes.find(c=>c.id===entry.classId) : null;
+          row.push(cls ? cls.name : '');
+        });
+      });
+      rows.push(row);
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    const colW = [{ wch:12 }];
+    subjects.forEach(() => days.forEach(() => colW.push({ wch:8 })));
+    ws['!cols'] = colW;
+    return ws;
+  }
+
+  // ── 시트 추가 ─────────────────────────────────────────────
+  // 1. 특별실 배정 시트
+  try {
+    const ws = makeRoomScheduleSheet();
+    XLSX.utils.book_append_sheet(wb, ws, '특별실 배정');
+  } catch(e) { console.warn('특별실 시트 오류:', e); }
+
+  // 2. 교과전담 시트
+  try {
+    const ws = makeSpecialtySheet();
+    if (ws) XLSX.utils.book_append_sheet(wb, ws, '교과전담 시간표');
+  } catch(e) { console.warn('교과전담 시트 오류:', e); }
+
+  // 3. 학급별 시간표 시트
+  const classes = school.classes || [];
+  for (const cls of classes) {
+    try {
+      const ws = await makeClassSheet(cls);
+      const sheetName = cls.name.replace(/[\\\/\*\?\:\[\]]/g,'').slice(0,31);
+      XLSX.utils.book_append_sheet(wb, ws, sheetName || `반${cls.id}`);
+    } catch(e) { console.warn(`${cls.name} 시트 오류:`, e); }
+  }
+
+  if (!wb.SheetNames.length) { toast('내보낼 데이터가 없습니다.', 'warn'); return; }
+
+  // 파일명: 학교명_날짜.xlsx
+  const date     = new Date().toLocaleDateString('ko-KR',{year:'2-digit',month:'2-digit',day:'2-digit'}).replace(/\. /g,'').replace('.','');
+  const filename = `${school.name}_시간표_${date}.xlsx`;
+  XLSX.writeFile(wb, filename);
+  toast(`"${filename}" 다운로드 완료 ✔`, 'success');
+}
+window.exportAllToExcel = exportAllToExcel;
+
+/* 엑셀용 보조 함수들 (S 상태 없이 데이터만 사용) */
+function getPeriodTimesForExport(grade) {
+  return getPeriodTimes(grade);
+}
+
+function getSpecialtyAssignmentsForClassData(ttData, classId) {
+  const result = {};
+  const ss = S.school?.specialtySchedule || {};
+  for (const [subject, schedule] of Object.entries(ss)) {
+    for (const [key, entry] of Object.entries(schedule)) {
+      if (entry.classId === classId) result[key] = subject;
+    }
+  }
+  return result;
+}
+
+function getRoomAssignmentForKeyData(school, classId, key) {
+  for (const [roomId, schedule] of Object.entries(school.roomSchedule || {})) {
+    const entry = schedule[key];
+    if (entry && entry.classId === classId) {
+      const room = (school.specialRooms||[]).find(r=>r.id===roomId);
+      return room?.name || null;
+    }
+  }
+  return null;
+}
+
+function getScheduleRowsForSchool(school) {
+  // school이 설정된 상태에서 getScheduleRows 호출
+  const prev = S.school;
+  S.school = school;
+  const rows = getScheduleRows();
+  S.school = prev;
+  return rows;
+}
 
 /* ===========================================================
    PRINT
