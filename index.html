@@ -277,16 +277,17 @@ a{color:inherit;text-decoration:none}
   background:#fff;border-radius:var(--r-lg);box-shadow:var(--sh-md);
   border:1px solid var(--g200);overflow:hidden;display:inline-block;min-width:100%;
 }
-.tt-table{border-collapse:collapse;width:100%;min-width:580px}
+.tt-table{border-collapse:collapse;width:100%;min-width:580px;table-layout:fixed}
 .tt-table th,.tt-table td{border:1px solid var(--g200)}
 .tt-table thead th{
-  background:var(--g50);padding:.7rem 1rem;font-size:.82rem;font-weight:800;
+  background:var(--g50);padding:.5rem .4rem;font-size:.82rem;font-weight:800;
   color:var(--g600);text-align:center;white-space:nowrap;
 }
-.tt-table thead th:first-child{background:var(--g100);min-width:56px;color:var(--g400);font-size:.75rem}
+.tt-table thead th:first-child{background:var(--g100);width:90px;max-width:90px;color:var(--g400);font-size:.75rem}
 .period-cell{
-  background:var(--g50);padding:.4rem .65rem;font-size:.75rem;font-weight:700;
+  background:var(--g50);padding:.4rem .5rem;font-size:.75rem;font-weight:700;
   color:var(--g500);text-align:center;white-space:nowrap;line-height:1.4;
+  width:90px;max-width:90px;
 }
 .period-time{font-size:.65rem;font-weight:400;color:var(--g400);display:block;margin-top:1px}
 
@@ -598,11 +599,11 @@ a{color:inherit;text-decoration:none}
   display:flex;align-items:center;justify-content:space-between;
 }
 .rs-block-hdr .rs-sub{font-size:.72rem;opacity:.75;font-weight:600}
-.rs-table{border-collapse:collapse;width:100%}
+.rs-table{border-collapse:collapse;width:100%;table-layout:fixed}
 .rs-table th,.rs-table td{border:1px solid var(--g200)}
 .rs-table thead th{background:var(--g50);padding:.4rem .3rem;font-size:.72rem;font-weight:800;color:var(--g500);text-align:center}
-.rs-table thead th:first-child{background:var(--g100);min-width:38px;font-size:.68rem}
-.rs-period{background:var(--g50);padding:.28rem .4rem;font-size:.68rem;font-weight:700;color:var(--g400);text-align:center}
+.rs-table thead th:first-child{background:var(--g100);width:80px;font-size:.68rem}
+.rs-period{background:var(--g50);padding:.28rem .4rem;font-size:.68rem;font-weight:700;color:var(--g400);text-align:center;width:80px;max-width:80px;word-break:keep-all;line-height:1.3}
 .rs-cell{width:48px;height:42px;padding:2px;vertical-align:middle;cursor:pointer}
 .rs-ci{
   width:100%;height:100%;border-radius:5px;display:flex;align-items:center;
@@ -1108,7 +1109,6 @@ a{color:inherit;text-decoration:none}
         <option value="">학급 선택</option>
       </select>
       <span id="tt-user-chip" class="tt-user-chip">사용자</span>
-      <span id="tt-role-badge"></span>
     </div>
     <div class="tt-header-right">
       <span id="sync-indicator" title="저장 방식"><span class="sync-dot" id="sync-dot"></span><span id="sync-label" class="text-sm text-muted">로컬</span></span>
@@ -3487,11 +3487,6 @@ function initTimetable() {
     : user.className ? `🏠 ${user.className}`
     : '🏠 담임교사';
   q('#tt-user-chip').textContent = roleLabel;
-
-  const rb = q('#tt-role-badge');
-  if (user.role==='admin')     rb.innerHTML = '<span class="badge badge-purple">👑 관리자</span>';
-  else if (user.role==='specialty') rb.innerHTML = '<span class="badge badge-blue">⭐ 교과전담교사</span>';
-  else rb.innerHTML = '<span class="badge badge-green">🏠 담임교사</span>';
 
   const isAdmin = user.role==='admin';
   q('#btn-admin-setup').style.display    = isAdmin ? 'flex' : 'none';
