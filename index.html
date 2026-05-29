@@ -539,6 +539,15 @@ a{color:inherit;text-decoration:none}
 .sp-pick-btn:hover{opacity:.85}
 .sp-pick-btn.sel{box-shadow:0 1px 4px rgba(0,0,0,.15)}
 
+/* Tab save bar */
+.tab-save-bar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:.85rem 1rem;margin-top:.5rem;
+  background:var(--brand-50);border:1.5px solid var(--brand);border-radius:var(--r-lg);
+  flex-wrap:wrap;gap:.5rem;
+}
+.tab-save-status{font-size:.82rem;color:var(--brand-dark);font-weight:600}
+
 /* ============================================================ */
 /* GRADE CLASS GRID (학년 반 설정)                             */
 /* ============================================================ */
@@ -816,7 +825,6 @@ a{color:inherit;text-decoration:none}
   </div>
   <div class="page-body-wide">
     <div class="alert alert-success">
-      ✅ 교과목 시수는 2022 개정 교육과정 기준으로 <strong>자동 설정</strong>되었습니다.<br>
       <strong>기초 설정 순서:</strong>
       <span style="color:var(--g700)">① 학급 구성 → ② 교시 시간 → ③ 교담 교사 → ④ 특별실 배정 → ⑤ 교과목(시수) 확인</span>
     </div>
@@ -864,6 +872,11 @@ a{color:inherit;text-decoration:none}
           <button class="btn btn-primary btn-sm" onclick="addSubject()">+ 추가</button>
         </div>
       </div>
+
+      <div class="tab-save-bar">
+        <span class="tab-save-status">교과목 시수 확인 후 저장하세요.</span>
+        <button class="btn btn-primary" onclick="saveTabSubjects()">💾 교과목 저장 → 완료</button>
+      </div>
     </div>
 
     <!-- TAB: Rooms -->
@@ -876,6 +889,11 @@ a{color:inherit;text-decoration:none}
           <input type="text" id="new-room-name" class="form-input" placeholder="특별실 이름 (예: 미술실)">
           <button class="btn btn-primary btn-sm" onclick="addRoom()">+ 추가</button>
         </div>
+      </div>
+
+      <div class="tab-save-bar">
+        <span class="tab-save-status">설정이 완료되면 저장하세요.</span>
+        <button class="btn btn-primary" onclick="saveTabRooms()">💾 특별실 저장 → 다음 단계</button>
       </div>
     </div>
 
@@ -907,6 +925,11 @@ a{color:inherit;text-decoration:none}
         </div>
       </div>
 
+      <div class="tab-save-bar">
+        <span class="text-sm text-muted" id="classes-save-status"></span>
+        <button class="btn btn-primary" onclick="saveTabClasses()">💾 학급 구성 저장 → 다음 단계</button>
+      </div>
+
     </div>
 
     <!-- TAB: Teachers (교담 교사) -->
@@ -922,32 +945,19 @@ a{color:inherit;text-decoration:none}
         <button class="btn btn-primary btn-sm" style="margin-top:.75rem" onclick="addSpecialtyTeacher()">+ 교담 추가</button>
       </div>
 
-      <!-- 섹션 2: 강사 유형 (기본 내장 + 커스텀) -->
+      <!-- 섹션 2: 협업 수업 강사 목록 -->
       <div class="card">
-        <div class="card-title" style="margin-bottom:.5rem">🏷️ 강사 유형</div>
+        <div class="card-title" style="margin-bottom:.5rem">🤝 협업 수업 강사</div>
         <div class="form-hint" style="margin-bottom:.85rem">
-          기본 강사 유형은 수정할 수 없습니다. 필요한 경우 새 유형을 추가하세요.
+          담임·교담 교사와 함께 수업하는 강사를 추가하세요. 담당 <strong>학년</strong>과 <strong>교과</strong>를 지정합니다. (복수 선택 가능)
         </div>
         <div class="list-wrap" id="teacher-type-list"></div>
+        <button class="btn btn-primary btn-sm" style="margin-top:.75rem" onclick="addCollabTeacher()">+ 협업 강사 추가</button>
+      </div>
 
-        <!-- 새 유형 추가 (커스텀만 — 수업방식만 입력) -->
-        <div style="margin-top:1rem;padding-top:.85rem;border-top:1px solid var(--g100)">
-          <div style="font-size:.85rem;font-weight:700;color:var(--g700);margin-bottom:.6rem">✨ 새 강사 유형 추가</div>
-          <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:flex-end">
-            <div style="flex:2;min-width:130px">
-              <label class="form-label" style="font-size:.78rem">유형 이름</label>
-              <input type="text" id="tt-name" class="form-input" placeholder="예: 독서 강사">
-            </div>
-            <div style="flex:2;min-width:150px">
-              <label class="form-label" style="font-size:.78rem">수업 방식</label>
-              <select id="tt-mode" class="form-select">
-                <option value="independent">🎓 단독 수업</option>
-                <option value="collaborative">🤝 협업 수업</option>
-              </select>
-            </div>
-            <button class="btn btn-primary btn-sm" onclick="addTeacherType()" style="align-self:flex-end">+ 추가</button>
-          </div>
-        </div>
+      <div class="tab-save-bar">
+        <span class="tab-save-status">설정이 완료되면 저장하세요.</span>
+        <button class="btn btn-primary" onclick="saveTabTeachers()">💾 교담 교사 저장 → 다음 단계</button>
       </div>
     </div>
 
@@ -977,6 +987,11 @@ a{color:inherit;text-decoration:none}
           </div>
         </div>
         <div id="period-times-list"></div>
+      </div>
+
+      <div class="tab-save-bar">
+        <span class="tab-save-status" id="times-save-status">💡 저장하면 특별실 배정 화면의 교시 행이 자동으로 갱신됩니다.</span>
+        <button class="btn btn-primary" onclick="saveTabTimes()">💾 교시 시간 저장 → 다음 단계</button>
       </div>
     </div>
 
@@ -1477,7 +1492,7 @@ const DEFAULT_SUBJECTS_BY_GRADE = {
     {name:'바른생활',   weeklyHours:2, color:'#ca8a04'},
     {name:'슬기로운생활',weeklyHours:3, color:'#16a34a'},
     {name:'즐거운생활', weeklyHours:5, color:'#2563eb'},
-    {name:'자율',       weeklyHours:3, color:'#7c3aed'},
+    {name:'학교자율',    weeklyHours:3, color:'#6366f1'},
     {name:'방과후', weeklyHours:0, color:'#94a3b8', special:true},
     {name:'맞춤형', weeklyHours:0, color:'#a78bfa', special:true},
   ],
@@ -1487,7 +1502,7 @@ const DEFAULT_SUBJECTS_BY_GRADE = {
     {name:'바른생활',   weeklyHours:2, color:'#ca8a04'},
     {name:'슬기로운생활',weeklyHours:3, color:'#16a34a'},
     {name:'즐거운생활', weeklyHours:6, color:'#2563eb'},
-    {name:'자율',       weeklyHours:2, color:'#7c3aed'},
+    {name:'학교자율',    weeklyHours:2, color:'#6366f1'},
     {name:'방과후', weeklyHours:0, color:'#94a3b8', special:true},
     {name:'맞춤형', weeklyHours:0, color:'#a78bfa', special:true},
   ],
@@ -1554,14 +1569,9 @@ const DEFAULT_SUBJECTS_BY_GRADE = {
     {name:'맞춤형', weeklyHours:0, color:'#a78bfa', special:true},
   ],
 };
-const DEFAULT_ROOMS = ['강당','과학실1','과학실2','컴퓨터실','도서실','음악실','영어실'];
+const DEFAULT_ROOMS = ['강당','과학실1','과학실2','컴퓨터실1','컴퓨터실2','도서실','음악실','영어실'];
 
 const DEFAULT_TEACHER_TYPES = [
-  {
-    id: 'tt_eng_conv', name: '영어회화 전문강사', builtin: true,
-    mode: 'independent', subjectFilter: ['영어'], gradeFilter: null,
-    note: '단독 수업 · 영어 교과만',
-  },
   {
     id: 'tt_sports', name: '스포츠 강사', builtin: true,
     mode: 'collaborative', subjectFilter: ['체육'], gradeFilter: null,
@@ -2709,7 +2719,7 @@ function editSpecialtyTeacher(idx) {
 
   const subjHtml = allSubjs.map(s => {
     const sel = (t.subjects||[]).includes(s.name);
-    return `<button class="sp-pick-btn ${sel?'sel':''}" data-type="subj" data-val="${escHtml(s.name)}"
+    return `<button class="sp-pick-btn ${sel?'sel':''}" data-type="subj" data-val="${escHtml(s.name)}" data-color="${s.color}"
                style="${sel?`background:${s.color};color:#fff;border-color:${s.color}`:`border-color:${hexAlpha(s.color,.4)};color:${s.color}`}"
                onclick="toggleSpPick(this,'subj','${escHtml(s.name)}')">${escHtml(s.name)}</button>`;
   }).join('');
@@ -2749,12 +2759,15 @@ function toggleSpPick(el, type, val) {
     const g = parseInt(val);
     const colors = ['#ef4444','#f97316','#ca8a04','#16a34a','#2563eb','#7c3aed'];
     const c = colors[g-1];
-    el.style.background    = isSel ? c : '';
-    el.style.color         = isSel ? '#fff' : c;
-    el.style.borderColor   = isSel ? c : hexAlpha(c,.4);
+    el.style.background  = isSel ? c : '';
+    el.style.color       = isSel ? '#fff' : c;
+    el.style.borderColor = isSel ? c : hexAlpha(c, .4);
   } else {
-    // 교과 색상은 data-color 없으므 border-color로 추정
-    if (!isSel) { el.style.background=''; el.style.color=''; }
+    // 교과: data-color 속성에서 색상 읽기
+    const c = el.dataset.color || '#6366f1';
+    el.style.background  = isSel ? c : '';
+    el.style.color       = isSel ? '#fff' : c;
+    el.style.borderColor = isSel ? c : hexAlpha(c, .4);
   }
 }
 window.toggleSpPick = toggleSpPick;
@@ -2787,54 +2800,138 @@ function renderTeacherTab() {
   ensureTeacherTypes();
   renderSpecialtyTeacherList();
 
-  const types = S.school.teacherTypes;
+  const types  = S.school.teacherTypes;
+  const allSubjs = getAllSubjectList();
+  const gradeColors = ['#ef4444','#f97316','#ca8a04','#16a34a','#2563eb','#7c3aed'];
   const listEl = q('#teacher-type-list');
   if (!listEl) return;
 
   listEl.innerHTML = types.length ? types.map((t, i) => {
-    const isCollab  = t.mode === 'collaborative';
     const isBuiltin = !!t.builtin;
-    const modeChip  = isCollab
-      ? `<span class="tt-filter-chip tt-collab-chip">🤝 협업</span>`
-      : `<span class="tt-filter-chip tt-indep-chip">🎓 단독</span>`;
-    const subjChip  = t.subjectFilter?.length
-      ? `<span class="tt-filter-chip">교과: ${t.subjectFilter.join(', ')}</span>`
-      : '';
-    const icon   = isCollab ? '🤝' : '🎓';
-    const iconBg = isCollab ? '#fef3c7' : '#dcfce7';
+    const gradeChips = (t.gradeFilter||[]).map(g =>
+      `<span class="tt-filter-chip" style="background:${hexAlpha(gradeColors[g-1],.15)};color:${gradeColors[g-1]}">${g}학년</span>`
+    ).join('');
+    const subjChips = (t.subjectFilter||[]).map(s => {
+      const color = allSubjs.find(x=>x.name===s)?.color || '#6366f1';
+      return `<span class="tt-filter-chip" style="background:${hexAlpha(color,.15)};color:${color}">${escHtml(s)}</span>`;
+    }).join('');
     const delBtn = isBuiltin
       ? `<span class="text-muted text-sm" style="font-size:.7rem;white-space:nowrap">기본</span>`
-      : `<button class="btn-icon red" onclick="removeTeacherType(${i})" title="삭제">🗑️</button>`;
+      : `<div style="display:flex;gap:.3rem">
+           <button class="btn-icon" style="color:var(--brand)" onclick="editCollabTeacher(${i})" title="수정">✏️</button>
+           <button class="btn-icon red" onclick="removeTeacherType(${i})" title="삭제">🗑️</button>
+         </div>`;
     return `
       <div class="tt-type-card">
-        <div class="tt-type-icon" style="background:${iconBg}">${icon}</div>
+        <div class="tt-type-icon" style="background:#fef3c7">🤝</div>
         <div class="tt-type-info">
           <div class="tt-type-name">${escHtml(t.name)}</div>
-          <div class="tt-type-meta">${modeChip}${subjChip}</div>
+          <div class="tt-type-meta">
+            ${gradeChips || '<span class="tt-filter-chip" style="background:var(--g100);color:var(--g500)">전 학년</span>'}
+            ${subjChips  || '<span class="tt-filter-chip" style="background:var(--g100);color:var(--g500)">전 교과</span>'}
+          </div>
           ${t.note ? `<div style="font-size:.72rem;color:var(--g400);margin-top:2px">${escHtml(t.note)}</div>` : ''}
         </div>
         ${delBtn}
       </div>`;
-  }).join('') : '';
+  }).join('') : '<div class="text-muted text-sm" style="padding:.4rem">협업 수업 강사가 없습니다.</div>';
 }
 
-function addTeacherType() {
+/* ── 협업 강사 추가 ─────────────────────────────── */
+function addCollabTeacher() {
   if (!S.school) return;
   ensureTeacherTypes();
-  const name = q('#tt-name').value.trim();
-  const mode = q('#tt-mode').value;
-  if (!name) { toast('유형 이름을 입력하세요.', 'error'); return; }
-  if (S.school.teacherTypes.find(t => t.name === name)) { toast('이미 있는 유형입니다.', 'warn'); return; }
-
+  const num   = (S.school.teacherTypes.filter(t => !t.builtin).length || 0) + 1;
+  const label = `협업강사${num}`;
   S.school.teacherTypes.push({
-    id: 'tt_' + Date.now(), name, mode, builtin: false,
-    subjectFilter: null, gradeFilter: null,
-    note: mode === 'collaborative' ? '협업 수업' : '단독 수업',
+    id: 'tt_' + Date.now(), name: label, builtin: false,
+    mode: 'collaborative', subjectFilter: [], gradeFilter: [],
+    note: '협업 수업',
   });
-  q('#tt-name').value = '';
   renderTeacherTab();
-  toast(`${name} 추가됨`, 'success');
+  // 바로 편집 모달 열기
+  editCollabTeacher(S.school.teacherTypes.length - 1);
 }
+window.addCollabTeacher = addCollabTeacher;
+
+/* ── 협업 강사 인라인 편집 (교담과 동일한 UX) ──── */
+let _editingTtIdx = -1;
+
+function editCollabTeacher(idx) {
+  _editingTtIdx = idx;
+  const t = S.school.teacherTypes[idx];
+  if (!t) return;
+  const allSubjs    = getAllSubjectList();
+  const gradeColors = ['#ef4444','#f97316','#ca8a04','#16a34a','#2563eb','#7c3aed'];
+
+  q('#tt-inline-editor')?.remove();
+
+  const gradeHtml = [1,2,3,4,5,6].map(g => {
+    const sel = (t.gradeFilter||[]).includes(g);
+    const col = gradeColors[g-1];
+    return `<button class="sp-pick-btn ${sel?'sel':''}" data-type="grade" data-val="${g}"
+               style="${sel?`background:${col};color:#fff;border-color:${col}`:`border-color:${hexAlpha(col,.4)};color:${col}`}"
+               onclick="toggleSpPick(this,'grade',${g})">${g}학년</button>`;
+  }).join('');
+
+  const subjHtml = allSubjs.map(s => {
+    const sel = (t.subjectFilter||[]).includes(s.name);
+    return `<button class="sp-pick-btn ${sel?'sel':''}" data-type="subj" data-val="${escHtml(s.name)}" data-color="${s.color}"
+               style="${sel?`background:${s.color};color:#fff;border-color:${s.color}`:`border-color:${hexAlpha(s.color,.4)};color:${s.color}`}"
+               onclick="toggleSpPick(this,'subj','${escHtml(s.name)}')">${escHtml(s.name)}</button>`;
+  }).join('');
+
+  const editor = document.createElement('div');
+  editor.id = 'tt-inline-editor';
+  editor.className = 'sp-editor';
+  editor.innerHTML = `
+    <div class="sp-editor-title">✏️ ${escHtml(t.name)} 설정</div>
+    <div class="form-group" style="margin-bottom:.65rem">
+      <label class="form-label" style="font-size:.78rem">이름</label>
+      <input type="text" id="tt-label-input" class="form-input" value="${escHtml(t.name)}" style="max-width:200px">
+    </div>
+    <div class="form-group" style="margin-bottom:.65rem">
+      <label class="form-label" style="font-size:.78rem">담당 학년 <span class="text-muted text-sm">(미선택=전 학년)</span></label>
+      <div class="sp-pick-wrap">${gradeHtml}</div>
+    </div>
+    <div class="form-group" style="margin-bottom:.65rem">
+      <label class="form-label" style="font-size:.78rem">담당 교과 <span class="text-muted text-sm">(미선택=전 교과)</span></label>
+      <div class="sp-pick-wrap">${subjHtml}</div>
+    </div>
+    <div style="display:flex;gap:.5rem">
+      <button class="btn btn-primary btn-sm" onclick="saveTtEdit()">✔ 저장</button>
+      <button class="btn btn-ghost btn-sm" onclick="cancelTtEdit()">취소</button>
+    </div>`;
+
+  const listEl = q('#teacher-type-list');
+  listEl.insertAdjacentElement('afterend', editor);
+}
+window.editCollabTeacher = editCollabTeacher;
+
+function saveTtEdit() {
+  if (_editingTtIdx < 0 || !S.school) return;
+  const t     = S.school.teacherTypes[_editingTtIdx];
+  const label = q('#tt-label-input')?.value.trim();
+  if (label) t.name = label;
+  t.gradeFilter   = [...document.querySelectorAll('#tt-inline-editor .sp-pick-btn.sel[data-type="grade"]')]
+                      .map(el => parseInt(el.dataset.val));
+  t.subjectFilter = [...document.querySelectorAll('#tt-inline-editor .sp-pick-btn.sel[data-type="subj"]')]
+                      .map(el => el.dataset.val);
+  t.note = '협업 수업' + (t.subjectFilter?.length ? ` · ${t.subjectFilter.join(',')} 교과` : '');
+  q('#tt-inline-editor')?.remove();
+  _editingTtIdx = -1;
+  renderTeacherTab();
+  toast(`${t.name} 저장됨 ✔`, 'success');
+}
+window.saveTtEdit = saveTtEdit;
+
+function cancelTtEdit() {
+  q('#tt-inline-editor')?.remove();
+  _editingTtIdx = -1;
+}
+window.cancelTtEdit = cancelTtEdit;
+
+function addTeacherType() {}  // 구버전 호환 (더 이상 사용 안 함)
 window.addTeacherType = addTeacherType;
 
 function removeTeacherType(i) {
@@ -3044,8 +3141,83 @@ function switchTab(tabId, btn) {
 }
 window.switchTab = switchTab;
 
-async function saveSetup() {
+/* ===========================================================
+   TAB SAVE BUTTONS (각 탭별 저장 + 다음 탭 이동)
+   =========================================================== */
+
+/* 다음 탭 이름 매핑 */
+const TAB_ORDER = ['tab-classes','tab-times','tab-teachers','tab-rooms','tab-subjects','tab-password'];
+
+function goNextTab(currentTabId) {
+  const idx  = TAB_ORDER.indexOf(currentTabId);
+  const next = TAB_ORDER[idx + 1];
+  if (!next) return;
+  const btn = document.querySelector(`#screen-setup .tab-btn[onclick*="${next}"]`);
+  if (btn) switchTab(next, btn);
+}
+
+async function saveTabClasses() {
   if (!S.school) return;
+  await saveSchool(S.school);
+  const cnt = (S.school.classes||[]).length;
+  const el  = q('#classes-save-status');
+  if (el) el.textContent = `✔ 저장됨 (총 ${cnt}개 학급)`;
+  toast(`학급 구성 저장 완료 (${cnt}개 학급) ✔`, 'success');
+  goNextTab('tab-classes');
+}
+window.saveTabClasses = saveTabClasses;
+
+async function saveTabTimes() {
+  if (!S.school) return;
+  await saveSchool(S.school);
+
+  // 교시 시간 저장 후 → 특별실 배정 그리드 미리보기 정보 계산
+  const rows    = getScheduleRows();
+  const slots   = rows.map(r => r.label.replace(/\n/g,' ') + ' ' + r.start);
+  const preview = rows.map(r => r.label.replace(/\n/,'/'));
+
+  // 안내 업데이트
+  const el = q('#times-save-status');
+  if (el) {
+    el.innerHTML = `✔ 저장됨 — 특별실 그리드 <strong>${rows.length}개 행</strong>: ${preview.map(s=>`<em>${s}</em>`).join(', ')}`;
+  }
+  toast(`교시 시간 저장 완료 — 특별실 그리드 ${rows.length}행으로 갱신 ✔`, 'success');
+  goNextTab('tab-times');
+}
+window.saveTabTimes = saveTabTimes;
+
+async function saveTabTeachers() {
+  if (!S.school) return;
+  await saveSchool(S.school);
+  const spCnt = (S.school.specialtyTeachers||[]).length;
+  const ttCnt = (S.school.teacherTypes||[]).filter(t=>!t.builtin).length;
+  toast(`교담·강사 설정 저장 완료 (교담 ${spCnt}명, 협업강사 ${ttCnt}명) ✔`, 'success');
+  goNextTab('tab-teachers');
+}
+window.saveTabTeachers = saveTabTeachers;
+
+async function saveTabRooms() {
+  if (!S.school) return;
+  await saveSchool(S.school);
+  const cnt = (S.school.specialRooms||[]).length;
+  toast(`특별실 저장 완료 (${cnt}개) ✔`, 'success');
+  goNextTab('tab-rooms');
+}
+window.saveTabRooms = saveTabRooms;
+
+async function saveTabSubjects() {
+  if (!S.school) return;
+  await saveSchool(S.school);
+  toast('교과목 저장 완료 ✔ 기초 설정이 모두 완료되었습니다 🎉', 'success');
+  // 완료 → 시간표로 이동
+  setTimeout(() => {
+    initTimetable();
+    goTo('screen-timetable');
+  }, 800);
+}
+window.saveTabSubjects = saveTabSubjects;
+
+async function saveSetup() {
   await saveSchool(S.school);
   toast('설정 저장 완료 ✔', 'success');
   initTimetable();
