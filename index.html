@@ -1399,6 +1399,29 @@ const DEFAULT_SUBJECTS_BY_GRADE = {
 };
 const DEFAULT_ROOMS   = ['체육관','과학실','컴퓨터실','도서실','음악실','영어실'];
 
+const DEFAULT_TEACHER_TYPES = [
+  {
+    id: 'tt_specialty', name: '교과전담교사',
+    mode: 'independent', subjectFilter: null, gradeFilter: null,
+    note: '단독 수업 가능 · 전 교과·전 학년',
+  },
+  {
+    id: 'tt_eng_conv', name: '영어회화 전문강사',
+    mode: 'independent', subjectFilter: ['영어'], gradeFilter: [3,4,5,6],
+    note: '단독 수업 가능 · 3~6학년 영어만',
+  },
+  {
+    id: 'tt_sports', name: '스포츠 강사',
+    mode: 'collaborative', subjectFilter: null, gradeFilter: null,
+    note: '협업 수업만 가능 · 단독 수업 불가',
+  },
+  {
+    id: 'tt_native', name: '원어민 교사',
+    mode: 'collaborative', subjectFilter: null, gradeFilter: null,
+    note: '협업 수업만 가능 · 단독 수업 불가',
+  },
+];
+
 /* ===========================================================
    STATE
    =========================================================== */
@@ -2340,29 +2363,6 @@ window.resetPeriodTimes = resetPeriodTimes;
 
 /* ===========================================================
    TEACHER TYPES MANAGEMENT
-const DEFAULT_TEACHER_TYPES = [
-  {
-    id: 'tt_specialty', name: '교과전담교사',
-    mode: 'independent', subjectFilter: null, gradeFilter: null,
-    note: '단독 수업 가능 · 전 교과·전 학년',
-  },
-  {
-    id: 'tt_eng_conv', name: '영어회화 전문강사',
-    mode: 'independent', subjectFilter: ['영어'], gradeFilter: [3,4,5,6],
-    note: '단독 수업 가능 · 3~6학년 영어만',
-  },
-  {
-    id: 'tt_sports', name: '스포츠 강사',
-    mode: 'collaborative', subjectFilter: null, gradeFilter: null,
-    note: '협업 수업만 가능 · 단독 수업 불가',
-  },
-  {
-    id: 'tt_native', name: '원어민 교사',
-    mode: 'collaborative', subjectFilter: null, gradeFilter: null,
-    note: '협업 수업만 가능 · 단독 수업 불가',
-  },
-];
-
 function ensureTeacherTypes() {
   if (!S.school) return;
   if (!S.school.teacherTypes || !S.school.teacherTypes.length) {
