@@ -561,6 +561,9 @@ a{color:inherit;text-decoration:none}
         <button class="btn btn-outline btn-lg btn-block" onclick="goToCreate()">
           ✨ 새 학교 만들기 <span class="badge badge-orange" style="font-size:.7rem">연구부장</span>
         </button>
+        <button class="btn btn-outline btn-lg btn-block" onclick="goToManage()">
+          ⚙️ 기존 학교 관리하기 <span class="badge badge-blue" style="font-size:.7rem">연구부장</span>
+        </button>
       </div>
     </div>
   </div>
@@ -621,7 +624,50 @@ a{color:inherit;text-decoration:none}
 </div>
 
 <!-- ═══════════════════════════════════════════════════════ -->
-<!-- SCREEN 3: CREATE SCHOOL                                 -->
+<!-- SCREEN: MANAGE SCHOOL (기존 학교 관리)                  -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div id="screen-manage" class="screen">
+  <div class="page-header">
+    <button class="btn btn-ghost btn-sm" onclick="goTo('screen-landing')">← 뒤로</button>
+    <h1 class="page-header-title">⚙️ 기존 학교 관리하기</h1>
+  </div>
+  <div class="page-body">
+
+    <!-- 학교 검색 -->
+    <div class="card">
+      <div class="card-title">학교 검색</div>
+      <div class="form-group">
+        <label class="form-label">학교 이름</label>
+        <input type="text" id="manage-search" class="form-input"
+               placeholder="학교 이름을 입력하세요..." oninput="searchManageSchools(this.value)">
+      </div>
+      <div id="manage-results"></div>
+    </div>
+
+    <!-- 비밀번호 확인 -->
+    <div id="manage-auth-form" style="display:none">
+      <div class="card">
+        <div class="card-title">🔐 관리자 인증</div>
+        <div class="form-group">
+          <div class="form-hint" style="margin-bottom:.75rem">
+            선택한 학교: <strong id="manage-school-name-label"></strong>
+          </div>
+          <label class="form-label">관리자 비밀번호</label>
+          <input type="password" id="manage-pw" class="form-input"
+                 placeholder="학교 관리자 비밀번호 입력"
+                 onkeydown="if(event.key==='Enter') confirmManageAuth()">
+          <div id="manage-pw-err" class="form-error">⚠️ 비밀번호가 맞지 않습니다.</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">이름</label>
+          <input type="text" id="manage-name" class="form-input" placeholder="연구부장 선생님 성함">
+        </div>
+        <button class="btn btn-primary btn-block" onclick="confirmManageAuth()">✔ 인증하고 설정 열기</button>
+      </div>
+    </div>
+
+  </div>
+</div>
 <!-- ═══════════════════════════════════════════════════════ -->
 <div id="screen-create" class="screen">
   <div class="page-header">
@@ -666,8 +712,8 @@ a{color:inherit;text-decoration:none}
       <div class="text-sm text-muted" id="setup-school-label">학교 이름</div>
     </div>
     <div style="display:flex;gap:.5rem;margin-left:auto;flex-wrap:wrap">
-      <button class="btn btn-ghost btn-sm" onclick="skipSetup()">나중에 설정</button>
-      <button class="btn btn-primary btn-sm" onclick="saveSetup()">💾 저장하고 시작 →</button>
+      <button class="btn btn-ghost btn-sm" id="btn-setup-back" onclick="skipSetup()">← 시간표로</button>
+      <button class="btn btn-primary btn-sm" onclick="saveSetup()">💾 저장하고 완료 →</button>
     </div>
   </div>
   <div class="page-body-wide">
@@ -1186,7 +1232,75 @@ window.confirmDeleteSchool = confirmDeleteSchool;
 /* ===========================================================
    LANDING ACTIONS
    =========================================================== */
-function goToJoin() { goTo('screen-join'); }
+function goToManage() {
+  q('#manage-search').value   = '';
+  q('#manage-results').innerHTML = '';
+  q('#manage-auth-form').style.display = 'none';
+  q('#manage-pw').value       = '';
+  q('#manage-pw-err').style.display = 'none';
+  manageSchoolRef = null;
+  goTo('screen-manage');
+}
+window.goToManage = goToManage;
+
+let manageSchoolRef = null;
+
+async function searchManageSchools(val) {
+  const wrap = q('#manage-results');
+  if (!val || val.trim().length < 1) { wrap.innerHTML = ''; return; }
+  const schools = await fetchSchools();
+  const filtered = schools.filter(s => s.name.includes(val.trim()));
+  if (!filtered.length) {
+    wrap.innerHTML = '<div class="text-muted text-sm" style="padding:.5rem">검색 결과가 없습니다.</div>';
+    return;
+  }
+  wrap.innerHTML = filtered.map(s => `
+    <div class="school-result-item" onclick="selectManageSchool('${s.id}')">
+      <div class="sri-icon">🏫</div>
+      <div class="sri-text">
+        <div class="sri-name">${escHtml(s.name)}</div>
+        <div class="sri-sub">${(s.classes||[]).length}개 학급</div>
+      </div>
+      <div class="sri-arrow">→</div>
+    </div>
+  `).join('');
+}
+window.searchManageSchools = searchManageSchools;
+
+async function selectManageSchool(schoolId) {
+  const schools = await fetchSchools();
+  manageSchoolRef = schools.find(s => s.id === schoolId);
+  if (!manageSchoolRef) return;
+  q('#manage-school-name-label').textContent = manageSchoolRef.name;
+  q('#manage-auth-form').style.display = 'block';
+  q('#manage-pw').value = '';
+  q('#manage-pw-err').style.display = 'none';
+  q('#manage-name').value = '';
+  q('#manage-pw').focus();
+}
+window.selectManageSchool = selectManageSchool;
+
+function confirmManageAuth() {
+  if (!manageSchoolRef) return;
+  const pw   = q('#manage-pw').value;
+  const name = q('#manage-name').value.trim();
+  const err  = q('#manage-pw-err');
+  err.style.display = 'none';
+  if (pw !== manageSchoolRef.adminPassword) { err.style.display = 'block'; return; }
+  if (!name) { toast('이름을 입력해주세요.', 'error'); return; }
+
+  // 관리자로 세션 설정
+  S.school = manageSchoolRef;
+  S.user   = { name, role: 'admin', className: '', classId: null };
+  saveSession();
+  toast(`${manageSchoolRef.name} 관리자로 접속했습니다. 👑`, 'success');
+  initTimetable();
+  // 설정 화면으로 바로 이동
+  q('#setup-school-label').textContent = S.school.name;
+  initSetup();
+  goTo('screen-setup');
+}
+window.confirmManageAuth = confirmManageAuth;
 window.goToJoin = goToJoin;
 
 function goToCreate() {
@@ -1563,9 +1677,8 @@ window.switchTab = switchTab;
 async function saveSetup() {
   if (!S.school) return;
   await saveSchool(S.school);
-  toast('설정 저장 완료 ✔','success');
+  toast('설정 저장 완료 ✔', 'success');
   initTimetable();
-  // 연구부장은 저장 후 특별실 배정 화면으로 이동
   goToRoomSchedule();
 }
 window.saveSetup = saveSetup;
