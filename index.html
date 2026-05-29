@@ -436,6 +436,57 @@ a{color:inherit;text-decoration:none}
 .empty-state .et{font-size:.9rem;font-weight:600;margin-bottom:.3rem}
 .empty-state .ed{font-size:.8rem}
 
+/* Subject multi-pick chips */
+.subject-pick-wrap{display:flex;flex-wrap:wrap;gap:.4rem;padding:.5rem 0}
+.subject-pick-chip{
+  display:flex;align-items:center;gap:.3rem;padding:.3rem .7rem;border-radius:12px;
+  border:1.5px solid var(--g200);background:#fff;cursor:pointer;
+  font-size:.82rem;font-weight:700;color:var(--g500);transition:all var(--t);user-select:none;
+}
+.subject-pick-chip.selected{color:#fff;border-color:transparent}
+.subject-pick-chip:hover{border-color:var(--brand);color:var(--brand)}
+
+/* Specialty screen subject tabs */
+.sp-tab-strip{display:flex;gap:.35rem;flex-wrap:wrap;margin-bottom:.85rem;padding:.6rem .85rem;
+  background:#fff;border-bottom:1px solid var(--g100);}
+.sp-tab{
+  padding:.3rem .85rem;border-radius:var(--r);font-size:.82rem;font-weight:700;
+  border:1.5px solid var(--g200);background:#fff;color:var(--g500);cursor:pointer;transition:all var(--t);
+}
+.sp-tab:hover{border-color:var(--brand);color:var(--brand)}
+.sp-tab.active{color:#fff;border-color:transparent;box-shadow:0 2px 6px rgba(0,0,0,.15)}
+
+/* ============================================================ */
+/* SPECIALTY TEACHER SCREEN                                    */
+/* ============================================================ */
+.sp-cell{height:52px;padding:2px;vertical-align:middle;cursor:pointer;min-width:80px}
+.sp-ci{
+  width:100%;height:100%;border-radius:6px;display:flex;align-items:center;
+  justify-content:center;font-size:.78rem;font-weight:800;text-align:center;line-height:1.3;
+  transition:all .12s;
+}
+.sp-ci.empty{border:1.5px dashed var(--g200);color:var(--g300)}
+.sp-cell:hover .sp-ci.empty{border-color:var(--brand);color:var(--brand);background:var(--brand-50)}
+/* Specialty cell in homeroom timetable */
+.cell-inner.specialty-cell{cursor:default}
+
+/* Teacher type card */
+.tt-type-card{
+  border:1px solid var(--g200);border-radius:var(--r-lg);padding:.75rem 1rem;
+  margin-bottom:.55rem;display:flex;align-items:flex-start;gap:.75rem;
+}
+.tt-type-icon{width:38px;height:38px;border-radius:var(--r);display:flex;align-items:center;
+  justify-content:center;font-size:1.15rem;flex-shrink:0}
+.tt-type-info{flex:1;min-width:0}
+.tt-type-name{font-size:.9rem;font-weight:800;color:var(--g900)}
+.tt-type-meta{font-size:.75rem;color:var(--g400);margin-top:2px;display:flex;flex-wrap:wrap;gap:.35rem}
+.tt-filter-chip{
+  font-size:.7rem;font-weight:700;padding:.1rem .4rem;border-radius:8px;
+  background:var(--brand-50);color:var(--brand-dark);
+}
+.tt-collab-chip{background:#fef3c7;color:#92400e}
+.tt-indep-chip{background:#dcfce7;color:#166534}
+
 /* ============================================================ */
 /* TEACHER COUNT CARD                                          */
 /* ============================================================ */
@@ -604,16 +655,23 @@ a{color:inherit;text-decoration:none}
           <label class="form-label">역할</label>
           <select id="join-role" class="form-select" onchange="onJoinRoleChange()">
             <option value="homeroom">🏠 담임교사</option>
-            <option value="specialty">⭐ 전담교사</option>
+            <option value="specialty">⭐ 교과전담교사</option>
             <option value="admin">👑 관리자 (설정·배정 권한)</option>
           </select>
+        </div>
+        <!-- 교과전담교사 전용: 담당 교과 선택 (복수) -->
+        <div class="form-group" id="join-subject-group" style="display:none">
+          <label class="form-label">담당 교과목 <span style="color:var(--danger)">*</span> <span class="text-muted text-sm">(복수 선택 가능)</span></label>
+          <div id="join-subject-chips" class="subject-pick-wrap"></div>
+          <div class="form-hint">📌 담당하는 교과목을 모두 선택하세요 (예: 3학년 과학 + 6학년 영어 → 과학, 영어 선택).</div>
+          <div id="join-subject-err" class="form-error">⚠️ 교과목을 1개 이상 선택해주세요.</div>
         </div>
         <div class="form-group" id="join-class-group">
           <label class="form-label">담당 학급 <span class="text-muted text-sm">(선택)</span></label>
           <select id="join-class" class="form-select">
             <option value="">-- 학급을 선택하세요 --</option>
           </select>
-          <div class="form-hint">📌 전담교사이거나 전체 학급 담당이면 선택하지 않아도 됩니다.</div>
+          <div class="form-hint">📌 교과전담교사이거나 전체 학급 담당이면 선택하지 않아도 됩니다.</div>
         </div>
         <div class="form-group">
           <label class="form-label">학교 비밀번호</label>
@@ -715,6 +773,7 @@ a{color:inherit;text-decoration:none}
       <button class="tab-btn" onclick="switchTab('tab-rooms',this)">🏛️ 특별실</button>
       <button class="tab-btn active" onclick="switchTab('tab-classes',this)">🎓 학급 구성</button>
       <button class="tab-btn" onclick="switchTab('tab-teachers',this)">👩‍🏫 교담 교사</button>
+      <button class="tab-btn" onclick="switchTab('tab-password',this)">🔑 비밀번호</button>
     </div>
 
     <!-- TAB: Subjects -->
@@ -799,44 +858,51 @@ a{color:inherit;text-decoration:none}
 
     <!-- TAB: Teachers (교담 교사) -->
     <div id="tab-teachers" class="tab-panel">
+
+      <!-- 안내 -->
+      <div class="alert alert-info" style="margin-bottom:.85rem">
+        💡 교담 교사 유형을 관리합니다. 추가한 유형은 로그인 화면의 역할 선택에 표시됩니다.
+      </div>
+
+      <!-- 교담 교사 유형 목록 -->
       <div class="card">
-        <div class="card-title">👩‍🏫 교담 교사 수 설정</div>
-        <div class="form-hint" style="margin-bottom:1rem">
-          교담(교과 전담) 교사 수를 입력하세요. 전담 교사로 참여한 사용자가 배정한 시간은 담임교사가 이동·삭제할 수 없습니다.
-        </div>
+        <div class="card-title" style="margin-bottom:.75rem">교담 교사 유형 목록</div>
+        <div class="list-wrap" id="teacher-type-list"></div>
+      </div>
 
-        <div class="teacher-count-wrap">
-          <div class="teacher-count-row">
-            <div class="teacher-count-icon">👩‍🏫</div>
-            <div class="teacher-count-info">
-              <div class="teacher-count-label">교담 교사 수</div>
-              <div class="teacher-count-sub">시간표 배정에 참여하는 전담 교사 인원 수</div>
+      <!-- 새 유형 추가 -->
+      <div class="card">
+        <div class="card-title" style="margin-bottom:.85rem">✨ 새 유형 추가</div>
+        <div class="form-group">
+          <label class="form-label">유형 이름</label>
+          <input type="text" id="tt-name" class="form-input" placeholder="예: 영어회화 전문강사">
+        </div>
+        <div class="form-group">
+          <label class="form-label">수업 방식</label>
+          <select id="tt-mode" class="form-select" onchange="onTtModeChange()">
+            <option value="independent">🎓 단독 수업 가능 (교과전담)</option>
+            <option value="collaborative">🤝 협업 수업만 가능 (단독 불가)</option>
+          </select>
+          <div class="form-hint" id="tt-mode-hint">담임 또는 다른 교과전담 교사와 반드시 함께 수업합니다.</div>
+        </div>
+        <div id="tt-filter-group">
+          <div class="form-group">
+            <label class="form-label">담당 교과 제한 <span class="text-muted text-sm">(없으면 전 교과)</span></label>
+            <div id="tt-subj-chips" class="subject-pick-wrap" style="min-height:36px;border:1px solid var(--g200);border-radius:var(--r);padding:.4rem .5rem"></div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">담당 학년 제한 <span class="text-muted text-sm">(없으면 전 학년)</span></label>
+            <div style="display:flex;gap:.35rem;flex-wrap:wrap" id="tt-grade-chips">
+              <button class="grade-tab" data-g="1" onclick="toggleGradeFilter(this,1)">1학년</button>
+              <button class="grade-tab" data-g="2" onclick="toggleGradeFilter(this,2)">2학년</button>
+              <button class="grade-tab" data-g="3" onclick="toggleGradeFilter(this,3)">3학년</button>
+              <button class="grade-tab" data-g="4" onclick="toggleGradeFilter(this,4)">4학년</button>
+              <button class="grade-tab" data-g="5" onclick="toggleGradeFilter(this,5)">5학년</button>
+              <button class="grade-tab" data-g="6" onclick="toggleGradeFilter(this,6)">6학년</button>
             </div>
-            <div class="grade-count-ctrl">
-              <button class="grade-cnt-btn" onclick="changeTeacherCount(-1)">−</button>
-              <span class="grade-cnt-val" id="teacher-count-val">0</span>
-              <button class="grade-cnt-btn" onclick="changeTeacherCount(+1)">+</button>
-            </div>
           </div>
         </div>
-
-        <div style="margin-top:1.25rem">
-          <div style="font-size:.88rem;font-weight:800;color:var(--g700);margin-bottom:.5rem">
-            교담 담당 교과 <span class="text-muted text-sm">(선택)</span>
-          </div>
-          <div class="form-hint" style="margin-bottom:.75rem">전담 교사가 주로 담당하는 교과를 지정해 두면 특별실 배정 시 참고할 수 있습니다.</div>
-          <div id="specialty-subject-list" class="list-wrap"></div>
-          <div class="add-row" style="margin-top:.75rem">
-            <select id="specialty-subj-select" class="form-select" style="flex:1">
-              <option value="">-- 교과 선택 --</option>
-            </select>
-            <button class="btn btn-primary btn-sm" onclick="addSpecialtySubject()">+ 추가</button>
-          </div>
-        </div>
-
-        <div class="alert alert-info" style="margin-top:1rem">
-          💡 교담 교사로 참여 시 로그인 화면의 <strong>역할 → 전담교사</strong>를 선택하세요.
-        </div>
+        <button class="btn btn-primary btn-sm" onclick="addTeacherType()">+ 유형 추가</button>
       </div>
     </div>
 
@@ -864,6 +930,50 @@ a{color:inherit;text-decoration:none}
       <div class="ed">⚙️ 특별실 관리에서 추가해 주세요</div>
     </div>
     <div class="rs-grid-wrap" id="rs-grid-wrap"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SCREEN: SPECIALTY TEACHER (교과전담교사 시간표)           -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div id="screen-specialty" class="screen">
+  <div class="tt-header">
+    <div class="tt-header-left">
+      <div class="logo-badge" style="width:34px;height:34px;font-size:1rem;flex-shrink:0">⭐</div>
+      <div>
+        <div class="tt-school-name" id="sp-school-name">학교</div>
+        <div class="text-sm text-muted">교과전담 시간표</div>
+      </div>
+      <span class="tt-user-chip" id="sp-user-chip" style="background:var(--brand-50);color:var(--brand)">⭐ 교과전담교사</span>
+    </div>
+    <div class="tt-header-right">
+      <button class="btn btn-ghost btn-sm" onclick="saveSpecialtySchedule()">💾 저장</button>
+      <button class="btn btn-ghost btn-sm" onclick="logout()">로그아웃</button>
+    </div>
+  </div>
+
+  <!-- 교과목 탭 -->
+  <div class="sp-tab-strip" id="sp-tab-strip"></div>
+
+  <div style="flex:1;overflow-y:auto;padding:1rem 1.25rem;background:var(--g50)">
+    <div class="alert alert-info" style="margin-bottom:1rem" id="sp-alert">
+      💡 위에서 교과목을 선택 후, 각 시간에 수업할 <strong>학년-반</strong>을 배정하세요. 담임교사 시간표에 <strong>교담(과목명)</strong>으로 자동 반영됩니다.
+    </div>
+    <div class="tt-grid-wrap" style="overflow-x:auto">
+      <table class="tt-table">
+        <thead>
+          <tr>
+            <th>교시</th>
+            <th>월요일</th><th>화요일</th><th>수요일</th><th>목요일</th><th>금요일</th>
+          </tr>
+        </thead>
+        <tbody id="sp-tbody"></tbody>
+      </table>
+    </div>
+    <div style="margin-top:.85rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem">
+      <span class="text-sm text-muted" id="sp-stat-label"></span>
+      <button class="btn btn-ghost btn-sm" onclick="confirmClearSpecialty()">🗑️ 현재 교과 초기화</button>
+    </div>
   </div>
 </div>
 
@@ -957,6 +1067,30 @@ a{color:inherit;text-decoration:none}
   </div>
 
   <div id="sa-dashboard" class="sa-body" style="display:none">
+    <!-- 슈퍼관리자 비밀번호 변경 -->
+    <div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:var(--r-lg);padding:.85rem 1rem;margin-bottom:1.25rem">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.6rem">
+        <div>
+          <div style="font-size:.85rem;font-weight:700;color:#f1f5f9">🔑 슈퍼관리자 비밀번호 변경</div>
+          <div style="font-size:.75rem;color:rgba(255,255,255,.35);margin-top:2px">이 기기에 저장됩니다</div>
+        </div>
+        <button class="btn btn-sm" onclick="openSaPwChange()"
+          style="color:#94a3b8;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06)">🔐 변경</button>
+      </div>
+      <div id="sa-pw-change-form" style="display:none;margin-top:.85rem">
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+          <input type="password" id="sa-new-pw" class="form-input" placeholder="새 비밀번호 (8자 이상)"
+                 style="flex:1;background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.18);color:#f1f5f9;min-width:160px">
+          <input type="password" id="sa-new-pw2" class="form-input" placeholder="새 비밀번호 확인"
+                 style="flex:1;background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.18);color:#f1f5f9;min-width:160px">
+          <button class="btn btn-primary btn-sm" onclick="changeSaPw()">저장</button>
+          <button class="btn btn-sm" onclick="q('#sa-pw-change-form').style.display='none'"
+            style="color:#94a3b8;border:1px solid rgba(255,255,255,.15);background:transparent">취소</button>
+        </div>
+        <div id="sa-pw-err" style="font-size:.78rem;color:#f87171;margin-top:.4rem;display:none"></div>
+      </div>
+    </div>
+
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.1rem">
       <div class="sa-section-label">📋 등록된 학교 목록</div>
       <button class="btn btn-sm" onclick="loadAllSchools()"
@@ -1006,7 +1140,22 @@ a{color:inherit;text-decoration:none}
   </div>
 </div>
 
-<!-- Room cell assignment modal -->
+<!-- Specialty cell assignment modal -->
+<div class="modal-bg" id="modal-sp-cell">
+  <div class="modal-box">
+    <div class="modal-title" id="sp-modal-title">교과전담 배정</div>
+    <div class="modal-desc" id="sp-modal-desc"></div>
+    <div class="form-group" style="margin-top:.75rem">
+      <label class="form-label">수업 학급</label>
+      <select id="sp-class-select" class="form-select"></select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-danger btn-sm" id="sp-clear-btn" onclick="clearSpCell()" style="display:none">🗑️ 배정 취소</button>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-sp-cell')">취소</button>
+      <button class="btn btn-primary btn-sm" onclick="saveSpCell()">✔ 배정</button>
+    </div>
+  </div>
+</div>
 <div class="modal-bg" id="modal-rs-cell">
   <div class="modal-box">
     <div class="modal-title" id="mrs-title">특별실 배정</div>
@@ -1063,7 +1212,10 @@ let db = null;  // Firebase 미설정 시 null → localStorage 모드
    =========================================================== */
 const DAYS    = ['월','화','수','목','금'];
 const PERIODS = [1,2,3,4,5,6];
-const SA_PW   = 'SMARTTT2024!';        // ← 슈퍼관리자 비밀번호 (변경 권장)
+const SA_PW_DEFAULT = 'SMARTTT2024!';
+const SA_PW_KEY     = 'stt_sa_pw';
+function getSaPw()      { return localStorage.getItem(SA_PW_KEY) || SA_PW_DEFAULT; }
+function setSaPw(pw)    { localStorage.setItem(SA_PW_KEY, pw); }
 
 /* 학년별 교과목 기본값 (2022 개정 교육과정) */
 const DEFAULT_SUBJECTS_BY_GRADE = {
@@ -1222,7 +1374,7 @@ window.easterClick = easterClick;
    SUPER ADMIN
    =========================================================== */
 async function saLogin() {
-  if (document.getElementById('sa-pw').value === SA_PW) {
+  if (document.getElementById('sa-pw').value === getSaPw()) {
     document.getElementById('sa-login').style.display = 'none';
     document.getElementById('sa-dashboard').style.display = 'block';
     await loadAllSchools();
@@ -1247,6 +1399,8 @@ async function loadAllSchools() {
         <div class="sa-school-name">${escHtml(s.name)}</div>
         <div class="sa-meta">ID: ${s.id.slice(-10)} · ${new Date(s.createdAt||0).toLocaleDateString('ko-KR')} · 학급 ${(s.classes||[]).length}개</div>
       </div>
+      <button class="btn btn-sm" onclick="saResetSchoolPw('${s.id}','${escHtml(s.name)}')"
+        style="color:#94a3b8;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);margin-right:.35rem">🔑 PW 초기화</button>
       <button class="btn btn-danger btn-sm" onclick="confirmDeleteSchool('${s.id}','${escHtml(s.name)}')">🗑️ 삭제</button>
     </div>
   `).join('');
@@ -1261,6 +1415,386 @@ function confirmDeleteSchool(id, name) {
   });
 }
 window.confirmDeleteSchool = confirmDeleteSchool;
+
+/* 슈퍼관리자 비밀번호 변경 */
+function openSaPwChange() {
+  const form = q('#sa-pw-change-form');
+  form.style.display = form.style.display === 'none' ? 'block' : 'none';
+  q('#sa-new-pw').value  = '';
+  q('#sa-new-pw2').value = '';
+  q('#sa-pw-err').style.display = 'none';
+}
+window.openSaPwChange = openSaPwChange;
+
+function changeSaPw() {
+  const pw1 = q('#sa-new-pw').value;
+  const pw2 = q('#sa-new-pw2').value;
+  const err = q('#sa-pw-err');
+  err.style.display = 'none';
+  if (pw1.length < 8)      { err.textContent = '비밀번호는 8자 이상이어야 합니다.'; err.style.display='block'; return; }
+  if (pw1 !== pw2)         { err.textContent = '두 비밀번호가 일치하지 않습니다.';  err.style.display='block'; return; }
+  setSaPw(pw1);
+  q('#sa-pw-change-form').style.display = 'none';
+  toast('슈퍼관리자 비밀번호가 변경되었습니다. ✔', 'success');
+}
+window.changeSaPw = changeSaPw;
+
+/* 슈퍼관리자 → 학교 관리자 비밀번호 초기화 */
+function saResetSchoolPw(schoolId, schoolName) {
+  // 새 임시 비밀번호 입력 모달 대신 간단한 prompt 패턴으로 구현
+  openConfirm(
+    `"${schoolName}" 비밀번호 초기화`,
+    '새 비밀번호를 설정합니다. 아래 입력란에 입력하세요.',
+    async () => {
+      const newPw = q('#sa-reset-pw-input').value.trim();
+      if (!newPw || newPw.length < 4) { toast('4자 이상 입력하세요.', 'error'); return; }
+      const schools = await fetchSchools();
+      const school  = schools.find(s => s.id === schoolId);
+      if (!school) { toast('학교를 찾을 수 없습니다.', 'error'); return; }
+      school.adminPassword = newPw;
+      await saveSchool(school);
+      toast(`${schoolName} 비밀번호가 "${newPw}"(으)로 변경되었습니다.`, 'success');
+    },
+    /* extraHtml */ `<input type="text" id="sa-reset-pw-input" class="form-input" placeholder="새 비밀번호 입력" style="margin-top:.75rem">`
+  );
+}
+window.saResetSchoolPw = saResetSchoolPw;
+
+/* ===========================================================
+   SPECIALTY TEACHER — MULTI-SUBJECT
+   =========================================================== */
+let spEditKey = null;
+let spCurrentSubject = null;
+
+function getAllSubjectNames() {
+  const seen = new Set(), list = [];
+  ensureSubjectsByGrade();
+  [1,2,3,4,5,6].forEach(g => {
+    (S.school?.subjectsByGrade?.[g]||[]).forEach(s => {
+      if (!seen.has(s.name)) { seen.add(s.name); list.push({...s}); }
+    });
+  });
+  return list;
+}
+
+function renderSubjectPicker() {
+  const wrap = q('#join-subject-chips');
+  if (!wrap || !joinSchoolRef) return;
+  // 학교 데이터 기반으로 교과 목록 구성
+  const school = joinSchoolRef;
+  const sbg = school.subjectsByGrade || {};
+  const seen = new Set(), list = [];
+  [1,2,3,4,5,6].forEach(g => {
+    (sbg[g]||[]).forEach(s => { if (!seen.has(s.name)) { seen.add(s.name); list.push(s); } });
+  });
+  wrap.innerHTML = list.map(s => `
+    <div class="subject-pick-chip" data-name="${escHtml(s.name)}"
+         style="border-color:${hexAlpha(s.color,.4)}"
+         onclick="toggleSubjectPick(this,'${escHtml(s.name)}','${s.color}')">
+      ${escHtml(s.name)}
+    </div>
+  `).join('');
+}
+window.renderSubjectPicker = renderSubjectPicker;
+
+function toggleSubjectPick(el, name, color) {
+  el.classList.toggle('selected');
+  if (el.classList.contains('selected')) {
+    el.style.background = color; el.style.borderColor = color; el.style.color = '#fff';
+  } else {
+    el.style.background = ''; el.style.borderColor = hexAlpha(color,.4); el.style.color = '';
+  }
+  q('#join-subject-err').style.display = 'none';
+}
+window.toggleSubjectPick = toggleSubjectPick;
+
+function getSelectedSubjects() {
+  return [...document.querySelectorAll('.subject-pick-chip.selected')].map(el => el.dataset.name);
+}
+
+function goToSpecialtyScreen() {
+  if (!S.school || !S.user) return;
+  const ttInfo = S.user.ttInfo;
+  const isCollab = S.user.role === 'collaborative';
+  q('#sp-school-name').textContent = S.school.name;
+  q('#sp-user-chip').textContent   = `${isCollab ? '🤝' : '⭐'} ${S.user.name}`;
+
+  // 협업 교사: 안내 문구 변경
+  const alert = q('#sp-alert');
+  if (alert) {
+    if (isCollab) {
+      alert.innerHTML = `🤝 <strong>${escHtml(S.user.name)}</strong> — 협업 수업 시간 배정<br>
+        <span style="font-size:.82rem">기존 수업이 있는 시간에만 배정할 수 있습니다. 담임교사 시간표에 협업 표시가 나타납니다.</span>`;
+    } else {
+      alert.innerHTML = `💡 위에서 교과목을 선택 후, 각 시간에 수업할 <strong>학년-반</strong>을 배정하세요. 담임교사 시간표에 <strong>교담(과목명)</strong>으로 자동 반영됩니다.`;
+    }
+  }
+
+  if (isCollab) {
+    // 협업 교사: 단일 그리드, 교과 탭 없음
+    q('#sp-tab-strip').innerHTML = '';
+    spCurrentSubject = `__collab__${S.user.name}`;
+  } else {
+    spCurrentSubject = (S.user.subjects||[])[0] || null;
+    renderSpTabs();
+  }
+  renderSpecialtyGrid();
+  goTo('screen-specialty');
+}
+window.goToSpecialtyScreen = goToSpecialtyScreen;
+
+function renderSpTabs() {
+  const strip = q('#sp-tab-strip');
+  if (!strip) return;
+  strip.innerHTML = (S.user?.subjects||[]).map(name => {
+    const color = getSubjColor(name);
+    const isActive = name === spCurrentSubject;
+    const style = isActive
+      ? `background:${color};border-color:${color};color:#fff;`
+      : `border-color:${hexAlpha(color,.35)};color:${color};`;
+    const cnt = Object.keys(getSpecialtySchedule(name)).length;
+    return `<button class="sp-tab ${isActive?'active':''}" style="${style}"
+              onclick="switchSpTab('${escHtml(name)}')">
+              ${escHtml(name)}${cnt ? ` <span style="opacity:.75;font-size:.72rem">(${cnt})</span>` : ''}
+            </button>`;
+  }).join('');
+}
+
+function switchSpTab(name) {
+  spCurrentSubject = name;
+  renderSpTabs();
+  renderSpecialtyGrid();
+}
+window.switchSpTab = switchSpTab;
+
+function getSpecialtySchedule(subject) {
+  if (!S.school) return {};
+  if (subject?.startsWith('__collab__')) {
+    const name = subject.slice(10);
+    if (!S.school.collabSchedule) S.school.collabSchedule = {};
+    if (!S.school.collabSchedule[name]) S.school.collabSchedule[name] = {};
+    return S.school.collabSchedule[name];
+  }
+  if (!S.school.specialtySchedule) S.school.specialtySchedule = {};
+  if (!S.school.specialtySchedule[subject]) S.school.specialtySchedule[subject] = {};
+  return S.school.specialtySchedule[subject];
+}
+
+function getCollabForClass(classId) {
+  // { key: [collabName, ...] }
+  const result = {};
+  const cs = S.school?.collabSchedule || {};
+  for (const [name, sched] of Object.entries(cs)) {
+    for (const [key, entry] of Object.entries(sched)) {
+      if (entry.classId === classId) {
+        if (!result[key]) result[key] = [];
+        result[key].push(name);
+      }
+    }
+  }
+  return result;
+}
+
+function renderSpecialtyGrid() {
+  const subject = spCurrentSubject;
+  if (!subject) return;
+  const schedule = getSpecialtySchedule(subject);
+  const classes  = S.school?.classes || [];
+  const color    = getSubjColor(subject);
+  const gradeColors = ['#ef4444','#f97316','#ca8a04','#16a34a','#2563eb','#7c3aed'];
+  const cnt = Object.keys(schedule).length;
+  const el = q('#sp-stat-label');
+  if (el) el.textContent = cnt ? `${subject}: ${cnt}개 시간 배정됨` : `${subject}: 배정 없음`;
+  q('#sp-tbody').innerHTML = PERIODS.map(p => `
+    <tr>
+      <td class="period-cell">${p}교시</td>
+      ${DAYS.map(day => {
+        const key   = `${day}-${p}`;
+        const entry = schedule[key];
+        const cls   = entry ? classes.find(c => c.id === entry.classId) : null;
+        const g     = cls?.grade || parseInt(cls?.name?.[0]);
+        const clrG  = (g >= 1 && g <= 6) ? gradeColors[g-1] : color;
+        const otherSubj = (S.user?.subjects||[]).filter(s=>s!==subject)
+          .find(s=>getSpecialtySchedule(s)[key]);
+        const otherCls = otherSubj
+          ? classes.find(c=>c.id===getSpecialtySchedule(otherSubj)[key]?.classId)
+          : null;
+        let inner;
+        if (cls) {
+          inner = `<div class="sp-ci" style="background:${hexAlpha(clrG,.12)};color:${clrG};border:1.5px solid ${hexAlpha(clrG,.35)}">${escHtml(cls.name)}</div>`;
+        } else if (otherSubj && otherCls) {
+          inner = `<div class="sp-ci" style="background:var(--g50);color:var(--g400);border:1.5px dashed var(--g200);font-size:.7rem">${escHtml(otherCls.name)}<br><span style="font-size:.65rem;opacity:.7">${escHtml(otherSubj)}</span></div>`;
+        } else {
+          inner = `<div class="sp-ci empty">+</div>`;
+        }
+        return `<td class="sp-cell" onclick="openSpModal('${key}')">${inner}</td>`;
+      }).join('')}
+    </tr>
+  `).join('');
+}
+window.renderSpecialtyGrid = renderSpecialtyGrid;
+
+function openSpModal(key) {
+  spEditKey = key;
+  const [day, period] = key.split('-');
+  const subject  = spCurrentSubject;
+  const isCollab = subject?.startsWith('__collab__');
+  const schedule = getSpecialtySchedule(subject);
+  const current  = schedule[key];
+  const classes  = S.school?.classes || [];
+
+  q('#sp-modal-title').textContent = `${day}요일 ${period}교시${isCollab ? ` — ${S.user.name}` : ` — ${subject}`}`;
+  q('#sp-modal-desc').textContent  = current
+    ? `현재: ${current.className} 배정됨`
+    : isCollab ? '협업할 학급을 선택하세요 (기존 수업이 있는 학급만).' : '수업할 학급을 선택하세요.';
+  q('#sp-clear-btn').style.display = current ? 'flex' : 'none';
+
+  // 다른 교과/교사에서 이미 이 시간에 배정된 학급 (중복 방지)
+  const takenElsewhere = new Set();
+  if (!isCollab) {
+    (S.user.subjects||[]).filter(s=>s!==subject).forEach(s => {
+      const e = getSpecialtySchedule(s)[key]; if (e?.classId) takenElsewhere.add(e.classId);
+    });
+    const ss = S.school.specialtySchedule || {};
+    for (const [subj, sched] of Object.entries(ss)) {
+      if ((S.user.subjects||[]).includes(subj)) continue;
+      if (sched[key]?.classId) takenElsewhere.add(sched[key].classId);
+    }
+  }
+
+  // 협업 교사: 현재 시간에 수업이 있는 학급만 선택 가능
+  const hasLesson = new Set();
+  if (isCollab) {
+    // specialtySchedule 검색
+    for (const sched of Object.values(S.school.specialtySchedule || {})) {
+      if (sched[key]?.classId) hasLesson.add(sched[key].classId);
+    }
+    // ttData(담임 시간표) 검색
+    for (const cls of classes) {
+      // 이 학급의 해당 key에 데이터가 있는지 확인
+      const lsKey = `stt_${S.school.id}_${cls.id}`;
+      try {
+        const raw = localStorage.getItem(lsKey);
+        if (raw) { const d = JSON.parse(raw); if (d[key]) hasLesson.add(cls.id); }
+      } catch {}
+    }
+  }
+
+  const sel = q('#sp-class-select');
+  sel.innerHTML = '<option value="">-- 배정 안 함 --</option>';
+  const graded = {}, ungraded = [];
+
+  // 학년/교과 필터 (단독 교사만)
+  const ttInfo = S.user.ttInfo;
+  const allowedGrades  = (!isCollab && ttInfo?.gradeFilter?.length) ? new Set(ttInfo.gradeFilter) : null;
+
+  classes.forEach(c => {
+    if (allowedGrades && c.grade && !allowedGrades.has(c.grade)) return;
+    if (c.grade) (graded[c.grade]=graded[c.grade]||[]).push(c); else ungraded.push(c);
+  });
+
+  function makeOpt(c) {
+    const o = document.createElement('option'); o.value = c.id;
+    if (isCollab && !hasLesson.has(c.id)) {
+      o.textContent = `${c.name} — 이 시간에 수업 없음`; o.disabled = true;
+    } else if (!isCollab && takenElsewhere.has(c.id)) {
+      o.textContent = `${c.name} — ⚠ 다른 교담 수업 중`; o.disabled = true;
+    } else { o.textContent = c.name; }
+    if (current?.classId === c.id) o.selected = true;
+    return o;
+  }
+
+  [1,2,3,4,5,6].forEach(g => {
+    if (!graded[g]) return;
+    const og = document.createElement('optgroup'); og.label = `${g}학년`;
+    graded[g].forEach(c => og.appendChild(makeOpt(c)));
+    sel.appendChild(og);
+  });
+  if (ungraded.length) {
+    const og = document.createElement('optgroup'); og.label = '기타';
+    ungraded.forEach(c => og.appendChild(makeOpt(c)));
+    sel.appendChild(og);
+  }
+  openModal('modal-sp-cell');
+}
+window.openSpModal = openSpModal;
+
+async function saveSpCell() {
+  if (!spEditKey) return;
+  const subject  = spCurrentSubject;
+  const classId  = q('#sp-class-select').value;
+  const schedule = getSpecialtySchedule(subject);
+  if (!classId) { delete schedule[spEditKey]; }
+  else { const cls = (S.school.classes||[]).find(c=>c.id===classId); schedule[spEditKey] = { classId, className: cls?.name || classId }; }
+  closeModal('modal-sp-cell');
+  renderSpTabs(); renderSpecialtyGrid();
+  toast(classId ? `${(S.school.classes||[]).find(c=>c.id===classId)?.name} 배정됨` : '배정 취소됨', classId?'success':'');
+}
+window.saveSpCell = saveSpCell;
+
+function clearSpCell() {
+  if (!spEditKey) return;
+  delete getSpecialtySchedule(spCurrentSubject)[spEditKey];
+  closeModal('modal-sp-cell'); renderSpTabs(); renderSpecialtyGrid(); toast('배정 취소됨');
+}
+window.clearSpCell = clearSpCell;
+
+async function saveSpecialtySchedule() {
+  if (!S.school) return;
+  await saveSchool(S.school);
+  toast('저장 완료 ✔', 'success');
+}
+window.saveSpecialtySchedule = saveSpecialtySchedule;
+
+function confirmClearSpecialty() {
+  const subject = spCurrentSubject;
+  openConfirm(`${subject} 시간표 초기화`, `${subject}의 모든 배정이 삭제됩니다. 계속하시겠습니까?`,
+    async () => {
+      if (S.school.specialtySchedule) delete S.school.specialtySchedule[subject];
+      await saveSchool(S.school);
+      renderSpTabs(); renderSpecialtyGrid();
+      toast('초기화 완료', 'success');
+    });
+}
+window.confirmClearSpecialty = confirmClearSpecialty;
+
+function getSpecialtyAssignmentsForClass(classId) {
+  const result = {};
+  const ss = S.school?.specialtySchedule || {};
+  for (const [subject, schedule] of Object.entries(ss)) {
+    for (const [key, entry] of Object.entries(schedule)) {
+      if (entry.classId === classId) result[key] = subject;
+    }
+  }
+  return result;
+}
+
+
+/* ===========================================================
+   SCHOOL PASSWORD CHANGE (관리자)
+   =========================================================== */
+async function changeSchoolPw() {
+  if (!S.school) return;
+  const cur  = q('#pw-current').value;
+  const new1 = q('#pw-new1').value;
+  const new2 = q('#pw-new2').value;
+  const curErr = q('#pw-current-err');
+  const newErr = q('#pw-new-err');
+  curErr.style.display = 'none';
+  newErr.style.display = 'none';
+
+  if (cur !== S.school.adminPassword) { curErr.style.display = 'block'; return; }
+  if (new1.length < 4) { toast('새 비밀번호는 4자 이상이어야 합니다.', 'error'); return; }
+  if (new1 !== new2)   { newErr.style.display = 'block'; return; }
+
+  S.school.adminPassword = new1;
+  await saveSchool(S.school);
+  q('#pw-current').value = '';
+  q('#pw-new1').value    = '';
+  q('#pw-new2').value    = '';
+  toast('비밀번호가 변경되었습니다. 교직원에게 공유하세요. ✔', 'success');
+}
+window.changeSchoolPw = changeSchoolPw;
 
 /* ===========================================================
    LANDING ACTIONS
@@ -1361,6 +1895,7 @@ async function createSchool() {
     specialRooms: DEFAULT_ROOMS.map((r,i) => ({id:'rm'+i, name:r})),
     classes:      [],
     gradeConfig:  [3,3,3,3,3,3],
+    teacherTypes:          DEFAULT_TEACHER_TYPES.map(t => ({...t})),
     specialtyTeacherCount: 0,
     specialtySubjects:     [],
     createdAt:    Date.now(),
@@ -1545,76 +2080,160 @@ function renderClassList() {
 /* ===========================================================
    TEACHER COUNT & SPECIALTY SUBJECTS
    =========================================================== */
+/* ===========================================================
+   TEACHER TYPES MANAGEMENT
+   =========================================================== */
+const DEFAULT_TEACHER_TYPES = [
+  {
+    id: 'tt_specialty', name: '교과전담교사',
+    mode: 'independent', subjectFilter: null, gradeFilter: null,
+    note: '단독 수업 가능 · 전 교과·전 학년',
+  },
+  {
+    id: 'tt_eng_conv', name: '영어회화 전문강사',
+    mode: 'independent', subjectFilter: ['영어'], gradeFilter: [3,4,5,6],
+    note: '단독 수업 가능 · 3~6학년 영어만',
+  },
+  {
+    id: 'tt_sports', name: '스포츠 강사',
+    mode: 'collaborative', subjectFilter: null, gradeFilter: null,
+    note: '협업 수업만 가능 · 단독 수업 불가',
+  },
+  {
+    id: 'tt_native', name: '원어민 교사',
+    mode: 'collaborative', subjectFilter: null, gradeFilter: null,
+    note: '협업 수업만 가능 · 단독 수업 불가',
+  },
+];
+
+function ensureTeacherTypes() {
+  if (!S.school) return;
+  if (!S.school.teacherTypes || !S.school.teacherTypes.length) {
+    S.school.teacherTypes = DEFAULT_TEACHER_TYPES.map(t => ({...t}));
+  }
+}
+
+function getTeacherTypeById(id) {
+  ensureTeacherTypes();
+  return (S.school?.teacherTypes||[]).find(t => t.id === id) || null;
+}
+
 function renderTeacherTab() {
   if (!S.school) return;
-  const cnt = S.school.specialtyTeacherCount || 0;
-  const el  = q('#teacher-count-val');
-  if (el) el.textContent = cnt;
+  ensureTeacherTypes();
+  const types = S.school.teacherTypes;
 
-  // 교담 담당 교과 목록
-  const assigned = S.school.specialtySubjects || [];
-  const listEl   = q('#specialty-subject-list');
+  const listEl = q('#teacher-type-list');
   if (listEl) {
-    listEl.innerHTML = assigned.length
-      ? assigned.map((name, i) => {
-          const subj = getSubjectsForCurrentClass().find(s => s.name === name)
-            || [{color:'#6366f1'}].find(()=>true);
-          const color = getSubjColor(name);
-          return `
-            <div class="list-item">
-              <div class="item-icon" style="background:${hexAlpha(color,.12)};color:${color}">${name[0]}</div>
-              <div class="item-text"><div class="item-title">${escHtml(name)}</div></div>
-              <div class="item-actions">
-                <button class="btn-icon red" onclick="removeSpecialtySubject(${i})">🗑️</button>
-              </div>
-            </div>`;
-        }).join('')
-      : '<div class="text-muted text-sm" style="padding:.4rem">담당 교과가 없습니다.</div>';
+    listEl.innerHTML = types.length ? types.map((t, i) => {
+      const isCollab = t.mode === 'collaborative';
+      const modeChip = isCollab
+        ? `<span class="tt-filter-chip tt-collab-chip">🤝 협업</span>`
+        : `<span class="tt-filter-chip tt-indep-chip">🎓 단독</span>`;
+      const subjChip = t.subjectFilter?.length
+        ? `<span class="tt-filter-chip">교과: ${t.subjectFilter.join(', ')}</span>`
+        : `<span class="tt-filter-chip" style="background:var(--g100);color:var(--g500)">전 교과</span>`;
+      const gradeChip = t.gradeFilter?.length
+        ? `<span class="tt-filter-chip">학년: ${t.gradeFilter.join(',')}학년</span>`
+        : `<span class="tt-filter-chip" style="background:var(--g100);color:var(--g500)">전 학년</span>`;
+      const icon = isCollab ? '🤝' : '🎓';
+      const iconBg = isCollab ? '#fef3c7' : '#dcfce7';
+      return `
+        <div class="tt-type-card">
+          <div class="tt-type-icon" style="background:${iconBg}">${icon}</div>
+          <div class="tt-type-info">
+            <div class="tt-type-name">${escHtml(t.name)}</div>
+            <div class="tt-type-meta">${modeChip}${subjChip}${gradeChip}</div>
+            ${t.note ? `<div style="font-size:.72rem;color:var(--g400);margin-top:3px">${escHtml(t.note)}</div>` : ''}
+          </div>
+          <button class="btn-icon red" onclick="removeTeacherType(${i})" title="삭제">🗑️</button>
+        </div>`;
+    }).join('') : '<div class="text-muted text-sm" style="padding:.5rem">등록된 유형이 없습니다.</div>';
   }
 
-  // 교과 선택 드롭다운 (전 학년 교과 합집합)
-  const sel = q('#specialty-subj-select');
-  if (sel) {
-    const all = [];
-    const seen = new Set(assigned);
-    ensureSubjectsByGrade();
-    [1,2,3,4,5,6].forEach(g => {
-      (S.school.subjectsByGrade?.[g] || []).forEach(s => {
-        if (!seen.has(s.name) && !all.find(x=>x.name===s.name)) all.push(s);
-      });
+  // 교과 선택 칩 (추가 폼용)
+  renderTtSubjChips();
+}
+
+function renderTtSubjChips() {
+  const wrap = q('#tt-subj-chips');
+  if (!wrap) return;
+  const seen = new Set(), subjects = [];
+  ensureSubjectsByGrade();
+  [1,2,3,4,5,6].forEach(g => {
+    (S.school?.subjectsByGrade?.[g]||[]).forEach(s => {
+      if (!seen.has(s.name)) { seen.add(s.name); subjects.push(s); }
     });
-    sel.innerHTML = '<option value="">-- 교과 선택 --</option>'
-      + all.map(s => `<option value="${escHtml(s.name)}">${escHtml(s.name)}</option>`).join('');
+  });
+  wrap.innerHTML = subjects.map(s => `
+    <div class="subject-pick-chip" data-name="${escHtml(s.name)}"
+         style="font-size:.75rem;padding:.2rem .5rem;border-color:${hexAlpha(s.color,.4)}"
+         onclick="toggleTtSubjChip(this,'${escHtml(s.name)}','${s.color}')">
+      ${escHtml(s.name)}
+    </div>`).join('');
+}
+
+function toggleTtSubjChip(el, name, color) {
+  el.classList.toggle('selected');
+  if (el.classList.contains('selected')) {
+    el.style.background = color; el.style.borderColor = color; el.style.color = '#fff';
+  } else {
+    el.style.background = ''; el.style.borderColor = hexAlpha(color,.4); el.style.color = '';
   }
 }
+window.toggleTtSubjChip = toggleTtSubjChip;
 
-function changeTeacherCount(delta) {
+function toggleGradeFilter(el, g) {
+  el.classList.toggle('active');
+}
+window.toggleGradeFilter = toggleGradeFilter;
+
+function onTtModeChange() {
+  const mode = q('#tt-mode').value;
+  const hint = q('#tt-mode-hint');
+  if (hint) hint.textContent = mode === 'collaborative'
+    ? '담임 또는 다른 교과전담 교사와 반드시 함께 수업합니다.'
+    : '혼자 수업을 진행할 수 있습니다.';
+}
+window.onTtModeChange = onTtModeChange;
+
+function addTeacherType() {
   if (!S.school) return;
-  const next = Math.max(0, (S.school.specialtyTeacherCount || 0) + delta);
-  S.school.specialtyTeacherCount = next;
-  const el = q('#teacher-count-val');
-  if (el) el.textContent = next;
-}
-window.changeTeacherCount = changeTeacherCount;
+  ensureTeacherTypes();
+  const name = q('#tt-name').value.trim();
+  if (!name) { toast('유형 이름을 입력하세요.', 'error'); return; }
+  if (S.school.teacherTypes.find(t => t.name === name)) { toast('이미 있는 유형입니다.', 'warn'); return; }
 
-function addSpecialtySubject() {
-  const sel  = q('#specialty-subj-select');
-  const name = sel?.value;
-  if (!name) { toast('교과를 선택하세요.', 'error'); return; }
-  if (!S.school.specialtySubjects) S.school.specialtySubjects = [];
-  if (S.school.specialtySubjects.includes(name)) { toast('이미 추가된 교과입니다.', 'warn'); return; }
-  S.school.specialtySubjects.push(name);
-  renderTeacherTab();
-  toast(`${name} 추가됨`, 'success');
-}
-window.addSpecialtySubject = addSpecialtySubject;
+  const mode = q('#tt-mode').value;
+  const subjChips = [...document.querySelectorAll('#tt-subj-chips .subject-pick-chip.selected')];
+  const gradeChips = [...document.querySelectorAll('#tt-grade-chips .grade-tab.active')];
+  const subjectFilter = subjChips.length ? subjChips.map(c => c.dataset.name) : null;
+  const gradeFilter   = gradeChips.length ? gradeChips.map(c => parseInt(c.dataset.g)) : null;
 
-function removeSpecialtySubject(i) {
-  if (!S.school?.specialtySubjects) return;
-  S.school.specialtySubjects.splice(i, 1);
+  S.school.teacherTypes.push({
+    id: 'tt_' + Date.now(),
+    name, mode, subjectFilter, gradeFilter,
+    note: mode === 'collaborative' ? '협업 수업만 가능 · 단독 수업 불가' : '단독 수업 가능',
+  });
+
+  q('#tt-name').value = '';
+  document.querySelectorAll('#tt-subj-chips .selected, #tt-grade-chips .active').forEach(el => {
+    el.classList.remove('selected', 'active');
+    el.style.background = el.style.borderColor = el.style.color = '';
+  });
   renderTeacherTab();
+  toast(`${name} 유형 추가됨`, 'success');
 }
-window.removeSpecialtySubject = removeSpecialtySubject;
+window.addTeacherType = addTeacherType;
+
+function removeTeacherType(i) {
+  if (!S.school?.teacherTypes) return;
+  const name = S.school.teacherTypes[i]?.name;
+  S.school.teacherTypes.splice(i, 1);
+  renderTeacherTab();
+  toast(`${name} 삭제됨`);
+}
+window.removeTeacherType = removeTeacherType;
 
 function renderGradeGrid() {
   if (!S.school) return;
@@ -1846,43 +2465,161 @@ async function selectSchool(id, el) {
     sel.appendChild(og);
   }
   q('#join-form').style.display = 'block';
-  // 역할 초기화
   const roleEl = q('#join-role');
-  if (roleEl) roleEl.value = 'homeroom';
-  q('#join-class-group').style.display = 'block';
+  if (roleEl) {
+    // 역할 드롭다운을 학교의 teacherTypes에서 동적으로 생성
+    const types = joinSchoolRef.teacherTypes || DEFAULT_TEACHER_TYPES;
+    roleEl.innerHTML = `
+      <option value="homeroom">🏠 담임교사</option>
+      ${types.map(t => {
+        const icon = t.mode === 'collaborative' ? '🤝' : '⭐';
+        const suffix = t.mode === 'collaborative' ? ' (협업)' : '';
+        return `<option value="tt:${escHtml(t.id)}">${icon} ${escHtml(t.name)}${suffix}</option>`;
+      }).join('')}
+      <option value="admin">👑 관리자 (설정·배정 권한)</option>
+    `;
+    roleEl.value = 'homeroom';
+  }
+  q('#join-class-group').style.display   = 'block';
+  q('#join-subject-group').style.display = 'none';
+  renderSubjectPicker();
+
+  // 교과 드롭다운 채우기 (전 학년 교과 합집합)
+  const subjSel = q('#join-subject');
+  subjSel.innerHTML = '<option value="">-- 교과목 선택 --</option>';
+  const seen = new Set();
+  const sbg  = joinSchoolRef.subjectsByGrade || {};
+  [1,2,3,4,5,6].forEach(g => {
+    (sbg[g] || []).forEach(s => {
+      if (!seen.has(s.name)) {
+        seen.add(s.name);
+        const o = document.createElement('option'); o.value = s.name; o.textContent = s.name;
+        subjSel.appendChild(o);
+      }
+    });
+  });
 }
 window.selectSchool = selectSchool;
 
 function onJoinRoleChange() {
-  const role = q('#join-role').value;
-  const hideClass = role === 'admin' || role === 'specialty';
-  q('#join-class-group').style.display = hideClass ? 'none' : 'block';
+  const val  = q('#join-role').value;
+  const isAdmin    = val === 'admin';
+  const isHomeroom = val === 'homeroom';
+  const isTt       = val.startsWith('tt:');
+
+  // teacherType 정보 조회
+  const ttId   = isTt ? val.slice(3) : null;
+  const ttInfo = ttId ? (joinSchoolRef?.teacherTypes || DEFAULT_TEACHER_TYPES).find(t => t.id === ttId) : null;
+  const isIndependent = ttInfo?.mode === 'independent';
+  const isCollab      = ttInfo?.mode === 'collaborative';
+
+  q('#join-class-group').style.display   = isHomeroom ? 'block' : 'none';
+  q('#join-subject-group').style.display = (isTt && isIndependent) ? 'block' : 'none';
+
+  // 협업 교사 안내
+  let hint = q('#join-collab-hint');
+  if (!hint) {
+    hint = document.createElement('div');
+    hint.id = 'join-collab-hint';
+    hint.className = 'alert alert-info';
+    hint.style.marginTop = '.6rem';
+    q('#join-subject-group').insertAdjacentElement('afterend', hint);
+  }
+  if (isCollab) {
+    hint.innerHTML = `🤝 <strong>${escHtml(ttInfo.name)}</strong>는 협업 수업만 가능합니다. 담임 또는 교과전담 교사가 배정한 시간에 협업자로 추가됩니다.`;
+    hint.style.display = 'block';
+  } else {
+    hint.style.display = 'none';
+  }
+
+  // 교과 필터 적용 (교과 선택 칩 재렌더)
+  if (isTt && isIndependent && ttInfo) {
+    renderSubjectPickerFiltered(ttInfo.subjectFilter, ttInfo.gradeFilter);
+  }
 }
 window.onJoinRoleChange = onJoinRoleChange;
 
+function renderSubjectPickerFiltered(subjectFilter, gradeFilter) {
+  const wrap = q('#join-subject-chips');
+  if (!wrap || !joinSchoolRef) return;
+  const sbg = joinSchoolRef.subjectsByGrade || {};
+  const seen = new Set(), list = [];
+  const grades = gradeFilter?.length ? gradeFilter : [1,2,3,4,5,6];
+  grades.forEach(g => {
+    (sbg[g]||[]).forEach(s => {
+      if (!seen.has(s.name)) {
+        if (!subjectFilter || subjectFilter.includes(s.name)) {
+          seen.add(s.name); list.push(s);
+        }
+      }
+    });
+  });
+  wrap.innerHTML = list.length
+    ? list.map(s => `
+      <div class="subject-pick-chip" data-name="${escHtml(s.name)}"
+           style="border-color:${hexAlpha(s.color,.4)}"
+           onclick="toggleSubjectPick(this,'${escHtml(s.name)}','${s.color}')">
+        ${escHtml(s.name)}
+      </div>`).join('')
+    : '<div class="text-muted text-sm">선택 가능한 교과가 없습니다.</div>';
+}
+
 async function joinSchool() {
   if (!joinSchoolRef) { toast('학교를 선택해주세요.', 'error'); return; }
-  const role  = q('#join-role').value;
-  const clsId = q('#join-class').value;
-  const pw    = q('#join-pw').value;
-  const err   = q('#join-pw-err');
+  const val  = q('#join-role').value;
+  const pw   = q('#join-pw').value;
+  const err  = q('#join-pw-err');
   err.style.display = 'none';
+
+  const isAdmin    = val === 'admin';
+  const isHomeroom = val === 'homeroom';
+  const isTt       = val.startsWith('tt:');
+  const ttId       = isTt ? val.slice(3) : null;
+  const ttInfo     = ttId ? (joinSchoolRef.teacherTypes || DEFAULT_TEACHER_TYPES).find(t => t.id === ttId) : null;
+  const isCollab   = ttInfo?.mode === 'collaborative';
+  const isIndep    = ttInfo?.mode === 'independent';
+
+  // 단독 교과전담: 교과 선택 필수
+  const selectedSubjects = (isTt && isIndep) ? getSelectedSubjects() : [];
+  if (isTt && isIndep && !selectedSubjects.length) {
+    q('#join-subject-err').style.display = 'block';
+    toast('담당 교과목을 1개 이상 선택해주세요.', 'error'); return;
+  }
+
   if (pw !== joinSchoolRef.adminPassword) { err.style.display = 'block'; return; }
 
-  const cls      = joinSchoolRef.classes?.find(c => c.id === clsId);
-  const roleLabel = role === 'admin' ? '관리자' : role === 'specialty' ? '전담교사' : (cls?.name ? cls.name + ' 담임' : '담임교사');
+  const clsId = q('#join-class').value;
+  const cls   = joinSchoolRef.classes?.find(c => c.id === clsId);
+
+  // 역할 결정
+  let role = 'homeroom';
+  if (isAdmin)     role = 'admin';
+  else if (isTt)   role = isCollab ? 'collaborative' : 'specialty';
+
+  const roleLabel = isAdmin ? '관리자'
+    : isTt ? ttInfo.name
+    : (cls?.name ? cls.name + ' 담임' : '담임교사');
+
   S.school = joinSchoolRef;
   S.user   = {
-    name:      roleLabel,
+    name:        roleLabel,
     role,
-    className: (role === 'homeroom' && cls) ? cls.name : '',
-    classId:   role === 'homeroom' ? (clsId || null) : null,
+    ttId,          // teacherType id (교담 전용)
+    ttInfo,        // teacherType 전체 정보
+    subjects:    selectedSubjects,
+    className:   (role === 'homeroom' && cls) ? cls.name : '',
+    classId:     role === 'homeroom' ? (clsId || null) : null,
   };
   saveSession();
   toast(`${joinSchoolRef.name}에 접속했습니다. 👋`, 'success');
-  initTimetable();
-  if (role === 'admin') goToRoomSchedule();
-  else goTo('screen-timetable');
+
+  if (isAdmin) {
+    initTimetable(); goToRoomSchedule();
+  } else if (isTt) {
+    goToSpecialtyScreen();
+  } else {
+    initTimetable(); goTo('screen-timetable');
+  }
 }
 window.joinSchool = joinSchool;
 
@@ -1895,14 +2632,14 @@ function initTimetable() {
 
   q('#tt-school-name').textContent  = school.name;
   const roleLabel = user.role === 'admin' ? '👑 관리자'
-    : user.role === 'specialty' ? '⭐ 전담교사'
+    : user.role === 'specialty' ? '⭐ 교과전담교사'
     : user.className ? `🏠 ${user.className}`
     : '🏠 담임교사';
   q('#tt-user-chip').textContent = roleLabel;
 
   const rb = q('#tt-role-badge');
   if (user.role==='admin')     rb.innerHTML = '<span class="badge badge-purple">👑 관리자</span>';
-  else if (user.role==='specialty') rb.innerHTML = '<span class="badge badge-blue">⭐ 전담교사</span>';
+  else if (user.role==='specialty') rb.innerHTML = '<span class="badge badge-blue">⭐ 교과전담교사</span>';
   else rb.innerHTML = '<span class="badge badge-green">🏠 담임교사</span>';
 
   const isAdmin = user.role==='admin';
@@ -2057,7 +2794,10 @@ async function saveCellToStorage(key, data) {
    RENDER GRID
    =========================================================== */
 function renderGrid() {
-  const tbody = q('#tt-tbody');
+  const tbody    = q('#tt-tbody');
+  const spAssign  = S.classId ? getSpecialtyAssignmentsForClass(S.classId) : {};
+  const collabMap = S.classId ? getCollabForClass(S.classId) : {};
+
   tbody.innerHTML = PERIODS.map(p => `
     <tr>
       <td class="period-cell">${p}교시</td>
@@ -2065,11 +2805,27 @@ function renderGrid() {
         const key        = `${day}-${p}`;
         const cell       = S.ttData[key];
         const roomAssign = getRoomAssignmentForKey(key);
-        const lockState  = getCellLockState(cell, key);
+        const spSubject  = spAssign[key];
+        const lockState  = getCellLockState(cell, key, spSubject);
         const isLocked   = lockState !== 'none';
 
-        if (roomAssign) {
-          // ── 특별실 배정된 칸 ─────────────────────────
+        if (spSubject) {
+          const color = getSubjColor(spSubject);
+          const collabs = collabMap[key] || [];
+          const collabBadge = collabs.map(n =>
+            `<span class="cell-room" style="color:#7c3aed;font-size:.62rem">🤝${escHtml(n)}</span>`
+          ).join('');
+          return `
+            <td class="tt-cell" data-key="${key}">
+              <div class="cell-inner filled specialty-cell locked"
+                   style="background:${hexAlpha(color,.1)};border:1.5px solid ${hexAlpha(color,.3)};">
+                <span class="cell-subj" style="color:${color}">교담</span>
+                <span class="cell-room" style="color:${color}">(${escHtml(spSubject)})</span>
+                ${collabBadge}
+              </div>
+            </td>`;
+        } else if (roomAssign) {
+          // ── 특별실 배정 칸 ─────────────────────────
           const color  = cell?.subject ? getSubjColor(cell.subject) : '#7c3aed';
           const bg     = hexAlpha(color, .1);
           const border = hexAlpha(color, .3);
@@ -2091,7 +2847,7 @@ function renderGrid() {
               </div>
             </td>`;
         } else if (cell) {
-          // ── 일반 과목 배정된 칸 ───────────────────────
+          // ── 일반 과목 칸 ───────────────────────────
           const color  = getSubjColor(cell.subject);
           const bg     = hexAlpha(color, .11);
           const border = hexAlpha(color, .35);
@@ -2109,10 +2865,10 @@ function renderGrid() {
                    onclick="onCellClick('${key}')">
                 <span class="cell-subj" style="color:${color}">${escHtml(cell.subject)}</span>
                 ${cell.specialRoom?`<span class="cell-room" style="color:${color}">📍${escHtml(cell.specialRoom)}</span>`:''}
+                ${(collabMap[key]||[]).map(n=>`<span class="cell-room" style="color:#7c3aed;font-size:.62rem">🤝${escHtml(n)}</span>`).join('')}
               </div>
             </td>`;
         } else {
-          // ── 빈 칸 ─────────────────────────────────────
           return `
             <td class="tt-cell" data-key="${key}"
                 ondragover="onDragOver(event,'${key}',this)"
@@ -2142,12 +2898,11 @@ function getRoomAssignmentForKey(key) {
   return null;
 }
 
-function getCellLockState(cell, key) {
-  // 'none' = fully editable
-  // 'room' = room-assigned: can set subject, cannot drag/delete (non-admin)
-  // 'full' = fully locked (cannot do anything)
+function getCellLockState(cell, key, spSubject) {
   if (!S.user) return 'none';
   if (S.user.role === 'admin') return 'none';
+  // 교담 배정 칸: 담임은 수정 불가
+  if (spSubject) return 'full';
   if (key && getRoomAssignmentForKey(key)) return 'room';
   if (cell && S.user.role === 'homeroom' && cell.role === 'specialty') return 'full';
   if (cell?.isSpecialRoom) return 'full';
@@ -2246,9 +3001,10 @@ function onCellClick(key) {
   if (!S.user || !S.classId) return;
   const cell       = S.ttData[key];
   const roomAssign = getRoomAssignmentForKey(key);
-  const lockState  = getCellLockState(cell, key);
+  const spSubject  = getSpecialtyAssignmentsForClass(S.classId)[key];
+  const lockState  = getCellLockState(cell, key, spSubject);
 
-  // 완전 잠금 = 클릭 불가
+  if (spSubject) { toast(`🔒 교담(${spSubject}) — 교과전담교사가 배정한 시간입니다.`, 'warn'); return; }
   if (lockState === 'full') { toast('🔒 이 시간은 수정할 수 없습니다.', 'warn'); return; }
 
   const [day, period] = key.split('-');
@@ -2433,9 +3189,17 @@ document.querySelectorAll('.modal-bg').forEach(bg => {
   bg.addEventListener('click', e => { if(e.target===bg) bg.classList.remove('open'); });
 });
 
-function openConfirm(title, desc, onOk) {
+function openConfirm(title, desc, onOk, extraHtml='') {
   q('#mconf-title').textContent = title;
   q('#mconf-desc').textContent  = desc;
+  // extra input area
+  let extra = q('#mconf-extra');
+  if (!extra) {
+    extra = document.createElement('div');
+    extra.id = 'mconf-extra';
+    q('#mconf-desc').insertAdjacentElement('afterend', extra);
+  }
+  extra.innerHTML = extraHtml;
   const btn = q('#mconf-ok');
   btn.onclick = () => { closeModal('modal-confirm'); onOk(); };
   openModal('modal-confirm');
@@ -2811,14 +3575,14 @@ document.addEventListener('keydown', e => {
    INIT
    =========================================================== */
 (function init() {
-  // Try to restore session
   if (loadSession()) {
-    initTimetable();
-    goTo('screen-timetable');
+    if (S.user?.role === 'specialty') {
+      goToSpecialtyScreen();
+    } else {
+      initTimetable();
+      goTo('screen-timetable');
+    }
   }
-
-  // Attempt Firebase init (no-op if config commented out)
-  // To enable: uncomment firebaseConfig block above → db will be set automatically
 })();
 </script>
 </body>
