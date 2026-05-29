@@ -752,10 +752,10 @@ a{color:inherit;text-decoration:none}
       <div class="form-group">
         <label class="form-label">학교 이름 <span style="color:var(--danger)">*</span></label>
         <input type="text" id="create-name" class="form-input"
-               placeholder="예: 서울행복초등학교 / 행복초등학교(강남) / 행복초-2반그룹"
+               placeholder="예: 광주행복초등학교 / 행복초등학교(광주) / 행복초-2026년 2학기"
                oninput="onCreateNameInput()">
         <div class="form-hint" style="margin-top:.4rem">
-          💡 같은 이름의 학교가 많습니다. <strong>지역명 + 학교명</strong> 또는 <strong>학교명 + 숫자(괄호)</strong> 조합으로 구분하세요.
+          💡 같은 이름의 학교가 많습니다. <strong>지역명 + 학교명</strong> 또는 <strong>학교명 + 연도·학기</strong> 조합으로 구분하세요.
         </div>
         <div id="create-name-err" class="form-error">⚠️ 학교 이름을 입력해주세요.</div>
         <div id="create-name-dup-warn" class="form-error" style="display:none;color:var(--brand)">
@@ -3033,8 +3033,8 @@ async function saveCellToStorage(key, data) {
   if (db) {
     try {
       const ref = doc(db, 'schools', S.school.id, 'timetables', S.classId);
-      const payload = { ...S.ttData, _updatedAt: Date.now() };
-      if (data === null) payload[key] = null; // Firestore: set null to remove-ish
+      const payload = toFirestoreDoc({ ...S.ttData, _updatedAt: Date.now() });
+      if (data === null) payload[key] = null;
       await setDoc(ref, payload, { merge: true });
     } catch(e) { console.warn('Firestore save error:',e); }
   }
@@ -3501,13 +3501,43 @@ window.logout = logout;
 /* ===========================================================
    STORAGE ABSTRACTION (Firestore + localStorage)
    =========================================================== */
+/* Firestore는 숫자 키를 허용하지 않으므로 저장 전 문자열 키로 변환 */
+function toFirestoreDoc(obj) {
+  if (Array.isArray(obj)) return obj.map(toFirestoreDoc);
+  if (obj !== null && typeof obj === 'object') {
+    const out = {};
+    for (const [k, v] of Object.entries(obj)) {
+      out[String(k)] = toFirestoreDoc(v);
+    }
+    return out;
+  }
+  return obj;
+}
+
+/* Firestore에서 읽어온 문자열 키를 다시 원래 타입으로 복원 */
+function fromFirestoreDoc(obj) {
+  if (Array.isArray(obj)) return obj.map(fromFirestoreDoc);
+  if (obj !== null && typeof obj === 'object') {
+    const out = {};
+    for (const [k, v] of Object.entries(obj)) {
+      // 순수 숫자 키는 숫자로 복원 (gradeConfig, subjectsByGrade, periodTimes 등)
+      const key = /^\d+$/.test(k) ? parseInt(k) : k;
+      out[key] = fromFirestoreDoc(v);
+    }
+    return out;
+  }
+  return obj;
+}
+
 async function saveSchool(data) {
   const all = await fetchSchools();
   const i   = all.findIndex(s=>s.id===data.id);
   if (i>=0) all[i]=data; else all.push(data);
   localStorage.setItem('stt_schools', JSON.stringify(all));
   if (db) {
-    try { await setDoc(doc(db,'schools',data.id), data); } catch(e) { console.warn(e); }
+    try {
+      await setDoc(doc(db,'schools',data.id), toFirestoreDoc(data));
+    } catch(e) { console.warn('Firestore saveSchool error:', e); }
   }
 }
 
@@ -3515,8 +3545,8 @@ async function fetchSchools() {
   if (db) {
     try {
       const snap = await getDocs(collection(db,'schools'));
-      return snap.docs.map(d=>d.data());
-    } catch(e) { console.warn(e); }
+      return snap.docs.map(d => fromFirestoreDoc(d.data()));
+    } catch(e) { console.warn('Firestore fetchSchools error:', e); }
   }
   try {
     return JSON.parse(localStorage.getItem('stt_schools')||'[]');
