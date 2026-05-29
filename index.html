@@ -623,10 +623,10 @@ a{color:inherit;text-decoration:none}
   </div>
   <div class="page-body">
     <div id="create-limit-alert" class="alert alert-danger" style="display:none">
-      🚫 오늘 하루 학교 생성 한도(3개)에 도달했습니다. 내일(24시간 후) 다시 시도해주세요.
+      🚫 오늘 하루 학교 생성 한도(30개)에 도달했습니다. 내일(24시간 후) 다시 시도해주세요.
     </div>
     <div id="create-quota-info" class="alert alert-info">
-      📊 오늘 <strong id="quota-count">0</strong>개 생성됨 (이 기기에서 하루 최대 3개)
+      📊 오늘 <strong id="quota-count">0</strong>개 생성됨 (이 기기에서 하루 최대 30개)
     </div>
 
     <div class="card">
@@ -1071,7 +1071,7 @@ const S = {
    RATE LIMIT  (localStorage, 3 per 24 h per device)
    =========================================================== */
 const RL_KEY = 'stt_creation_log';
-const RL_MAX = 3;
+const RL_MAX = 30;
 const RL_WIN = 24 * 60 * 60 * 1000;
 
 function rlGetLog() {
@@ -1197,7 +1197,7 @@ window.goToCreate = goToCreate;
    =========================================================== */
 async function createSchool() {
   const { canCreate } = rlCheck();
-  if (!canCreate) { toast('오늘 생성 한도(3개)에 도달했습니다.','error'); return; }
+  if (!canCreate) { toast('오늘 생성 한도(30개)에 도달했습니다.','error'); return; }
 
   const name = q('#create-name').value.trim();
   const pw   = q('#create-pw').value.trim();
