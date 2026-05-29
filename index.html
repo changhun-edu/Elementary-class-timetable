@@ -1034,7 +1034,7 @@ a{color:inherit;text-decoration:none}
     <h1 class="page-header-title">🏛️ 특별실 배정</h1>
     <span style="flex:1"></span>
     <span class="text-sm text-muted" id="rs-school-label" style="margin-right:.5rem"></span>
-    <button class="btn btn-ghost btn-sm" onclick="goTo('screen-timetable')">시간표로 →</button>
+    <button class="btn btn-ghost btn-sm" onclick="goFromRoomSchedule()">다음: 교담 시간표 →</button>
   </div>
   <div class="rs-body">
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.6rem;margin-bottom:.85rem">
@@ -1288,7 +1288,20 @@ a{color:inherit;text-decoration:none}
   </div>
 </div>
 <!-- Random Room Assignment Modal -->
-<div class="modal-bg" id="modal-random-assign">
+<div class="modal-bg" id="modal-specialty-nav">
+  <div class="modal-box" style="max-width:360px">
+    <div class="modal-title">👩‍🏫 교담·협업 교사 시간표 입력</div>
+    <div class="modal-desc">시간표를 입력할 교사를 선택하세요.</div>
+    <div id="specialty-nav-list" style="margin:.85rem 0"></div>
+    <div style="border-top:1px solid var(--g100);padding-top:.75rem;margin-top:.25rem">
+      <button class="btn btn-ghost btn-sm btn-block" onclick="closeModal('modal-specialty-nav');initTimetable();goTo('screen-timetable')">
+        → 건너뛰고 담임 시간표로 이동
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Random Room Assignment Modal -->
   <div class="modal-box" style="max-width:400px">
     <div class="modal-title">🎲 랜덤 배정</div>
     <div class="modal-desc">각 특별실에 배정할 주당 횟수를 설정하세요.</div>
@@ -1407,15 +1420,15 @@ const DEFAULT_PERIOD_TIMES = DEFAULT_PERIOD_TIMES_BY_GROUP['5-6'];
 /* 학교/학년에 맞는 교시 시간 반환 */
 function getPeriodTimes(grade) {
   const pt = S.school?.periodTimes;
-  // 학년별 커스텀 설정 우선
+  // 1순위: 학년별 커스텀 설정
   if (grade && pt?.[grade]?.length) return pt[grade];
-  // 학교 기본값
-  if (pt?.default?.length) return pt.default;
-  // 학년 그룹별 기본값
+  // 2순위: 학년 그룹별 기본값 (1·2학년 / 3·4학년 / 5·6학년)
   if (grade) {
     const gk = gradeGroupKey(grade);
     if (gk) return DEFAULT_PERIOD_TIMES_BY_GROUP[gk];
   }
+  // 3순위: 학교 전체 기본값 (grade 없을 때 fallback)
+  if (pt?.default?.length) return pt.default;
   return DEFAULT_PERIOD_TIMES;
 }
 
@@ -1603,7 +1616,7 @@ const DEFAULT_SUBJECTS_BY_GRADE = {
     {name:'맞춤형', weeklyHours:0, color:'#a78bfa', special:true},
   ],
 };
-const DEFAULT_ROOMS = ['강당','과학실1','과학실2','컴퓨터실1','컴퓨터실2','도서실','음악실','영어실'];
+const DEFAULT_ROOMS = ['강당','운동장','과학실1','과학실2','컴퓨터실1','컴퓨터실2','도서실','음악실','영어실'];
 
 const DEFAULT_TEACHER_TYPES = [];
 
@@ -4250,6 +4263,71 @@ function goToRoomSchedule() {
 }
 window.goToRoomSchedule = goToRoomSchedule;
 
+/* 특별실 배정 완료 → 교담/협업 교사 시간표 입력으로 이동 */
+function goFromRoomSchedule() {
+  if (!S.school) return;
+  const spTeachers = S.school.specialtyTeachers || [];
+  const collabTeachers = S.school.teacherTypes?.filter(t => !t.builtin && t.mode === 'collaborative') || [];
+
+  // 교담 + 협업 교사 합산
+  const allTeachers = [
+    ...spTeachers.map(t => ({ id: t.id, label: t.label, type: 'specialty' })),
+    ...collabTeachers.map(t => ({ id: t.id, label: t.name, type: 'collab' })),
+  ];
+
+  if (!allTeachers.length) {
+    // 교담 교사가 없으면 바로 시간표로
+    initTimetable();
+    goTo('screen-timetable');
+    toast('교담 교사가 없어 시간표로 이동합니다.', '');
+    return;
+  }
+
+  // 교담/협업 교사 선택 모달 열기
+  const el = q('#specialty-nav-list');
+  if (el) {
+    el.innerHTML = allTeachers.map(t => `
+      <button class="btn btn-outline btn-block" style="margin-bottom:.4rem;text-align:left"
+              onclick="goToSpecialtyAs('${t.id}','${escHtml(t.label)}','${t.type}')">
+        ${t.type === 'specialty' ? '🎓' : '🤝'} ${escHtml(t.label)}
+      </button>`).join('');
+  }
+  openModal('modal-specialty-nav');
+}
+window.goFromRoomSchedule = goFromRoomSchedule;
+
+function goToSpecialtyAs(teacherId, teacherLabel, type) {
+  closeModal('modal-specialty-nav');
+  if (!S.school) return;
+
+  if (type === 'specialty') {
+    const spInfo = (S.school.specialtyTeachers||[]).find(t => t.id === teacherId);
+    S.user = {
+      ...S.user,
+      name: teacherLabel,
+      role: 'specialty',
+      spId: teacherId,
+      spInfo,
+      ttId: null, ttInfo: null,
+      subjects: spInfo?.subjects || [],
+    };
+  } else {
+    const ttInfo = (S.school.teacherTypes||[]).find(t => t.id === teacherId);
+    S.user = {
+      ...S.user,
+      name: teacherLabel,
+      role: 'collaborative',
+      ttId: teacherId,
+      ttInfo,
+      spId: null, spInfo: null,
+      subjects: [],
+    };
+  }
+  saveSession();
+  goToSpecialtyScreen();
+}
+window.goToSpecialtyAs = goToSpecialtyAs;
+
 function renderRoomSchedule() {
   const rooms = S.school?.specialRooms || [];
   const wrap  = q('#rs-grid-wrap');
@@ -4429,18 +4507,62 @@ window.rsOnCellClick = rsOnCellClick;
 /* ===========================================================
    ROOM SCHEDULE — RANDOM ASSIGN
    =========================================================== */
+/* 특별실 이름에서 숫자 접미사 제거해 베이스 이름 추출 */
+function roomBaseName(name) {
+  return name.replace(/[1-9]$/, '').trim();
+}
+
+/* 같은 베이스 이름을 가진 특별실 그룹핑 */
+function getRoomGroups(rooms) {
+  const groups = {}; // baseName → [room, ...]
+  rooms.forEach(r => {
+    const base = roomBaseName(r.name);
+    if (!groups[base]) groups[base] = [];
+    groups[base].push(r);
+  });
+  return groups;
+}
+
 function openRandomAssignModal() {
   if (!S.school?.specialRooms?.length) { toast('특별실을 먼저 추가하세요.', 'error'); return; }
-  const rooms = S.school.specialRooms;
-  const el    = q('#random-assign-rooms');
-  el.innerHTML = rooms.map((r, i) => `
-    <div style="display:flex;align-items:center;gap:.65rem">
-      <span style="flex:1;font-size:.85rem;font-weight:700">🏛️ ${escHtml(r.name)}</span>
-      <label style="font-size:.78rem;color:var(--g500)">주당</label>
-      <input type="number" id="ra-cnt-${i}" class="form-input" value="1" min="0" max="10"
-             style="width:60px;text-align:center;padding:.25rem .4rem">
-      <label style="font-size:.78rem;color:var(--g500)">회</label>
-    </div>`).join('');
+  const rooms  = S.school.specialRooms;
+  const groups = getRoomGroups(rooms);
+  const el     = q('#random-assign-rooms');
+  const gradeColors = ['#ef4444','#f97316','#ca8a04','#16a34a','#2563eb','#7c3aed'];
+
+  el.innerHTML = rooms.map((r, i) => {
+    const base    = roomBaseName(r.name);
+    const isGroup = groups[base].length > 1; // 같은 이름 계열이 2개 이상이면 학년 지정 UI 표시
+
+    const gradeChips = isGroup ? `
+      <div style="display:flex;gap:.25rem;flex-wrap:wrap;margin-top:.35rem">
+        ${[1,2,3,4,5,6].map(g => {
+          // 기본값: 같은 이름 계열에서 순서(인덱스)에 따라 앞쪽 학년 자동 배정
+          const idx      = groups[base].indexOf(r);
+          const grpSize  = groups[base].length;
+          const perGroup = Math.ceil(6 / grpSize);
+          const defSel   = (g > idx * perGroup && g <= (idx + 1) * perGroup) ? 'checked' : '';
+          return `<label style="display:flex;align-items:center;gap:2px;cursor:pointer;font-size:.75rem">
+            <input type="checkbox" id="ra-g-${i}-${g}" ${defSel}
+                   style="accent-color:${gradeColors[g-1]};width:14px;height:14px">
+            <span style="color:${gradeColors[g-1]};font-weight:700">${g}학년</span>
+          </label>`;
+        }).join('')}
+      </div>` : '';
+
+    return `
+      <div style="padding:.6rem .75rem;border:1px solid var(--g200);border-radius:var(--r);background:#fff">
+        <div style="display:flex;align-items:center;gap:.65rem">
+          <span style="flex:1;font-size:.85rem;font-weight:700">🏛️ ${escHtml(r.name)}</span>
+          <label style="font-size:.78rem;color:var(--g500)">주당</label>
+          <input type="number" id="ra-cnt-${i}" class="form-input" value="1" min="0" max="10"
+                 style="width:60px;text-align:center;padding:.25rem .4rem">
+          <label style="font-size:.78rem;color:var(--g500)">회</label>
+        </div>
+        ${isGroup ? `<div style="font-size:.73rem;color:var(--g400);margin-top:.3rem">배정 학년 선택 (같은 이름 계열 특별실)</div>${gradeChips}` : ''}
+      </div>`;
+  }).join('');
+
   q('#random-assign-warn').style.display = 'none';
   openModal('modal-random-assign');
 }
@@ -4452,14 +4574,24 @@ function runRandomAssign() {
   const slots   = getScheduleRows();
   const days    = ['월','화','수','목','금'];
   const mode    = q('#random-assign-mode').value;
+  const groups  = getRoomGroups(rooms);
 
   if (!classes.length) { toast('학급이 없습니다. 먼저 학급을 구성하세요.', 'error'); return; }
 
-  // 각 특별실의 목표 횟수 수집
-  const targets = rooms.map((r, i) => ({
-    room: r,
-    count: parseInt(q(`#ra-cnt-${i}`)?.value || '0'),
-  })).filter(t => t.count > 0);
+  // 각 특별실의 목표 횟수 + 허용 학년 수집
+  const targets = rooms.map((r, i) => {
+    const base    = roomBaseName(r.name);
+    const isGroup = groups[base].length > 1;
+    const count   = parseInt(q(`#ra-cnt-${i}`)?.value || '0');
+
+    // 허용 학년: isGroup이면 체크박스에서 읽기, 아니면 전 학년
+    let allowedGrades = null;
+    if (isGroup) {
+      allowedGrades = [1,2,3,4,5,6].filter(g => q(`#ra-g-${i}-${g}`)?.checked);
+      if (!allowedGrades.length) allowedGrades = null; // 아무것도 없으면 전 학년
+    }
+    return { room: r, count, allowedGrades };
+  }).filter(t => t.count > 0);
 
   if (!targets.length) {
     q('#random-assign-warn').textContent = '배정 횟수를 1 이상으로 설정하세요.';
@@ -4472,26 +4604,29 @@ function runRandomAssign() {
     rooms.forEach(r => { S.school.roomSchedule[r.id] = {}; });
   }
 
-  // 모든 가능한 슬롯 목록 생성
+  // 모든 슬롯 생성
   const allSlots = [];
   days.forEach(day => slots.forEach(slot => allSlots.push({ day, slotKey: slot.slotKey, key: `${day}-${slot.slotKey}` })));
 
-  // 각 반마다 랜덤 배정 (같은 시간대 충돌 없이)
   let totalAssigned = 0;
-  targets.forEach(({ room, count }) => {
+
+  targets.forEach(({ room, count, allowedGrades }) => {
     if (!S.school.roomSchedule[room.id]) S.school.roomSchedule[room.id] = {};
     const sched = S.school.roomSchedule[room.id];
 
-    // 아직 배정 안 된 반들을 순환하며 채움
-    const shuffled = [...classes].sort(() => Math.random() - .5);
-    let assigned = 0;
+    // 허용 학년 필터링
+    const eligible = allowedGrades
+      ? classes.filter(c => allowedGrades.includes(c.grade))
+      : classes;
 
-    for (const cls of shuffled) {
-      if (assigned >= count * classes.length) break;
-      // 빈 슬롯 중 이 반이 아직 없는 슬롯 찾기
+    if (!eligible.length) return;
+
+    // 학급을 섞어서 주당 count회씩 배정
+    const shuffled = [...eligible].sort(() => Math.random() - .5);
+
+    shuffled.forEach(cls => {
       const available = allSlots.filter(s => {
-        if (sched[s.key]) return false; // 이미 채워진 칸
-        // 같은 시간 다른 특별실에 이 반이 있으면 불가
+        if (sched[s.key]) return false;
         for (const [rid, rs] of Object.entries(S.school.roomSchedule)) {
           if (rid === room.id) continue;
           if (rs[s.key]?.classId === cls.id) return false;
@@ -4499,13 +4634,11 @@ function runRandomAssign() {
         return true;
       }).sort(() => Math.random() - .5);
 
-      const toFill = Math.min(count, available.length);
-      available.slice(0, toFill).forEach(s => {
+      available.slice(0, count).forEach(s => {
         sched[s.key] = { classId: cls.id, className: cls.name };
-        assigned++;
         totalAssigned++;
       });
-    }
+    });
   });
 
   closeModal('modal-random-assign');
