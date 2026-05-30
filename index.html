@@ -507,6 +507,10 @@ a{color:inherit;text-decoration:none}
 .tt-collab-chip{background:#fef3c7;color:#92400e}
 .tt-indep-chip{background:#dcfce7;color:#166534}
 
+/* Specialty cell drag */
+.sp-cell.sp-drag-over{background:var(--brand-50);outline:2px dashed var(--brand);outline-offset:-2px}
+.sp-cell.sp-drag-bad{background:var(--danger-bg);outline:2px dashed var(--danger);outline-offset:-2px}
+
 /* ============================================================ */
 /* TEACHER COUNT CARD                                          */
 /* ============================================================ */
@@ -1076,9 +1080,11 @@ a{color:inherit;text-decoration:none}
     </div>
     <div class="tt-header-right">
       <!-- 관리자 전용 이동 버튼 -->
-      <button class="btn btn-ghost btn-sm" id="sp-btn-room" style="display:none" onclick="goToRoomSchedule()">🏛️ 특별실 배정</button>
+      <button class="btn btn-ghost btn-sm" id="sp-btn-setup" style="display:none" onclick="goAdminSetup()">⚙️ 기초설정</button>
+      <button class="btn btn-ghost btn-sm" id="sp-btn-room" style="display:none" onclick="goToRoomSchedule()">🏛️ 특별실</button>
       <button class="btn btn-ghost btn-sm" id="sp-btn-timetable" style="display:none" onclick="initTimetable();goTo('screen-timetable')">📅 시간표</button>
       <button class="btn btn-ghost btn-sm" id="sp-btn-next-teacher" style="display:none" onclick="goFromRoomSchedule()">👩‍🏫 다른 교담</button>
+      <button class="btn btn-ghost btn-sm" id="sp-btn-random" onclick="openSpRandomModal()">🎲 랜덤 배정</button>
       <button class="btn btn-ghost btn-sm" onclick="saveSpecialtySchedule()">💾 저장</button>
       <button class="btn btn-ghost btn-sm" onclick="logout()">로그아웃</button>
     </div>
@@ -1285,14 +1291,28 @@ a{color:inherit;text-decoration:none}
   <div class="modal-box">
     <div class="modal-title" id="sp-modal-title">교과전담 배정</div>
     <div class="modal-desc" id="sp-modal-desc"></div>
-    <!-- 특별실 사용 현황 -->
-    <div id="sp-room-info" style="display:none;margin:.6rem 0;padding:.55rem .75rem;background:#f0f9ff;border:1px solid #bae6fd;border-radius:var(--r);font-size:.78rem;line-height:1.6;color:#0369a1"></div>
+
+    <!-- 🏛️ 이 시간 특별실 현황 (담당 학년) -->
+    <div id="sp-room-info" style="display:none;margin:.75rem 0 .5rem;padding:.65rem .85rem;
+      background:linear-gradient(135deg,#e0f2fe,#f0f9ff);
+      border:2px solid #38bdf8;border-radius:var(--r-lg);line-height:1.7">
+      <div style="font-size:.8rem;font-weight:800;color:#0c4a6e;margin-bottom:.3rem">
+        🏛️ 이 시간 특별실 사용 현황 (담당 학년)
+      </div>
+      <div id="sp-room-info-body" style="font-size:.82rem;color:#0369a1"></div>
+    </div>
+
     <div class="form-group" style="margin-top:.75rem">
       <label class="form-label">수업 학급</label>
       <select id="sp-class-select" class="form-select" onchange="onSpClassChange()"></select>
     </div>
-    <!-- 선택 학급의 특별실 배정 안내 -->
-    <div id="sp-class-room-info" style="display:none;margin-top:.4rem;padding:.4rem .65rem;background:#fef3c7;border:1px solid #fcd34d;border-radius:var(--r);font-size:.75rem;color:#92400e"></div>
+
+    <!-- ⚠️ 선택 학급 특별실 충돌 경고 -->
+    <div id="sp-class-room-info" style="display:none;margin-top:.5rem;padding:.6rem .85rem;
+      background:#fff7ed;border:2px solid #fb923c;border-radius:var(--r-lg);
+      font-size:.82rem;font-weight:700;color:#9a3412">
+    </div>
+
     <div class="modal-actions">
       <button class="btn btn-danger btn-sm" id="sp-clear-btn" onclick="clearSpCell()" style="display:none">🗑️ 배정 취소</button>
       <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-sp-cell')">취소</button>
@@ -1940,7 +1960,7 @@ function goToSpecialtyScreen() {
 
   // 관리자 전용 이동 버튼 표시/숨김
   const isAdmin = S.user?.role === 'admin';
-  ['sp-btn-room','sp-btn-timetable','sp-btn-next-teacher'].forEach(id => {
+  ['sp-btn-setup','sp-btn-room','sp-btn-timetable','sp-btn-next-teacher'].forEach(id => {
     const el = q(`#${id}`);
     if (el) el.style.display = isAdmin ? 'flex' : 'none';
   });
@@ -2074,13 +2094,20 @@ function renderSpecialtyGrid() {
 
         let inner;
         if (cls) {
-          inner = `<div class="sp-ci" style="background:${hexAlpha(clrG,.12)};color:${clrG};border:1.5px solid ${hexAlpha(clrG,.35)}">${escHtml(cls.name)}</div>`;
+          inner = `<div class="sp-ci" style="background:${hexAlpha(clrG,.12)};color:${clrG};border:1.5px solid ${hexAlpha(clrG,.35)};cursor:grab;pointer-events:none">${escHtml(cls.name)}</div>`;
         } else if (otherSubj && otherCls) {
-          inner = `<div class="sp-ci" style="background:var(--g50);color:var(--g400);border:1.5px dashed var(--g200);font-size:.7rem">${escHtml(otherCls.name)}<br><span style="font-size:.65rem;opacity:.7">${escHtml(otherSubj)}</span></div>`;
+          inner = `<div class="sp-ci" style="background:var(--g50);color:var(--g400);border:1.5px dashed var(--g200);font-size:.7rem;pointer-events:none">${escHtml(otherCls.name)}<br><span style="font-size:.65rem;opacity:.7">${escHtml(otherSubj)}</span></div>`;
         } else {
-          inner = `<div class="sp-ci empty">+</div>`;
+          inner = `<div class="sp-ci empty" style="pointer-events:none">+</div>`;
         }
-        return `<td class="sp-cell" style="position:relative" onclick="openSpModal('${key}')">${inner}${roomBadge}</td>`;
+        const draggable = cls
+          ? `draggable="true" ondragstart="spOnDragStart(event,'${key}')" ondragend="spOnDragEnd(event)"`
+          : '';
+        return `<td class="sp-cell" style="position:relative" ${draggable}
+                    onclick="openSpModal('${key}')"
+                    ondragover="spOnDragOver(event,this)"
+                    ondragleave="spOnDragLeave(event,this)"
+                    ondrop="spOnDrop(event,'${key}')">${inner}${roomBadge}</td>`;
       }).join('')}
     </tr>
   `).join('');
@@ -2128,8 +2155,13 @@ function openSpModal(key) {
   }
   if (roomsUsed.length) {
     roomInfoEl.style.display = 'block';
-    roomInfoEl.innerHTML = `🏛️ <strong>이 시간 특별실 사용 현황:</strong><br>` +
-      roomsUsed.map(r => `<span style="margin-right:.6rem">📍${r.roomName}: ${r.className}</span>`).join('');
+    const bodyEl = q('#sp-room-info-body');
+    if (bodyEl) bodyEl.innerHTML = roomsUsed.map(r =>
+      `<span style="display:inline-flex;align-items:center;gap:.3rem;margin-right:.75rem">
+        <span style="font-size:.9rem">📍</span>
+        <strong>${r.roomName}</strong>: ${r.className}
+      </span>`
+    ).join('');
   } else {
     roomInfoEl.style.display = 'none';
   }
@@ -2229,7 +2261,7 @@ function onSpClassChange() {
   for (const [roomId, sched] of Object.entries(rs)) {
     if (sched[spEditKey]?.classId === classId) {
       const room = (S.school.specialRooms||[]).find(r=>r.id===roomId);
-      infoEl.textContent = `⚠ 이 반은 이 시간에 📍${room?.name||'특별실'} 사용이 예정되어 있습니다.`;
+      infoEl.innerHTML = `⚠️ <strong>${rCls.name}</strong>은 이 시간 <strong>📍${room?.name||'특별실'}</strong> 사용이 예정되어 있습니다.`;
       infoEl.style.display = 'block';
       return;
     }
@@ -2288,6 +2320,145 @@ function getSpecialtyAssignmentsForClass(classId) {
   return result;
 }
 
+
+/* ===========================================================
+   SPECIALTY GRID — DRAG & DROP
+   =========================================================== */
+let _spDrag = null; // { fromKey, classId, className }
+
+function spOnDragStart(event, fromKey) {
+  const subject  = spCurrentSubject;
+  const schedule = getSpecialtySchedule(subject);
+  const entry    = schedule[fromKey];
+  if (!entry) return;
+  _spDrag = { fromKey, classId: entry.classId, className: entry.className };
+  event.dataTransfer.effectAllowed = 'move';
+  event.currentTarget.style.opacity = '.5';
+}
+window.spOnDragStart = spOnDragStart;
+
+function spOnDragEnd(event) {
+  setTimeout(() => { _spDrag = null; }, 50);
+  event.currentTarget.style.opacity = '';
+  document.querySelectorAll('.sp-cell.sp-drag-over,.sp-cell.sp-drag-bad').forEach(el => {
+    el.classList.remove('sp-drag-over','sp-drag-bad');
+  });
+}
+window.spOnDragEnd = spOnDragEnd;
+
+function spOnDragOver(event, cellEl) {
+  if (!_spDrag) return;
+  event.preventDefault();
+  // 이미 다른 반이 있으면 bad
+  const toKey   = cellEl.getAttribute('ondrop')?.match(/'([^']+)'\)/)?.[1];
+  const subject = spCurrentSubject;
+  const sched   = getSpecialtySchedule(subject);
+  const conflict = toKey && sched[toKey] && sched[toKey].classId !== _spDrag.classId;
+  cellEl.classList.toggle('sp-drag-over', !conflict);
+  cellEl.classList.toggle('sp-drag-bad',   conflict);
+}
+window.spOnDragOver = spOnDragOver;
+
+function spOnDragLeave(event, cellEl) {
+  cellEl.classList.remove('sp-drag-over','sp-drag-bad');
+}
+window.spOnDragLeave = spOnDragLeave;
+
+function spOnDrop(event, toKey) {
+  event.preventDefault();
+  if (!_spDrag) return;
+  const { fromKey, classId, className } = _spDrag;
+  if (fromKey === toKey) { _spDrag = null; return; }
+  const subject  = spCurrentSubject;
+  const schedule = getSpecialtySchedule(subject);
+  // 충돌 체크
+  if (schedule[toKey]) {
+    toast('⚠ 이미 배정된 칸입니다.', 'warn');
+    _spDrag = null; return;
+  }
+  delete schedule[fromKey];
+  schedule[toKey] = { classId, className };
+  _spDrag = null;
+  renderSpTabs();
+  renderSpecialtyGrid();
+  saveSchool(S.school);
+  toast(`${className} → 이동 완료`, 'success');
+}
+window.spOnDrop = spOnDrop;
+
+/* ===========================================================
+   SPECIALTY GRID — RANDOM ASSIGN
+   =========================================================== */
+function openSpRandomModal() {
+  if (!S.school) return;
+  const subject = spCurrentSubject;
+  if (!subject) { toast('교과목 탭을 선택하세요.', 'warn'); return; }
+
+  // 담당 학년 학급 목록
+  const spInfo  = S.user?.spInfo;
+  const ttInfo  = S.user?.ttInfo;
+  const myGrades = spInfo?.grades?.length ? new Set(spInfo.grades)
+    : ttInfo?.gradeFilter?.length ? new Set(ttInfo.gradeFilter)
+    : null;
+  const eligible = (S.school.classes||[]).filter(c => c.grade && (!myGrades || myGrades.has(c.grade)));
+
+  if (!eligible.length) { toast('배정 가능한 학급이 없습니다.', 'warn'); return; }
+
+  openConfirm(
+    `🎲 ${subject} 랜덤 배정`,
+    `담당 학년 ${eligible.length}개 학급에 랜덤으로 교시를 배정합니다.\n기존 배정은 초기화됩니다. 계속하시겠습니까?`,
+    () => runSpRandomAssign(subject, eligible)
+  );
+}
+window.openSpRandomModal = openSpRandomModal;
+
+function runSpRandomAssign(subject, eligible) {
+  if (!S.school) return;
+  const schedule = getSpecialtySchedule(subject);
+  // 기존 배정 초기화
+  Object.keys(schedule).forEach(k => delete schedule[k]);
+
+  // 담당 학년 교시 슬롯 수집
+  const spInfo   = S.user?.spInfo;
+  const ttInfo   = S.user?.ttInfo;
+  const myGrades = spInfo?.grades?.length ? new Set(spInfo.grades)
+    : ttInfo?.gradeFilter?.length ? new Set(ttInfo.gradeFilter)
+    : null;
+
+  const slots = [];
+  getScheduleRows().forEach(slot => {
+    Object.entries(slot.gradeMap).forEach(([g, p]) => {
+      if (myGrades && !myGrades.has(parseInt(g))) return;
+      DAYS.forEach(day => {
+        const key = `${day}-${p}`;
+        if (!slots.find(s => s.key === key && s.start === slot.start)) {
+          slots.push({ key, start: slot.start, periodNum: p });
+        }
+      });
+    });
+  });
+
+  if (!slots.length) { toast('배정 가능한 교시 슬롯이 없습니다.', 'warn'); return; }
+
+  // 학급별 1회씩 랜덤 슬롯 배정
+  const shuffledSlots = [...slots].sort(() => Math.random() - .5);
+  let assigned = 0;
+  const shuffledClasses = [...eligible].sort(() => Math.random() - .5);
+
+  shuffledClasses.forEach(cls => {
+    // 이 학급이 아직 없는 슬롯 찾기
+    const available = shuffledSlots.filter(s => !schedule[s.key]);
+    if (!available.length) return;
+    const pick = available[Math.floor(Math.random() * available.length)];
+    schedule[pick.key] = { classId: cls.id, className: cls.name };
+    assigned++;
+  });
+
+  renderSpTabs();
+  renderSpecialtyGrid();
+  saveSchool(S.school);
+  toast(`🎲 ${subject} 랜덤 배정 완료 — ${assigned}개 학급 배정됨 ✔`, 'success');
+}
 
 /* ===========================================================
    SCHOOL PASSWORD CHANGE (관리자)
@@ -4543,14 +4714,16 @@ function renderRoomSchedule() {
         const cls  = visible ? (S.school.classes||[]).find(c=>c.id===entry.classId) : null;
         const gc   = cls ? gradeColor(cls) : null;
         const inner = cls
-          ? `<div class="rs-ci filled" style="background:${gc.bg};color:${gc.text};position:relative"
-                  draggable="true"
-                  ondragstart="rsOnDragStart(event,'${room.id}','${key}')"
-                  ondragend="rsOnDragEnd(event)">${escHtml(cls.name)}${weekBadge(entry.week)}</div>`
+          ? `<div class="rs-ci filled" style="background:${gc.bg};color:${gc.text};position:relative;pointer-events:none"
+              >${escHtml(cls.name)}${weekBadge(entry.week)}</div>`
           : (entry && _weekFilter === 'all'
-              ? `<div class="rs-ci" style="background:var(--g100);color:var(--g400);font-size:.6rem;border:1.5px solid var(--g200);position:relative">타주배정${weekBadge(entry.week)}</div>`
-              : `<div class="rs-ci empty">+</div>`);
-        return `<td class="rs-cell"
+              ? `<div class="rs-ci" style="background:var(--g100);color:var(--g400);font-size:.6rem;border:1.5px solid var(--g200);position:relative;pointer-events:none">타주배정${weekBadge(entry.week)}</div>`
+              : `<div class="rs-ci empty" style="pointer-events:none">+</div>`);
+        // 드래그는 td에서 처리 (내부 div pointer-events:none으로 클릭 차단 해제)
+        const draggableAttr = cls
+          ? `draggable="true" ondragstart="rsOnDragStart(event,'${room.id}','${key}')" ondragend="rsOnDragEnd(event)"`
+          : '';
+        return `<td class="rs-cell" ${draggableAttr}
                     onclick="rsOnCellClick(event,'${room.id}','${escHtml(room.name)}','${key}')"
                     ondragover="rsOnDragOver(event,this)"
                     ondragleave="rsOnDragLeave(event,this)"
@@ -4632,7 +4805,8 @@ function rsOnDragStart(event, roomId, fromKey) {
   _rsDrag = { roomId, fromKey, classId: entry.classId, className: entry.className };
   event.dataTransfer.effectAllowed = 'move';
   event.dataTransfer.setData('text/plain', fromKey);
-  event.target.closest('.rs-ci').style.opacity = '.5';
+  // td 자체에 opacity 적용
+  event.currentTarget.style.opacity = '.5';
 }
 window.rsOnDragStart = rsOnDragStart;
 
@@ -4674,10 +4848,33 @@ function rsOnDrop(event, toRoomId, toKey) {
   if (!_rsDrag) return;
   const { roomId: fromRoomId, fromKey, classId, className } = _rsDrag;
 
+  // 드래그하는 학급의 학년
+  const cls = (S.school.classes||[]).find(c=>c.id===classId);
+
+  // 타겟 슬롯의 허용 학년 확인
+  if (cls?.grade) {
+    const schedRows = getScheduleRows();
+    const day = toKey.split('-')[0];
+    const period = parseInt(toKey.split('-')[1]);
+    let slotGrades = null;
+    schedRows.forEach(slot => {
+      if (slot.gradeMap[cls.grade] === period) {
+        // 이 슬롯이 해당 교시에 허용하는 학년들 수집
+        const gs = new Set();
+        Object.entries(slot.gradeMap).forEach(([g,p]) => { if (p===period) gs.add(parseInt(g)); });
+        slotGrades = gs;
+      }
+    });
+    if (slotGrades && !slotGrades.has(cls.grade)) {
+      toast(`⚠ ${cls.name}은(는) 이 교시에 배정할 수 없습니다.`, 'warn');
+      _rsDrag = null; return;
+    }
+  }
+
   // 충돌 체크
   const rs = S.school.roomSchedule || {};
   for (const [rid, sched] of Object.entries(rs)) {
-    if (rid === fromRoomId && toKey === fromKey) { _rsDrag = null; return; } // 제자리
+    if (rid === fromRoomId && toKey === fromKey) { _rsDrag = null; return; }
     if (sched[toKey]?.classId === classId) {
       toast('⚠ 같은 시간에 이미 배정된 반입니다.', 'warn');
       _rsDrag = null; return;
@@ -4697,13 +4894,12 @@ window.rsOnDrop = rsOnDrop;
 
 /* 클릭(빈 셀) vs 드래그 시작 구분 */
 function rsOnDragEnd(event) {
-  // 드래그 종료 시 즉시 초기화
   setTimeout(() => { _rsDrag = null; }, 50);
   document.querySelectorAll('.rs-cell.rs-drag-over,.rs-cell.rs-drag-bad').forEach(el => {
     el.classList.remove('rs-drag-over','rs-drag-bad');
   });
-  const ci = event.target?.closest('.rs-ci');
-  if (ci) ci.style.opacity = '';
+  // td opacity 복원
+  if (event.currentTarget) event.currentTarget.style.opacity = '';
 }
 window.rsOnDragEnd = rsOnDragEnd;
 
@@ -4814,15 +5010,22 @@ function runRandomAssign() {
     rooms.forEach(r => { S.school.roomSchedule[r.id] = {}; });
   }
 
-  // 모든 슬롯 → 교시번호 기반 키
+  // 모든 슬롯 → 교시번호 기반 키 + 허용 학년 정보
   const allSlots = [];
   const schedRows = getScheduleRows();
   DAYS.forEach(day => {
     schedRows.forEach(slot => {
+      // 각 교시번호별로 해당하는 학년 집합을 함께 저장
+      const byPeriod = {};
       Object.entries(slot.gradeMap).forEach(([g, p]) => {
+        if (!byPeriod[p]) byPeriod[p] = new Set();
+        byPeriod[p].add(parseInt(g));
+      });
+      Object.entries(byPeriod).forEach(([p, grades]) => {
         const key = `${day}-${p}`;
-        if (!allSlots.find(s => s.key === key)) {
-          allSlots.push({ day, periodNum: p, key });
+        // 같은 key라도 학년 집합이 다를 수 있으므로 별도 슬롯으로 관리
+        if (!allSlots.find(s => s.key === key && s.slotStart === slot.start)) {
+          allSlots.push({ day, periodNum: parseInt(p), key, grades, slotStart: slot.start });
         }
       });
     });
@@ -4851,6 +5054,7 @@ function runRandomAssign() {
         grp.forEach(cls => {
           const available = allSlots.filter(s => {
             if (sched[s.key]) return false;
+            if (s.grades && cls.grade && !s.grades.has(cls.grade)) return false;
             for (const [rid, rs] of Object.entries(S.school.roomSchedule)) {
               if (rid === room.id) continue;
               if (rs[s.key]?.classId === cls.id) return false;
@@ -4869,6 +5073,7 @@ function runRandomAssign() {
       shuffled.forEach(cls => {
         const available = allSlots.filter(s => {
           if (sched[s.key]) return false;
+          if (s.grades && cls.grade && !s.grades.has(cls.grade)) return false;
           for (const [rid, rs] of Object.entries(S.school.roomSchedule)) {
             if (rid === room.id) continue;
             if (rs[s.key]?.classId === cls.id) return false;
