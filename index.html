@@ -615,6 +615,13 @@ a{color:inherit;text-decoration:none}
 .rs-cell{width:48px;height:46px;padding:2px;vertical-align:middle;cursor:pointer}
 .rs-cell.rs-drag-over{background:var(--brand-50);outline:2px dashed var(--brand);outline-offset:-2px}
 .rs-cell.rs-drag-bad{background:var(--danger-bg);outline:2px dashed var(--danger);outline-offset:-2px}
+.rs-drag-handle{
+  position:absolute;top:2px;left:2px;font-size:.7rem;cursor:grab;
+  color:rgba(0,0,0,.25);line-height:1;padding:1px 2px;border-radius:3px;
+  z-index:1;
+}
+.rs-drag-handle:hover{color:rgba(0,0,0,.55);background:rgba(0,0,0,.08)}
+.rs-drag-handle:active{cursor:grabbing}
 .rs-ci{
   width:100%;height:100%;border-radius:5px;display:flex;align-items:center;
   justify-content:center;font-size:.73rem;font-weight:800;text-align:center;line-height:1.2;transition:all .12s;
@@ -1958,8 +1965,8 @@ function goToSpecialtyScreen() {
   }
   renderSpecialtyGrid();
 
-  // 관리자 전용 이동 버튼 표시/숨김
-  const isAdmin = S.user?.role === 'admin';
+  // 관리자 전용 이동 버튼 표시/숨김 (원래 관리자이면 유지)
+  const isAdmin = S.user?.role === 'admin' || S.user?.originalRole === 'admin';
   ['sp-btn-setup','sp-btn-room','sp-btn-timetable','sp-btn-next-teacher'].forEach(id => {
     const el = q(`#${id}`);
     if (el) el.style.display = isAdmin ? 'flex' : 'none';
@@ -4627,12 +4634,16 @@ function goToSpecialtyAs(teacherId, teacherLabel, type) {
   closeModal('modal-specialty-nav');
   if (!S.school) return;
 
+  // 원래 역할 보존 (관리자가 교담 화면으로 들어올 때 isAdmin 유지)
+  const originalRole = S.user?.originalRole || S.user?.role;
+
   if (type === 'specialty') {
     const spInfo = (S.school.specialtyTeachers||[]).find(t => t.id === teacherId);
     S.user = {
       ...S.user,
       name: teacherLabel,
       role: 'specialty',
+      originalRole,
       spId: teacherId,
       spInfo,
       ttId: null, ttInfo: null,
@@ -4644,6 +4655,7 @@ function goToSpecialtyAs(teacherId, teacherLabel, type) {
       ...S.user,
       name: teacherLabel,
       role: 'collaborative',
+      originalRole,
       ttId: teacherId,
       ttInfo,
       spId: null, spInfo: null,
@@ -4713,17 +4725,23 @@ function renderRoomSchedule() {
         const visible = entry && (_weekFilter === 'all' || !entry.week || entry.week === _weekFilter);
         const cls  = visible ? (S.school.classes||[]).find(c=>c.id===entry.classId) : null;
         const gc   = cls ? gradeColor(cls) : null;
-        const inner = cls
-          ? `<div class="rs-ci filled" style="background:${gc.bg};color:${gc.text};position:relative;pointer-events:none"
-              >${escHtml(cls.name)}${weekBadge(entry.week)}</div>`
-          : (entry && _weekFilter === 'all'
-              ? `<div class="rs-ci" style="background:var(--g100);color:var(--g400);font-size:.6rem;border:1.5px solid var(--g200);position:relative;pointer-events:none">타주배정${weekBadge(entry.week)}</div>`
-              : `<div class="rs-ci empty" style="pointer-events:none">+</div>`);
-        // 드래그는 td에서 처리 (내부 div pointer-events:none으로 클릭 차단 해제)
-        const draggableAttr = cls
-          ? `draggable="true" ondragstart="rsOnDragStart(event,'${room.id}','${key}')" ondragend="rsOnDragEnd(event)"`
-          : '';
-        return `<td class="rs-cell" ${draggableAttr}
+        // 드래그 핸들을 별도 요소로 분리 → td.onclick이 항상 동작
+        let inner;
+        if (cls) {
+          inner = `<div class="rs-ci filled" style="background:${gc.bg};color:${gc.text};position:relative">
+            <span class="rs-drag-handle" draggable="true"
+              ondragstart="rsOnDragStart(event,'${room.id}','${key}',event)"
+              ondragend="rsOnDragEnd(event)"
+              onclick="event.stopPropagation()"
+              title="드래그로 이동">⠿</span>
+            <span style="pointer-events:none">${escHtml(cls.name)}${weekBadge(entry.week)}</span>
+          </div>`;
+        } else if (entry && _weekFilter === 'all') {
+          inner = `<div class="rs-ci" style="background:var(--g100);color:var(--g400);font-size:.6rem;border:1.5px solid var(--g200);position:relative;pointer-events:none">타주배정${weekBadge(entry.week)}</div>`;
+        } else {
+          inner = `<div class="rs-ci empty" style="pointer-events:none">+</div>`;
+        }
+        return `<td class="rs-cell" data-rskey="${key}" data-roomid="${room.id}"
                     onclick="rsOnCellClick(event,'${room.id}','${escHtml(room.name)}','${key}')"
                     ondragover="rsOnDragOver(event,this)"
                     ondragleave="rsOnDragLeave(event,this)"
@@ -4805,20 +4823,19 @@ function rsOnDragStart(event, roomId, fromKey) {
   _rsDrag = { roomId, fromKey, classId: entry.classId, className: entry.className };
   event.dataTransfer.effectAllowed = 'move';
   event.dataTransfer.setData('text/plain', fromKey);
-  // td 자체에 opacity 적용
-  event.currentTarget.style.opacity = '.5';
+  // 부모 td에 opacity 적용
+  const td = event.target.closest('td');
+  if (td) td.style.opacity = '.5';
 }
 window.rsOnDragStart = rsOnDragStart;
 
 function rsOnDragOver(event, cellEl) {
   if (!_rsDrag) return;
   event.preventDefault();
-  const toKey  = cellEl.querySelector('.rs-ci')?.parentElement?.getAttribute('onclick')
-                 ?.match(/'([^']+)'[^']*'([^']+)'\s*\)$/)?.[2];
-  // 같은 시간대 다른 특별실에 같은 반 있는지 확인
-  const conflict = checkRsConflict(_rsDrag.roomId, _rsDrag.classId, cellEl);
+  const toKey = cellEl.dataset.rskey;
+  const conflict = toKey && checkRsConflict(_rsDrag.roomId, _rsDrag.classId, toKey);
   cellEl.classList.toggle('rs-drag-over', !conflict);
-  cellEl.classList.toggle('rs-drag-bad',   conflict);
+  cellEl.classList.toggle('rs-drag-bad',   !!conflict);
   event.dataTransfer.dropEffect = conflict ? 'none' : 'move';
 }
 window.rsOnDragOver = rsOnDragOver;
@@ -4828,16 +4845,10 @@ function rsOnDragLeave(event, cellEl) {
 }
 window.rsOnDragLeave = rsOnDragLeave;
 
-function checkRsConflict(roomId, classId, cellEl) {
-  // 타겟 셀의 key를 onclick 속성에서 추출
-  const onclick = cellEl.getAttribute('onclick') || '';
-  const m = onclick.match(/rsOnCellClick\([^,]+,'([^']+)','([^']+)','([^']+)'\)/);
-  if (!m) return false;
-  const toRoomId = m[1], toKey = m[3];
-  // 같은 시간대 다른 특별실에 같은 반이 있으면 충돌
+function checkRsConflict(fromRoomId, classId, toKey) {
   const rs = S.school.roomSchedule || {};
   for (const [rid, sched] of Object.entries(rs)) {
-    if (rid === roomId && toKey === _rsDrag?.fromKey) continue; // 자기 자신
+    if (rid === fromRoomId && toKey === _rsDrag?.fromKey) continue;
     if (sched[toKey]?.classId === classId) return true;
   }
   return false;
@@ -4898,8 +4909,8 @@ function rsOnDragEnd(event) {
   document.querySelectorAll('.rs-cell.rs-drag-over,.rs-cell.rs-drag-bad').forEach(el => {
     el.classList.remove('rs-drag-over','rs-drag-bad');
   });
-  // td opacity 복원
-  if (event.currentTarget) event.currentTarget.style.opacity = '';
+  const td = event.target.closest('td');
+  if (td) td.style.opacity = '';
 }
 window.rsOnDragEnd = rsOnDragEnd;
 
