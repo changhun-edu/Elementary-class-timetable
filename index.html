@@ -1276,10 +1276,14 @@ a{color:inherit;text-decoration:none}
   <div class="modal-box">
     <div class="modal-title" id="sp-modal-title">교과전담 배정</div>
     <div class="modal-desc" id="sp-modal-desc"></div>
+    <!-- 특별실 사용 현황 -->
+    <div id="sp-room-info" style="display:none;margin:.6rem 0;padding:.55rem .75rem;background:#f0f9ff;border:1px solid #bae6fd;border-radius:var(--r);font-size:.78rem;line-height:1.6;color:#0369a1"></div>
     <div class="form-group" style="margin-top:.75rem">
       <label class="form-label">수업 학급</label>
-      <select id="sp-class-select" class="form-select"></select>
+      <select id="sp-class-select" class="form-select" onchange="onSpClassChange()"></select>
     </div>
+    <!-- 선택 학급의 특별실 배정 안내 -->
+    <div id="sp-class-room-info" style="display:none;margin-top:.4rem;padding:.4rem .65rem;background:#fef3c7;border:1px solid #fcd34d;border-radius:var(--r);font-size:.75rem;color:#92400e"></div>
     <div class="modal-actions">
       <button class="btn btn-danger btn-sm" id="sp-clear-btn" onclick="clearSpCell()" style="display:none">🗑️ 배정 취소</button>
       <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-sp-cell')">취소</button>
@@ -1302,6 +1306,7 @@ a{color:inherit;text-decoration:none}
 </div>
 
 <!-- Random Room Assignment Modal -->
+<div class="modal-bg" id="modal-random-assign">
   <div class="modal-box" style="max-width:400px">
     <div class="modal-title">🎲 랜덤 배정</div>
     <div class="modal-desc">각 특별실에 배정할 주당 횟수를 설정하세요.</div>
@@ -1966,13 +1971,30 @@ function renderSpecialtyGrid() {
   const cnt = Object.keys(schedule).length;
   const el = q('#sp-stat-label');
   if (el) el.textContent = cnt ? `${subject}: ${cnt}개 시간 배정됨` : `${subject}: 배정 없음`;
-  q('#sp-tbody').innerHTML = getScheduleRows().map(slot => {
-    const key_prefix = `${slot.slotKey}`;
-    return `
+
+  // 교시번호 기반 서브행 생성
+  const spSubRows = [];
+  getScheduleRows().forEach(slot => {
+    const byPeriod = {};
+    Object.entries(slot.gradeMap).forEach(([g, p]) => {
+      if (!byPeriod[p]) byPeriod[p] = [];
+      byPeriod[p].push(parseInt(g));
+    });
+    Object.entries(byPeriod).sort((a,b)=>a[0]-b[0]).forEach(([p, gs]) => {
+      const pNum   = parseInt(p);
+      const isMulti = Object.keys(byPeriod).length > 1;
+      const label  = isMulti
+        ? `<span style="font-size:.62rem;color:var(--g500)">(${compressGrades(gs).replace('학년','')}학년)</span><br>${pNum}교시`
+        : `${pNum}교시`;
+      spSubRows.push({ periodNum: pNum, label: label + `<span class="period-time">${slot.start}</span>` });
+    });
+  });
+
+  q('#sp-tbody').innerHTML = spSubRows.map(({ periodNum, label }) => `
     <tr>
-      <td class="period-cell" style="font-size:.68rem;line-height:1.3">${slot.label.replace(/\n/g,'<br>')}<span class="period-time">${slot.start}</span></td>
+      <td class="period-cell" style="font-size:.68rem;line-height:1.3">${label}</td>
       ${DAYS.map(day => {
-        const key   = `${day}-${slot.slotKey}`;
+        const key   = `${day}-${periodNum}`;
         const entry = schedule[key];
         const cls   = entry ? classes.find(c => c.id === entry.classId) : null;
         const g     = cls?.grade || parseInt(cls?.name?.[0]);
@@ -1982,6 +2004,20 @@ function renderSpecialtyGrid() {
         const otherCls = otherSubj
           ? classes.find(c=>c.id===getSpecialtySchedule(otherSubj)[key]?.classId)
           : null;
+
+        // 이 시간에 특별실 사용 중인 반 확인 (그리드 셀 미니 배지)
+        const roomsAtKey = [];
+        for (const [rId, sched] of Object.entries(S.school?.roomSchedule||{})) {
+          const re = sched[key];
+          if (re) {
+            const room = (S.school.specialRooms||[]).find(r=>r.id===rId);
+            if (room) roomsAtKey.push(room.name);
+          }
+        }
+        const roomBadge = roomsAtKey.length
+          ? `<span style="position:absolute;bottom:2px;right:2px;font-size:.55rem;color:#7c3aed;background:#f3e8ff;border-radius:4px;padding:0 3px;pointer-events:none">📍${roomsAtKey[0]}${roomsAtKey.length>1?`+${roomsAtKey.length-1}`:''}</span>`
+          : '';
+
         let inner;
         if (cls) {
           inner = `<div class="sp-ci" style="background:${hexAlpha(clrG,.12)};color:${clrG};border:1.5px solid ${hexAlpha(clrG,.35)}">${escHtml(cls.name)}</div>`;
@@ -1990,32 +2026,62 @@ function renderSpecialtyGrid() {
         } else {
           inner = `<div class="sp-ci empty">+</div>`;
         }
-        return `<td class="sp-cell" onclick="openSpModal('${key}')">${inner}</td>`;
+        return `<td class="sp-cell" style="position:relative" onclick="openSpModal('${key}')">${inner}${roomBadge}</td>`;
       }).join('')}
     </tr>
-  `;}).join('');
+  `).join('');
 }
 window.renderSpecialtyGrid = renderSpecialtyGrid;
 
 function openSpModal(key) {
   spEditKey = key;
-  const day = key.split('-')[0];
-  const slotKey = key.slice(key.indexOf('-')+1);
-  const slotRow = getScheduleRows().find(r => r.slotKey === slotKey);
-  const slotLabel = slotRow?.shortLabel || slotKey;
+  const day    = key.split('-')[0];
+  const period = key.split('-')[1];
   const subject  = spCurrentSubject;
   const isCollab = subject?.startsWith('__collab__');
   const schedule = getSpecialtySchedule(subject);
   const current  = schedule[key];
   const classes  = S.school?.classes || [];
 
-  q('#sp-modal-title').textContent = `${day}요일 ${slotLabel}${isCollab ? ` — ${S.user.name}` : ` — ${subject}`}`;
+  q('#sp-modal-title').textContent = `${day}요일 ${period}교시${isCollab ? ` — ${S.user.name}` : ` — ${subject}`}`;
   q('#sp-modal-desc').textContent  = current
     ? `현재: ${current.className} 배정됨`
-    : isCollab ? '협업할 학급을 선택하세요 (기존 수업이 있는 학급만).' : '수업할 학급을 선택하세요.';
+    : isCollab ? '협업할 학급을 선택하세요.' : '수업할 학급을 선택하세요.';
   q('#sp-clear-btn').style.display = current ? 'flex' : 'none';
 
-  // 다른 교과/교사에서 이미 이 시간에 배정된 학급 (중복 방지)
+  // ── 특별실 사용 현황 표시 ────────────────────────────────
+  const roomInfoEl = q('#sp-room-info');
+  const rs         = S.school.roomSchedule || {};
+  const roomsUsed  = [];
+  for (const [roomId, sched] of Object.entries(rs)) {
+    const entry = sched[key];
+    if (entry?.classId) {
+      const room = (S.school.specialRooms||[]).find(r=>r.id===roomId);
+      const cls  = classes.find(c=>c.id===entry.classId);
+      if (room && cls) roomsUsed.push({ roomName: room.name, className: cls.name, classId: entry.classId });
+    }
+  }
+  if (roomsUsed.length) {
+    roomInfoEl.style.display = 'block';
+    roomInfoEl.innerHTML = `🏛️ <strong>이 시간 특별실 사용 현황:</strong><br>` +
+      roomsUsed.map(r => `<span style="margin-right:.6rem">📍${r.roomName}: ${r.className}</span>`).join('');
+  } else {
+    roomInfoEl.style.display = 'none';
+  }
+
+  // ── 담당 학년 필터 ───────────────────────────────────────
+  // spInfo.grades 우선, ttInfo.gradeFilter 차선
+  const spInfo   = S.user.spInfo;
+  const ttInfo   = S.user.ttInfo;
+  let allowedGradeSet = null;
+  if (!isCollab) {
+    const gradeArr = spInfo?.grades?.length ? spInfo.grades
+                   : ttInfo?.gradeFilter?.length ? ttInfo.gradeFilter
+                   : null;
+    if (gradeArr?.length) allowedGradeSet = new Set(gradeArr);
+  }
+
+  // ── 중복 방지 ─────────────────────────────────────────────
   const takenElsewhere = new Set();
   if (!isCollab) {
     (S.user.subjects||[]).filter(s=>s!==subject).forEach(s => {
@@ -2028,16 +2094,13 @@ function openSpModal(key) {
     }
   }
 
-  // 협업 교사: 현재 시간에 수업이 있는 학급만 선택 가능
+  // ── 협업 교사: 수업 있는 학급만 ─────────────────────────
   const hasLesson = new Set();
   if (isCollab) {
-    // specialtySchedule 검색
     for (const sched of Object.values(S.school.specialtySchedule || {})) {
       if (sched[key]?.classId) hasLesson.add(sched[key].classId);
     }
-    // ttData(담임 시간표) 검색
     for (const cls of classes) {
-      // 이 학급의 해당 key에 데이터가 있는지 확인
       const lsKey = `stt_${S.school.id}_${cls.id}`;
       try {
         const raw = localStorage.getItem(lsKey);
@@ -2046,16 +2109,16 @@ function openSpModal(key) {
     }
   }
 
+  // ── 특별실 배정된 학급 집합 (경고 표시용) ────────────────
+  const roomAssigned = new Set(roomsUsed.map(r=>r.classId));
+
+  // ── 드롭다운 생성 ─────────────────────────────────────────
   const sel = q('#sp-class-select');
   sel.innerHTML = '<option value="">-- 배정 안 함 --</option>';
   const graded = {}, ungraded = [];
 
-  // 학년/교과 필터 (단독 교사만)
-  const ttInfo = S.user.ttInfo;
-  const allowedGrades  = (!isCollab && ttInfo?.gradeFilter?.length) ? new Set(ttInfo.gradeFilter) : null;
-
   classes.forEach(c => {
-    if (allowedGrades && c.grade && !allowedGrades.has(c.grade)) return;
+    if (allowedGradeSet && c.grade && !allowedGradeSet.has(c.grade)) return;
     if (c.grade) (graded[c.grade]=graded[c.grade]||[]).push(c); else ungraded.push(c);
   });
 
@@ -2065,7 +2128,12 @@ function openSpModal(key) {
       o.textContent = `${c.name} — 이 시간에 수업 없음`; o.disabled = true;
     } else if (!isCollab && takenElsewhere.has(c.id)) {
       o.textContent = `${c.name} — ⚠ 다른 교담 수업 중`; o.disabled = true;
-    } else { o.textContent = c.name; }
+    } else if (roomAssigned.has(c.id)) {
+      const rn = roomsUsed.find(r=>r.classId===c.id)?.roomName || '';
+      o.textContent = `${c.name}  📍${rn} 사용 중`;
+    } else {
+      o.textContent = c.name;
+    }
     if (current?.classId === c.id) o.selected = true;
     return o;
   }
@@ -2081,9 +2149,29 @@ function openSpModal(key) {
     ungraded.forEach(c => og.appendChild(makeOpt(c)));
     sel.appendChild(og);
   }
+
+  q('#sp-class-room-info').style.display = 'none';
   openModal('modal-sp-cell');
 }
 window.openSpModal = openSpModal;
+
+/* 학급 선택 시 해당 학급의 특별실 배정 안내 */
+function onSpClassChange() {
+  const classId = q('#sp-class-select').value;
+  const infoEl  = q('#sp-class-room-info');
+  if (!classId || !spEditKey) { infoEl.style.display='none'; return; }
+  const rs = S.school.roomSchedule || {};
+  for (const [roomId, sched] of Object.entries(rs)) {
+    if (sched[spEditKey]?.classId === classId) {
+      const room = (S.school.specialRooms||[]).find(r=>r.id===roomId);
+      infoEl.textContent = `⚠ 이 반은 이 시간에 📍${room?.name||'특별실'} 사용이 예정되어 있습니다.`;
+      infoEl.style.display = 'block';
+      return;
+    }
+  }
+  infoEl.style.display = 'none';
+}
+window.onSpClassChange = onSpClassChange;
 
 async function saveSpCell() {
   if (!spEditKey) return;
@@ -4355,32 +4443,35 @@ function renderRoomSchedule() {
     }).join('');
     const usedCount = Object.keys(classCounts).length;
 
+    // 슬롯을 교시번호별 서브행으로 분해 (교시번호 기반 키 = 시간표와 동일)
     const scheduleRows = getScheduleRows();
-    const gridRows = scheduleRows.map(slot => {
-      // 교시 레이블: 학년별로 다르면 각각 줄로 표시
+    const subRows = [];
+    scheduleRows.forEach(slot => {
       const byPeriod = {};
       Object.entries(slot.gradeMap).forEach(([g, p]) => {
         if (!byPeriod[p]) byPeriod[p] = [];
         byPeriod[p].push(parseInt(g));
       });
       const periodEntries = Object.entries(byPeriod).sort((a,b)=>a[0]-b[0]);
-      let ptLabel;
-      if (periodEntries.length === 1) {
-        ptLabel = `<strong>${periodEntries[0][0]}교시</strong><br><span style="font-size:.6rem;color:var(--g400)">${slot.start}</span>`;
-      } else {
-        ptLabel = periodEntries.map(([p, gs]) => {
-          const gradeStr = compressGrades(gs).replace('학년','');
-          return `<span style="display:block;font-size:.65rem;font-weight:700;line-height:1.5">(${gradeStr}학년)<br><strong>${p}교시</strong></span>`;
-        }).join('<hr style="margin:2px 0;border:none;border-top:1px dashed var(--g200)">') +
-        `<span style="font-size:.6rem;color:var(--g400);display:block;margin-top:2px">${slot.start}</span>`;
-      }
+      periodEntries.forEach(([p, gs]) => {
+        const pNum = parseInt(p);
+        const gradeStr = compressGrades(gs).replace('학년','');
+        const grpLbl = periodEntries.length > 1
+          ? `<span style="font-size:.62rem;color:var(--g500)">(${gradeStr}학년)</span><br><strong>${pNum}교시</strong>`
+          : `<strong>${pNum}교시</strong>`;
+        subRows.push({
+          periodNum: pNum,
+          label: grpLbl + `<span style="font-size:.6rem;color:var(--g400);display:block">${slot.start}</span>`
+        });
+      });
+    });
 
+    const gridRows = subRows.map(({ periodNum, label }) => {
       const rowCells = DAYS.map(day => {
-        const key   = `${day}-${slot.slotKey}`;
+        const key   = `${day}-${periodNum}`;
         const entry = schedule[key];
         const cls   = entry ? (S.school.classes||[]).find(c=>c.id===entry.classId) : null;
         const gc    = cls ? gradeColor(cls) : null;
-        const filled = !!cls;
         const inner = cls
           ? `<div class="rs-ci filled" style="background:${gc.bg};color:${gc.text}"
                   draggable="true"
@@ -4393,7 +4484,7 @@ function renderRoomSchedule() {
                     ondragleave="rsOnDragLeave(event,this)"
                     ondrop="rsOnDrop(event,'${room.id}','${key}')">${inner}</td>`;
       }).join('');
-      return `<tr><td class="rs-period">${ptLabel}</td>${rowCells}</tr>`;
+      return `<tr><td class="rs-period">${label}</td>${rowCells}</tr>`;
     }).join('');
 
     return `
@@ -4604,9 +4695,19 @@ function runRandomAssign() {
     rooms.forEach(r => { S.school.roomSchedule[r.id] = {}; });
   }
 
-  // 모든 슬롯 생성
+  // 모든 슬롯 → 교시번호 기반 키
   const allSlots = [];
-  days.forEach(day => slots.forEach(slot => allSlots.push({ day, slotKey: slot.slotKey, key: `${day}-${slot.slotKey}` })));
+  const schedRows = getScheduleRows();
+  DAYS.forEach(day => {
+    schedRows.forEach(slot => {
+      Object.entries(slot.gradeMap).forEach(([g, p]) => {
+        const key = `${day}-${p}`;
+        if (!allSlots.find(s => s.key === key)) {
+          allSlots.push({ day, periodNum: p, key });
+        }
+      });
+    });
+  });
 
   let totalAssigned = 0;
 
@@ -4667,11 +4768,9 @@ window.saveRoomSchedule = saveRoomSchedule;
 
 function openRsModal(roomId, roomName, key) {
   rsCurrent = { roomId, roomName, key };
-  const day2 = key.split('-')[0];
-  const slotKey2 = key.slice(key.indexOf('-')+1);
-  const slotRow2 = getScheduleRows().find(r => r.slotKey === slotKey2);
-  const slotLbl2 = slotRow2?.shortLabel || slotKey2;
-  q('#mrs-title').textContent = `${roomName} — ${day2}요일 ${slotLbl2}`;
+  const day     = key.split('-')[0];
+  const period  = key.split('-')[1];
+  q('#mrs-title').textContent = `${roomName} — ${day}요일 ${period}교시`;
 
   const current = S.school.roomSchedule?.[roomId]?.[key];
   q('#mrs-desc').textContent  = current ? `현재: ${current.className} 배정됨` : '배정된 학급이 없습니다.';
