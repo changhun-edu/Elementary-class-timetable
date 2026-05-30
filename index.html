@@ -619,8 +619,6 @@ a{color:inherit;text-decoration:none}
 .rs-ci.filled:active{cursor:grabbing;opacity:.75}
 .rs-ci.empty{border:1.5px dashed var(--g200);color:var(--g300)}
 .rs-cell:hover .rs-ci.empty{border-color:var(--brand);color:var(--brand);background:var(--brand-50)}
-.rs-count-row{display:flex;flex-wrap:wrap;gap:.3rem;padding:.5rem .8rem;border-top:1px solid var(--g100)}
-.rs-count-chip{font-size:.72rem;font-weight:700;padding:.15rem .45rem;border-radius:10px}
 /* Room-assigned cell in class timetable */
 .cell-inner.room-cell.locked{cursor:pointer!important}
 
@@ -1038,11 +1036,18 @@ a{color:inherit;text-decoration:none}
   </div>
   <div class="rs-body">
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.6rem;margin-bottom:.85rem">
-      <div class="alert alert-info" style="margin:0;flex:1;min-width:200px">
-        💡 셀을 클릭해 직접 배정하거나, <strong>드래그</strong>로 이동할 수 있습니다.
+      <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;flex:1;min-width:200px">
+        <div class="alert alert-info" style="margin:0;flex:1">
+          💡 셀을 클릭해 직접 배정하거나, <strong>드래그</strong>로 이동할 수 있습니다.
+          격주 배정은 셀 클릭 → 배정 주기(A주/B주) 선택.
+        </div>
+        <div id="week-indicator" style="flex-shrink:0;padding:.4rem .85rem;border-radius:var(--r);font-size:.82rem;font-weight:700;text-align:center;cursor:default"></div>
       </div>
       <div style="display:flex;gap:.5rem;flex-shrink:0">
-        <button class="btn btn-ghost btn-sm" onclick="confirmClearRoomSchedule()">🗑️ 전체 초기화</button>
+        <button class="btn btn-ghost btn-sm" onclick="setWeekFilter('all')" id="btn-week-all" style="font-weight:700">전체</button>
+        <button class="btn btn-ghost btn-sm" onclick="setWeekFilter('A')" id="btn-week-A" style="color:#1d4ed8;border-color:#3b82f6">A주</button>
+        <button class="btn btn-ghost btn-sm" onclick="setWeekFilter('B')" id="btn-week-B" style="color:#c2410c;border-color:#f97316">B주</button>
+        <button class="btn btn-ghost btn-sm" onclick="confirmClearRoomSchedule()">🗑️ 초기화</button>
         <button class="btn btn-primary btn-sm" onclick="openRandomAssignModal()">🎲 랜덤 배정</button>
         <button class="btn btn-ghost btn-sm" onclick="saveRoomSchedule()">💾 저장</button>
       </div>
@@ -1070,6 +1075,10 @@ a{color:inherit;text-decoration:none}
       <span class="tt-user-chip" id="sp-user-chip" style="background:var(--brand-50);color:var(--brand)">⭐ 교과전담교사</span>
     </div>
     <div class="tt-header-right">
+      <!-- 관리자 전용 이동 버튼 -->
+      <button class="btn btn-ghost btn-sm" id="sp-btn-room" style="display:none" onclick="goToRoomSchedule()">🏛️ 특별실 배정</button>
+      <button class="btn btn-ghost btn-sm" id="sp-btn-timetable" style="display:none" onclick="initTimetable();goTo('screen-timetable')">📅 시간표</button>
+      <button class="btn btn-ghost btn-sm" id="sp-btn-next-teacher" style="display:none" onclick="goFromRoomSchedule()">👩‍🏫 다른 교담</button>
       <button class="btn btn-ghost btn-sm" onclick="saveSpecialtySchedule()">💾 저장</button>
       <button class="btn btn-ghost btn-sm" onclick="logout()">로그아웃</button>
     </div>
@@ -1318,6 +1327,15 @@ a{color:inherit;text-decoration:none}
         <option value="reset">기존 배정 초기화 후 새로 배정</option>
       </select>
     </div>
+    <div class="form-group">
+      <label class="form-label">배정 주기</label>
+      <select id="random-assign-week" class="form-select">
+        <option value="every">매주 (기본)</option>
+        <option value="split">A주/B주 자동 분할 (격주 배정)</option>
+        <option value="A">A주만 (홀수주)</option>
+        <option value="B">B주만 (짝수주)</option>
+      </select>
+    </div>
     <div id="random-assign-warn" class="form-error" style="display:none"></div>
     <div class="modal-actions">
       <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-random-assign')">취소</button>
@@ -1335,6 +1353,20 @@ a{color:inherit;text-decoration:none}
       <select id="mrs-class" class="form-select">
         <option value="">-- 배정 안 함 (비우기) --</option>
       </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">배정 주기</label>
+      <div style="display:flex;gap:.5rem">
+        <label style="flex:1;display:flex;align-items:center;gap:.35rem;padding:.45rem .7rem;border:1.5px solid var(--g200);border-radius:var(--r);cursor:pointer;font-size:.85rem;font-weight:700">
+          <input type="radio" name="mrs-week" value="every" checked> 매주
+        </label>
+        <label style="flex:1;display:flex;align-items:center;gap:.35rem;padding:.45rem .7rem;border:1.5px solid #3b82f6;border-radius:var(--r);cursor:pointer;font-size:.85rem;font-weight:700;color:#1d4ed8;background:#eff6ff">
+          <input type="radio" name="mrs-week" value="A"> A주 (홀수주)
+        </label>
+        <label style="flex:1;display:flex;align-items:center;gap:.35rem;padding:.45rem .7rem;border:1.5px solid #f97316;border-radius:var(--r);cursor:pointer;font-size:.85rem;font-weight:700;color:#c2410c;background:#fff7ed">
+          <input type="radio" name="mrs-week" value="B"> B주 (짝수주)
+        </label>
+      </div>
     </div>
     <div class="modal-actions">
       <button class="btn btn-danger btn-sm" id="mrs-clear" onclick="clearRsCell()" style="display:none">🗑️ 배정 취소</button>
@@ -1905,6 +1937,14 @@ function goToSpecialtyScreen() {
     renderSpTabs();
   }
   renderSpecialtyGrid();
+
+  // 관리자 전용 이동 버튼 표시/숨김
+  const isAdmin = S.user?.role === 'admin';
+  ['sp-btn-room','sp-btn-timetable','sp-btn-next-teacher'].forEach(id => {
+    const el = q(`#${id}`);
+    if (el) el.style.display = isAdmin ? 'flex' : 'none';
+  });
+
   goTo('screen-specialty');
 }
 window.goToSpecialtyScreen = goToSpecialtyScreen;
@@ -1972,18 +2012,28 @@ function renderSpecialtyGrid() {
   const el = q('#sp-stat-label');
   if (el) el.textContent = cnt ? `${subject}: ${cnt}개 시간 배정됨` : `${subject}: 배정 없음`;
 
-  // 교시번호 기반 서브행 생성
+  // ── 담당 학년 결정 ──────────────────────────────────────
+  const spInfo = S.user?.spInfo;
+  const ttInfo = S.user?.ttInfo;
+  const assignedGrades = spInfo?.grades?.length ? new Set(spInfo.grades)
+    : ttInfo?.gradeFilter?.length ? new Set(ttInfo.gradeFilter)
+    : null;  // null = 전 학년
+
+  // ── 담당 학년 교시만 필터링하여 서브행 생성 ──────────────
   const spSubRows = [];
   getScheduleRows().forEach(slot => {
     const byPeriod = {};
     Object.entries(slot.gradeMap).forEach(([g, p]) => {
+      const gNum = parseInt(g);
+      if (assignedGrades && !assignedGrades.has(gNum)) return;
       if (!byPeriod[p]) byPeriod[p] = [];
-      byPeriod[p].push(parseInt(g));
+      byPeriod[p].push(gNum);
     });
+    if (!Object.keys(byPeriod).length) return;
     Object.entries(byPeriod).sort((a,b)=>a[0]-b[0]).forEach(([p, gs]) => {
-      const pNum   = parseInt(p);
+      const pNum    = parseInt(p);
       const isMulti = Object.keys(byPeriod).length > 1;
-      const label  = isMulti
+      const label   = isMulti
         ? `<span style="font-size:.62rem;color:var(--g500)">(${compressGrades(gs).replace('학년','')}학년)</span><br>${pNum}교시`
         : `${pNum}교시`;
       spSubRows.push({ periodNum: pNum, label: label + `<span class="period-time">${slot.start}</span>` });
@@ -2005,13 +2055,17 @@ function renderSpecialtyGrid() {
           ? classes.find(c=>c.id===getSpecialtySchedule(otherSubj)[key]?.classId)
           : null;
 
-        // 이 시간에 특별실 사용 중인 반 확인 (그리드 셀 미니 배지)
+        // 이 시간에 특별실 사용 중인 반 확인 (담당 학년만)
         const roomsAtKey = [];
         for (const [rId, sched] of Object.entries(S.school?.roomSchedule||{})) {
           const re = sched[key];
           if (re) {
-            const room = (S.school.specialRooms||[]).find(r=>r.id===rId);
-            if (room) roomsAtKey.push(room.name);
+            const rCls = classes.find(c=>c.id===re.classId);
+            // 담당 학년 필터
+            if (rCls && (!assignedGrades || assignedGrades.has(rCls.grade))) {
+              const room = (S.school.specialRooms||[]).find(r=>r.id===rId);
+              if (room) roomsAtKey.push(room.name);
+            }
           }
         }
         const roomBadge = roomsAtKey.length
@@ -2049,16 +2103,27 @@ function openSpModal(key) {
     : isCollab ? '협업할 학급을 선택하세요.' : '수업할 학급을 선택하세요.';
   q('#sp-clear-btn').style.display = current ? 'flex' : 'none';
 
-  // ── 특별실 사용 현황 표시 ────────────────────────────────
+  // ── 특별실 사용 현황 (담당 학년 학급만) ─────────────────
   const roomInfoEl = q('#sp-room-info');
   const rs         = S.school.roomSchedule || {};
+  const spInfoModal = S.user.spInfo;
+  const ttInfoModal = S.user.ttInfo;
+  const myGrades    = spInfoModal?.grades?.length ? new Set(spInfoModal.grades)
+    : ttInfoModal?.gradeFilter?.length ? new Set(ttInfoModal.gradeFilter)
+    : null;
+
   const roomsUsed  = [];
   for (const [roomId, sched] of Object.entries(rs)) {
     const entry = sched[key];
     if (entry?.classId) {
       const room = (S.school.specialRooms||[]).find(r=>r.id===roomId);
       const cls  = classes.find(c=>c.id===entry.classId);
-      if (room && cls) roomsUsed.push({ roomName: room.name, className: cls.name, classId: entry.classId });
+      // 담당 학년 필터: 내 학년 학급만
+      if (cls && room) {
+        if (!myGrades || myGrades.has(cls.grade)) {
+          roomsUsed.push({ roomName: room.name, className: cls.name, classId: entry.classId });
+        }
+      }
     }
   }
   if (roomsUsed.length) {
@@ -4346,6 +4411,9 @@ function goToRoomSchedule() {
   if (!S.school) return;
   if (!S.school.roomSchedule) S.school.roomSchedule = {};
   q('#rs-school-label').textContent = S.school.name;
+  _weekFilter = 'all';
+  initWeekIndicator();
+  setWeekFilter('all');
   renderRoomSchedule();
   goTo('screen-room-schedule');
 }
@@ -4470,14 +4538,18 @@ function renderRoomSchedule() {
       const rowCells = DAYS.map(day => {
         const key   = `${day}-${periodNum}`;
         const entry = schedule[key];
-        const cls   = entry ? (S.school.classes||[]).find(c=>c.id===entry.classId) : null;
-        const gc    = cls ? gradeColor(cls) : null;
+        // 주 필터 적용
+        const visible = entry && (_weekFilter === 'all' || !entry.week || entry.week === _weekFilter);
+        const cls  = visible ? (S.school.classes||[]).find(c=>c.id===entry.classId) : null;
+        const gc   = cls ? gradeColor(cls) : null;
         const inner = cls
-          ? `<div class="rs-ci filled" style="background:${gc.bg};color:${gc.text}"
+          ? `<div class="rs-ci filled" style="background:${gc.bg};color:${gc.text};position:relative"
                   draggable="true"
                   ondragstart="rsOnDragStart(event,'${room.id}','${key}')"
-                  ondragend="rsOnDragEnd(event)">${escHtml(cls.name)}</div>`
-          : `<div class="rs-ci empty">+</div>`;
+                  ondragend="rsOnDragEnd(event)">${escHtml(cls.name)}${weekBadge(entry.week)}</div>`
+          : (entry && _weekFilter === 'all'
+              ? `<div class="rs-ci" style="background:var(--g100);color:var(--g400);font-size:.6rem;border:1.5px solid var(--g200);position:relative">타주배정${weekBadge(entry.week)}</div>`
+              : `<div class="rs-ci empty">+</div>`);
         return `<td class="rs-cell"
                     onclick="rsOnCellClick(event,'${room.id}','${escHtml(room.name)}','${key}')"
                     ondragover="rsOnDragOver(event,this)"
@@ -4501,10 +4573,54 @@ function renderRoomSchedule() {
           </thead>
           <tbody>${gridRows}</tbody>
         </table>
-        ${countChips ? `<div class="rs-count-row">${countChips}</div>` : ''}
       </div>`;
   }).join('');
 }
+/* ===========================================================
+   BIWEEKLY (격주) 배정
+   =========================================================== */
+let _weekFilter = 'all'; // 'all' | 'A' | 'B'
+
+/* 현재 날짜 기준 A주/B주 계산 (학기 첫 월요일부터 홀수주=A, 짝수주=B) */
+function getCurrentWeekType() {
+  const now     = new Date();
+  // 현재 연도 3월 첫 월요일을 학기 시작으로 가정
+  const year    = now.getMonth() < 8 ? now.getFullYear() : now.getFullYear();
+  const semStart = new Date(year, now.getMonth() >= 8 ? 8 : 2, 1);
+  while (semStart.getDay() !== 1) semStart.setDate(semStart.getDate()+1);
+  const weekNum = Math.floor((now - semStart) / (7*24*60*60*1000));
+  return weekNum % 2 === 0 ? 'A' : 'B';
+}
+
+function setWeekFilter(type) {
+  _weekFilter = type;
+  document.querySelectorAll('#btn-week-all,#btn-week-A,#btn-week-B').forEach(b => {
+    b.style.fontWeight = '600';
+    b.style.background = '';
+  });
+  const active = q(`#btn-week-${type === 'all' ? 'all' : type}`);
+  if (active) { active.style.fontWeight = '900'; active.style.background = type === 'A' ? '#eff6ff' : type === 'B' ? '#fff7ed' : 'var(--g100)'; }
+  renderRoomSchedule();
+}
+window.setWeekFilter = setWeekFilter;
+
+function initWeekIndicator() {
+  const el = q('#week-indicator');
+  if (!el) return;
+  const wt = getCurrentWeekType();
+  el.textContent    = `현재 ${wt}주 (${wt === 'A' ? '홀수주' : '짝수주'})`;
+  el.style.background = wt === 'A' ? '#eff6ff' : '#fff7ed';
+  el.style.color      = wt === 'A' ? '#1d4ed8' : '#c2410c';
+  el.style.border     = `1.5px solid ${wt === 'A' ? '#3b82f6' : '#f97316'}`;
+}
+
+/* 주기 배지 HTML */
+function weekBadge(week) {
+  if (!week || week === 'every') return '';
+  const isA = week === 'A';
+  return `<span style="position:absolute;top:2px;right:2px;font-size:.6rem;font-weight:900;padding:1px 4px;border-radius:4px;pointer-events:none;background:${isA?'#dbeafe':'#ffedd5'};color:${isA?'#1d4ed8':'#c2410c'}">${week}주</span>`;
+}
+
 /* ===========================================================
    ROOM SCHEDULE — DRAG & DROP
    =========================================================== */
@@ -4519,15 +4635,6 @@ function rsOnDragStart(event, roomId, fromKey) {
   event.target.closest('.rs-ci').style.opacity = '.5';
 }
 window.rsOnDragStart = rsOnDragStart;
-
-function rsOnDragEnd(event) {
-  event.target.closest('.rs-ci')?.style && (event.target.closest('.rs-ci').style.opacity = '');
-  _rsDrag = null;
-  document.querySelectorAll('.rs-cell.rs-drag-over,.rs-cell.rs-drag-bad').forEach(el => {
-    el.classList.remove('rs-drag-over','rs-drag-bad');
-  });
-}
-window.rsOnDragEnd = rsOnDragEnd;
 
 function rsOnDragOver(event, cellEl) {
   if (!_rsDrag) return;
@@ -4589,8 +4696,20 @@ function rsOnDrop(event, toRoomId, toKey) {
 window.rsOnDrop = rsOnDrop;
 
 /* 클릭(빈 셀) vs 드래그 시작 구분 */
+function rsOnDragEnd(event) {
+  // 드래그 종료 시 즉시 초기화
+  setTimeout(() => { _rsDrag = null; }, 50);
+  document.querySelectorAll('.rs-cell.rs-drag-over,.rs-cell.rs-drag-bad').forEach(el => {
+    el.classList.remove('rs-drag-over','rs-drag-bad');
+  });
+  const ci = event.target?.closest('.rs-ci');
+  if (ci) ci.style.opacity = '';
+}
+window.rsOnDragEnd = rsOnDragEnd;
+
 function rsOnCellClick(event, roomId, roomName, key) {
-  if (_rsDrag) return; // 드래그 중이면 클릭 무시
+  if (_rsDrag) { _rsDrag = null; return; } // 드래그 후 클릭 방지
+  event.stopPropagation();
   openRsModal(roomId, roomName, key);
 }
 window.rsOnCellClick = rsOnCellClick;
@@ -4709,37 +4828,59 @@ function runRandomAssign() {
     });
   });
 
+  const weekMode = q('#random-assign-week')?.value || 'every';
+
   let totalAssigned = 0;
 
   targets.forEach(({ room, count, allowedGrades }) => {
     if (!S.school.roomSchedule[room.id]) S.school.roomSchedule[room.id] = {};
     const sched = S.school.roomSchedule[room.id];
-
-    // 허용 학년 필터링
     const eligible = allowedGrades
       ? classes.filter(c => allowedGrades.includes(c.grade))
       : classes;
-
     if (!eligible.length) return;
 
-    // 학급을 섞어서 주당 count회씩 배정
-    const shuffled = [...eligible].sort(() => Math.random() - .5);
+    if (weekMode === 'split') {
+      // A주/B주 자동 분할: 학급을 절반씩 나눠 배정
+      const shuffled = [...eligible].sort(() => Math.random() - .5);
+      const half     = Math.ceil(shuffled.length / 2);
+      const groupA   = shuffled.slice(0, half);
+      const groupB   = shuffled.slice(half);
 
-    shuffled.forEach(cls => {
-      const available = allSlots.filter(s => {
-        if (sched[s.key]) return false;
-        for (const [rid, rs] of Object.entries(S.school.roomSchedule)) {
-          if (rid === room.id) continue;
-          if (rs[s.key]?.classId === cls.id) return false;
-        }
-        return true;
-      }).sort(() => Math.random() - .5);
-
-      available.slice(0, count).forEach(s => {
-        sched[s.key] = { classId: cls.id, className: cls.name };
-        totalAssigned++;
+      [['A', groupA], ['B', groupB]].forEach(([week, grp]) => {
+        grp.forEach(cls => {
+          const available = allSlots.filter(s => {
+            if (sched[s.key]) return false;
+            for (const [rid, rs] of Object.entries(S.school.roomSchedule)) {
+              if (rid === room.id) continue;
+              if (rs[s.key]?.classId === cls.id) return false;
+            }
+            return true;
+          }).sort(() => Math.random() - .5);
+          available.slice(0, count).forEach(s => {
+            sched[s.key] = { classId: cls.id, className: cls.name, week };
+            totalAssigned++;
+          });
+        });
       });
-    });
+    } else {
+      const assignWeek = weekMode === 'every' ? undefined : weekMode;
+      const shuffled = [...eligible].sort(() => Math.random() - .5);
+      shuffled.forEach(cls => {
+        const available = allSlots.filter(s => {
+          if (sched[s.key]) return false;
+          for (const [rid, rs] of Object.entries(S.school.roomSchedule)) {
+            if (rid === room.id) continue;
+            if (rs[s.key]?.classId === cls.id) return false;
+          }
+          return true;
+        }).sort(() => Math.random() - .5);
+        available.slice(0, count).forEach(s => {
+          sched[s.key] = { classId: cls.id, className: cls.name, ...(assignWeek ? { week: assignWeek } : {}) };
+          totalAssigned++;
+        });
+      });
+    }
   });
 
   closeModal('modal-random-assign');
@@ -4775,6 +4916,12 @@ function openRsModal(roomId, roomName, key) {
   const current = S.school.roomSchedule?.[roomId]?.[key];
   q('#mrs-desc').textContent  = current ? `현재: ${current.className} 배정됨` : '배정된 학급이 없습니다.';
   q('#mrs-clear').style.display = current ? 'flex' : 'none';
+
+  // 기존 week 값 복원
+  const currentWeek = current?.week || 'every';
+  document.querySelectorAll('input[name="mrs-week"]').forEach(r => {
+    r.checked = r.value === currentWeek;
+  });
 
   // 이 시간(key)에 다른 특별실에 이미 배정된 학급 목록 수집
   const takenByOtherRoom = {}; // classId → roomName
@@ -4857,8 +5004,12 @@ async function saveRsCell() {
       }
     }
 
-    const cls = (S.school.classes||[]).find(c=>c.id===classId);
-    S.school.roomSchedule[roomId][key] = { classId, className: cls?.name || classId };
+    const cls  = (S.school.classes||[]).find(c=>c.id===classId);
+    const week = document.querySelector('input[name="mrs-week"]:checked')?.value || 'every';
+    S.school.roomSchedule[roomId][key] = {
+      classId, className: cls?.name || classId,
+      week: week === 'every' ? undefined : week,
+    };
   }
 
   await saveSchool(S.school);
