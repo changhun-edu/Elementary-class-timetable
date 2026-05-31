@@ -1152,10 +1152,10 @@ a{color:inherit;text-decoration:none}
           <div class="form-hint">📌 교과전담교사이거나 전체 학급 담당이면 선택하지 않아도 됩니다.</div>
         </div>
         <div class="form-group">
-          <label class="form-label">학교 비밀번호</label>
-          <input type="password" id="join-pw" class="form-input" placeholder="관리자에게 문의하세요"
+          <label class="form-label">학교 비밀번호 <span id="join-pw-label-hint" class="text-muted text-sm"></span></label>
+          <input type="password" id="join-pw" class="form-input" placeholder="학교 비밀번호를 입력하세요"
                  onkeydown="if(event.key==='Enter') joinSchool()">
-          <div id="join-pw-err" class="form-error">⚠️ 비밀번호가 맞지 않습니다.</div>
+          <div id="join-pw-err" class="form-error">⚠️ 비밀번호가 맞지 않습니다. 관리자에게 문의하세요.</div>
         </div>
         <button class="btn btn-primary btn-block" onclick="joinSchool()">🚀 시간표 입력 시작</button>
       </div>
@@ -1420,27 +1420,54 @@ a{color:inherit;text-decoration:none}
 
     <!-- TAB: Password (비밀번호 변경) -->
     <div id="tab-password" class="tab-panel">
-      <div class="card">
-        <div class="card-title">🔑 학교 접속 비밀번호 변경</div>
+
+      <!-- 관리자 비밀번호 -->
+      <div class="card" style="margin-bottom:1rem">
+        <div class="card-title">👑 관리자 비밀번호 변경</div>
         <div class="form-hint" style="margin-bottom:1rem">
-          모든 교사가 학교 시간표에 접속할 때 사용하는 비밀번호입니다. 변경 후에는 교직원에게 새 비밀번호를 공유하세요.
+          관리자 전용 비밀번호입니다. <strong>절대 교사에게 공유하지 마세요.</strong>
         </div>
         <div class="form-group">
-          <label class="form-label">현재 비밀번호</label>
-          <input type="password" id="pw-current" class="form-input" placeholder="현재 비밀번호 입력">
+          <label class="form-label">현재 관리자 비밀번호</label>
+          <input type="password" id="pw-current" class="form-input" placeholder="현재 관리자 비밀번호 입력">
           <div id="pw-current-err" class="form-error">⚠️ 현재 비밀번호가 맞지 않습니다.</div>
         </div>
         <div class="form-group">
-          <label class="form-label">새 비밀번호</label>
+          <label class="form-label">새 관리자 비밀번호</label>
           <input type="password" id="pw-new1" class="form-input" placeholder="새 비밀번호 (4자 이상)">
         </div>
         <div class="form-group">
-          <label class="form-label">새 비밀번호 확인</label>
+          <label class="form-label">새 관리자 비밀번호 확인</label>
           <input type="password" id="pw-new2" class="form-input" placeholder="새 비밀번호 재입력">
           <div id="pw-new-err" class="form-error">⚠️ 두 비밀번호가 일치하지 않습니다.</div>
         </div>
-        <button class="btn btn-primary" onclick="changeSchoolPw()">✔ 비밀번호 변경</button>
+        <button class="btn btn-primary" onclick="changeSchoolPw()">✔ 관리자 비밀번호 변경</button>
       </div>
+
+      <!-- 교사 비밀번호 -->
+      <div class="card">
+        <div class="card-title">👩‍🏫 교사 비밀번호 변경</div>
+        <div class="form-hint" style="margin-bottom:1rem">
+          담임·교과전담·협업 교사가 접속할 때 사용하는 비밀번호입니다.
+          <strong>교직원에게 이 비밀번호만 공유하세요.</strong>
+          관리자 비밀번호와 별도로 관리할 수 있습니다.
+        </div>
+        <div class="alert alert-info" style="margin-bottom:1rem" id="teacher-pw-current-display">
+          현재 교사 비밀번호: <strong id="teacher-pw-mask">••••</strong>
+          <button class="btn btn-ghost btn-sm" style="margin-left:.5rem;font-size:.75rem" onclick="toggleTeacherPwShow()">표시</button>
+        </div>
+        <div class="form-group">
+          <label class="form-label">새 교사 비밀번호</label>
+          <input type="password" id="tpw-new1" class="form-input" placeholder="새 교사 비밀번호 (4자 이상)">
+        </div>
+        <div class="form-group">
+          <label class="form-label">새 교사 비밀번호 확인</label>
+          <input type="password" id="tpw-new2" class="form-input" placeholder="새 비밀번호 재입력">
+          <div id="tpw-new-err" class="form-error">⚠️ 두 비밀번호가 일치하지 않습니다.</div>
+        </div>
+        <button class="btn btn-primary" onclick="changeTeacherPw()">✔ 교사 비밀번호 변경</button>
+      </div>
+
     </div>
 
   </div>
@@ -1530,7 +1557,7 @@ a{color:inherit;text-decoration:none}
     </div>
     <div style="margin-top:.85rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem">
       <span class="text-sm text-muted" id="sp-stat-label"></span>
-      <button class="btn btn-ghost btn-sm" onclick="confirmClearSpecialty()">🗑️ 현재 교과 초기화</button>
+      <button class="btn btn-ghost btn-sm" onclick="confirmClearSpecialty()">🗑️ 현재 시간표 초기화</button>
     </div>
   </div>
 </div>
@@ -1701,7 +1728,7 @@ a{color:inherit;text-decoration:none}
     <div class="modal-title" id="mconf-title">삭제 확인</div>
     <div class="modal-desc" id="mconf-desc">정말 삭제하시겠습니까?</div>
     <div class="modal-actions">
-      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-confirm')">취소</button>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-confirm')" id="mconf-cancel">취소</button>
       <button class="btn btn-danger btn-sm" id="mconf-ok">삭제</button>
     </div>
   </div>
@@ -2929,15 +2956,38 @@ function openSpRandomModal() {
 
   if (!eligible.length) { toast('배정 가능한 학급이 없습니다.', 'warn'); return; }
 
+  // 학급당 배정 시간 수 입력 UI
+  const extraHtml = `
+    <div style="margin-top:1rem;padding:1rem;background:var(--g50);border-radius:var(--r-md);border:1px solid var(--g200)">
+      <label style="font-size:.82rem;font-weight:700;color:var(--g700);display:block;margin-bottom:.5rem">
+        📌 학급당 배정 시간 수
+      </label>
+      <div style="display:flex;align-items:center;gap:.6rem">
+        <input type="number" id="sp-random-count" min="1" max="10" value="1"
+          style="width:72px;padding:.4rem .6rem;border:1.5px solid var(--g300);border-radius:var(--r-md);
+                 font-size:.95rem;font-weight:700;text-align:center;font-family:inherit">
+        <span style="font-size:.82rem;color:var(--g500)">시간 / 학급 &nbsp;(총 ${eligible.length}개 학급 × ? = ? 슬롯)</span>
+      </div>
+      <div style="margin-top:.5rem;font-size:.75rem;color:var(--g400)">
+        ⚠ 기존 배정이 <strong style="color:#dc2626">모두 초기화</strong>됩니다.
+      </div>
+    </div>`;
+
   openConfirm(
     `🎲 ${subject} 랜덤 배정`,
-    `담당 학년 ${eligible.length}개 학급에 랜덤으로 교시를 배정합니다.\n기존 배정은 초기화됩니다. 계속하시겠습니까?`,
-    () => runSpRandomAssign(subject, eligible)
+    `담당 학년 <strong>${eligible.length}개 학급</strong>에 랜덤으로 교시를 배정합니다.`,
+    () => {
+      const cnt = Math.max(1, parseInt(q('#sp-random-count')?.value || '1'));
+      runSpRandomAssign(subject, eligible, cnt);
+    },
+    extraHtml,
+    '예, 배정하기',
+    'btn-primary'
   );
 }
 window.openSpRandomModal = openSpRandomModal;
 
-function runSpRandomAssign(subject, eligible) {
+function runSpRandomAssign(subject, eligible, countPerClass = 1) {
   if (!S.school) return;
   const schedule = getSpecialtySchedule(subject);
   // 기존 배정 초기화
@@ -2957,7 +3007,7 @@ function runSpRandomAssign(subject, eligible) {
       DAYS.forEach(day => {
         const key = `${day}-${p}`;
         if (!slots.find(s => s.key === key && s.start === slot.start)) {
-          slots.push({ key, start: slot.start, periodNum: p });
+          slots.push({ key, start: slot.start, periodNum: p, grade: parseInt(g) });
         }
       });
     });
@@ -2965,24 +3015,47 @@ function runSpRandomAssign(subject, eligible) {
 
   if (!slots.length) { toast('배정 가능한 교시 슬롯이 없습니다.', 'warn'); return; }
 
-  // 학급별 1회씩 랜덤 슬롯 배정
-  const shuffledSlots = [...slots].sort(() => Math.random() - .5);
-  let assigned = 0;
+  // 학급별 countPerClass 시간씩 랜덤 슬롯 배정
+  // 규칙:
+  //   ① 같은 슬롯(key)에는 한 학급만 배정
+  //   ② 한 학급이 같은 요일에 두 번 배정되지 않도록
+  //   ③ 학급의 학년에 맞는 슬롯만 선택
+  let totalAssigned = 0;
   const shuffledClasses = [...eligible].sort(() => Math.random() - .5);
 
   shuffledClasses.forEach(cls => {
-    // 이 학급이 아직 없는 슬롯 찾기
-    const available = shuffledSlots.filter(s => !schedule[s.key]);
-    if (!available.length) return;
-    const pick = available[Math.floor(Math.random() * available.length)];
-    schedule[pick.key] = { classId: cls.id, className: cls.name };
-    assigned++;
+    // 이 학급이 배정된 날 집합
+    const usedDays = new Set();
+    let classAssigned = 0;
+
+    // countPerClass 시간 배정
+    const available = [...slots]
+      .sort(() => Math.random() - .5)
+      .filter(s => {
+        if (schedule[s.key]) return false; // 이미 배정된 슬롯
+        // 학년 필터: myGrades가 있으면 cls.grade가 포함된 슬롯만
+        if (myGrades && cls.grade && !myGrades.has(cls.grade)) return false;
+        return true;
+      });
+
+    for (const s of available) {
+      if (classAssigned >= countPerClass) break;
+      if (schedule[s.key]) continue; // 재검사
+      const day = s.key.split('-')[0];
+      if (usedDays.has(day)) continue; // 같은 날 중복 방지
+      schedule[s.key] = { classId: cls.id, className: cls.name };
+      usedDays.add(day);
+      classAssigned++;
+      totalAssigned++;
+    }
   });
 
   renderSpTabs();
   renderSpecialtyGrid();
   saveSchool(S.school);
-  toast(`🎲 ${subject} 랜덤 배정 완료 — ${assigned}개 학급 배정됨 ✔`, 'success');
+
+  const perClass = Math.round(totalAssigned / (eligible.length || 1) * 10) / 10;
+  toast(`🎲 ${subject} 랜덤 배정 완료 — ${totalAssigned}개 슬롯 배정 (학급당 평균 ${perClass}시간) ✔`, 'success');
 }
 
 /* ===========================================================
@@ -3007,9 +3080,49 @@ async function changeSchoolPw() {
   q('#pw-current').value = '';
   q('#pw-new1').value    = '';
   q('#pw-new2').value    = '';
-  toast('비밀번호가 변경되었습니다. 교직원에게 공유하세요. ✔', 'success');
+  toast('관리자 비밀번호가 변경되었습니다. ✔', 'success');
 }
 window.changeSchoolPw = changeSchoolPw;
+
+/* 교사 비밀번호 표시 토글 */
+function toggleTeacherPwShow() {
+  const maskEl = q('#teacher-pw-mask');
+  const btn    = q('#teacher-pw-current-display button');
+  if (!maskEl || !S.school) return;
+  const pw = S.school.teacherPassword || S.school.adminPassword;
+  if (maskEl.textContent.includes('•')) {
+    maskEl.textContent = pw;
+    if (btn) btn.textContent = '숨기기';
+  } else {
+    maskEl.textContent = '••••';
+    if (btn) btn.textContent = '표시';
+  }
+}
+window.toggleTeacherPwShow = toggleTeacherPwShow;
+
+/* 교사 비밀번호 변경 */
+async function changeTeacherPw() {
+  if (!S.school) return;
+  const new1   = q('#tpw-new1').value;
+  const new2   = q('#tpw-new2').value;
+  const newErr = q('#tpw-new-err');
+  newErr.style.display = 'none';
+
+  if (new1.length < 4) { toast('새 비밀번호는 4자 이상이어야 합니다.', 'error'); return; }
+  if (new1 !== new2)   { newErr.style.display = 'block'; return; }
+
+  S.school.teacherPassword = new1;
+  await saveSchool(S.school);
+  q('#tpw-new1').value = '';
+  q('#tpw-new2').value = '';
+  // 현재 비밀번호 마스크 초기화
+  const maskEl = q('#teacher-pw-mask');
+  if (maskEl) maskEl.textContent = '••••';
+  const btn = q('#teacher-pw-current-display button');
+  if (btn) btn.textContent = '표시';
+  toast('교사 비밀번호가 변경되었습니다. 교직원에게 공유하세요. ✔', 'success');
+}
+window.changeTeacherPw = changeTeacherPw;
 
 /* ===========================================================
    LANDING ACTIONS
@@ -3143,6 +3256,7 @@ async function createSchool() {
     const schoolData = {
       id, name,
       adminPassword: pw,
+      teacherPassword: pw,  // 초기값은 관리자 비밀번호와 동일, 나중에 별도 변경 가능
       subjectsByGrade: sbg,
       subjects:     [],
       specialRooms: DEFAULT_ROOMS.map((r,i) => ({id:'rm'+i, name:r})),
@@ -4024,6 +4138,13 @@ function switchTab(tabId, btn) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   q('#'+tabId).classList.add('active');
   btn.classList.add('active');
+  // 비밀번호 탭 진입 시 현재 교사 비밀번호 마스크 초기화
+  if (tabId === 'tab-password') {
+    const maskEl = q('#teacher-pw-mask');
+    if (maskEl) maskEl.textContent = '••••';
+    const showBtn = q('#teacher-pw-current-display button');
+    if (showBtn) showBtn.textContent = '표시';
+  }
 }
 window.switchTab = switchTab;
 
@@ -4141,7 +4262,6 @@ async function searchSchools(keyword) {
       <span style="font-size:1.3rem">🏫</span>
       <div>
         <div style="font-weight:700;font-size:.9rem">${escHtml(s.name)}</div>
-        <div class="text-sm text-muted">ID: ...${s.id.slice(-8)}</div>
       </div>
     </div>
   `).join('');
@@ -4232,6 +4352,12 @@ function onJoinRoleChange() {
   q('#join-class-group').style.display   = isHomeroom ? 'block' : 'none';
   q('#join-subject-group').style.display = isIndep ? 'block' : 'none';
 
+  // 비밀번호 힌트: 역할에 따라 어떤 비밀번호를 써야 하는지 안내
+  const hintEl = q('#join-pw-label-hint');
+  if (hintEl) {
+    hintEl.textContent = isAdmin ? '(관리자 비밀번호)' : '(교사 비밀번호)';
+  }
+
   // 협업 안내
   let hint = q('#join-collab-hint');
   if (!hint) {
@@ -4317,7 +4443,11 @@ async function joinSchool() {
     toast('담당 교과목을 1개 이상 선택해주세요.', 'error'); return;
   }
 
-  if (pw !== joinSchoolRef.adminPassword) { err.style.display = 'block'; return; }
+  // 관리자는 adminPassword, 교사는 teacherPassword(없으면 adminPassword) 검증
+  const correctPw = isAdmin
+    ? joinSchoolRef.adminPassword
+    : (joinSchoolRef.teacherPassword || joinSchoolRef.adminPassword);
+  if (pw !== correctPw) { err.style.display = 'block'; return; }
 
   const clsId = q('#join-class').value;
   const cls   = joinSchoolRef.classes?.find(c => c.id === clsId);
@@ -4961,9 +5091,9 @@ document.querySelectorAll('.modal-bg').forEach(bg => {
   bg.addEventListener('click', e => { if(e.target===bg) bg.classList.remove('open'); });
 });
 
-function openConfirm(title, desc, onOk, extraHtml='') {
+function openConfirm(title, desc, onOk, extraHtml='', okLabel='삭제', okClass='btn-danger') {
   q('#mconf-title').textContent = title;
-  q('#mconf-desc').textContent  = desc;
+  q('#mconf-desc').innerHTML    = desc; // innerHTML로 변경해 <strong> 등 태그 허용
   // extra input area
   let extra = q('#mconf-extra');
   if (!extra) {
@@ -4973,6 +5103,8 @@ function openConfirm(title, desc, onOk, extraHtml='') {
   }
   extra.innerHTML = extraHtml;
   const btn = q('#mconf-ok');
+  btn.textContent = okLabel;
+  btn.className   = `btn ${okClass} btn-sm`;
   btn.onclick = () => { closeModal('modal-confirm'); onOk(); };
   openModal('modal-confirm');
 }
