@@ -1989,6 +1989,90 @@ function getScheduleRows() {
   return rows;
 }
 
+/* 학년 그룹 접미사: 12:30처럼 여러 학년 그룹이 공유하는 시간대에서
+ * 학년별로 독립된 storageKey를 만들기 위해 사용.
+ * grades가 전체(1~6)이면 접미사 없음, 일부 그룹이면 "|g12" 등 반환 */
+function gradeGroupSuffix(gradesSet) {
+  if (!gradesSet || gradesSet.size === 0) return '';
+  if (gradesSet.size === 6) return ''; // 전체 학년 → 접미사 불필요
+  return '|g' + [...gradesSet].sort((a,b)=>a-b).join('');
+}
+
+/* 구형 roomSchedule key("요일-시간") → storageKey("요일-시간|g학년그룹") 변환
+ * 12:30처럼 두 학년 그룹이 공유하는 시간대의 구형 key를 정확한 storageKey로 교정 */
+function migrateRoomScheduleKeys() {
+  if (!S.school?.roomSchedule) return;
+  const schedRows = getScheduleRows();
+  const classes   = S.school.classes || [];
+  let   changed   = false;
+
+  for (const [roomId, sched] of Object.entries(S.school.roomSchedule)) {
+    const toAdd    = {};
+    const toDelete = [];
+
+    for (const [sk, entry] of Object.entries(sched)) {
+      if (!entry?.classId) continue;
+      if (sk.includes('|g')) continue; // 이미 새 형식
+
+      // 구형 key: "요일-시간"
+      const timeKey   = sk;
+      const slotStart = timeKey.substring(timeKey.indexOf('-') + 1);
+      const slot      = schedRows.find(s => s.start === slotStart);
+      if (!slot) continue;
+
+      const cls = classes.find(c => c.id === entry.classId);
+      if (!cls?.grade) continue;
+
+      // 이 학급의 학년이 속하는 교시 그룹 찾기
+      const byPeriod = {};
+      Object.entries(slot.gradeMap).forEach(([g, p]) => {
+        byPeriod[p] = byPeriod[p] || new Set();
+        byPeriod[p].add(parseInt(g));
+      });
+      let targetGrades = null;
+      for (const grades of Object.values(byPeriod)) {
+        if (grades.has(cls.grade)) { targetGrades = grades; break; }
+      }
+      if (!targetGrades) continue;
+
+      const correctKey = makeStorageKey(timeKey, targetGrades);
+      if (correctKey !== sk) {
+        toAdd[correctKey] = entry;
+        toDelete.push(sk);
+        changed = true;
+      }
+    }
+
+    toDelete.forEach(k => delete sched[k]);
+    Object.assign(sched, toAdd);
+  }
+
+  if (changed) {
+    saveSchool(S.school);
+    console.log('roomSchedule keys migrated to storageKey format');
+  }
+}
+
+/* timeKey + gradeGroup → storageKey 생성
+ * 예: "월-12:30", {1,2} → "월-12:30|g12" */
+function makeStorageKey(timeKey, gradesSet) {
+  return timeKey + gradeGroupSuffix(gradesSet);
+}
+
+/* storageKey에서 순수 timeKey 추출 ("월-12:30|g12" → "월-12:30") */
+function stripGradeSuffix(storageKey) {
+  const idx = storageKey.indexOf('|g');
+  return idx >= 0 ? storageKey.slice(0, idx) : storageKey;
+}
+
+/* 학년(number)에 해당하는 gradeGroup 접미사 반환
+ * (특별실 배정 조회 시 timeKey → 학년에 맞는 storageKey 탐색에 사용) */
+function getStorageKeyForGrade(timeKey, grade) {
+  // 해당 학년이 포함된 storageKey 패턴을 시뮬레이션
+  // 실제로는 roomSchedule을 순회하며 timeKey prefix + 학년 포함 key를 찾음
+  return null; // placeholder — 아래 getRoomAssignmentForKey에서 직접 처리
+}
+
 /* 학년 배열 압축 표시: [1,2,3,4] → "1~4학년", [1,3] → "1,3학년" */
 function compressGrades(grades) {
   grades = [...grades].sort((a,b)=>a-b);
@@ -2576,8 +2660,10 @@ function openSpModal(key) {
 
   const roomsUsed  = [];
   for (const [roomId, sched] of Object.entries(rs)) {
-    const entry = sched[timeKey];
-    if (entry?.classId) {
+    // storageKey는 "요일-시간[|g학년그룹]" 형식 — timeKey prefix로 매칭
+    for (const [sk, entry] of Object.entries(sched)) {
+      if (!entry?.classId) continue;
+      if (stripGradeSuffix(sk) !== timeKey) continue;
       const room = (S.school.specialRooms||[]).find(r=>r.id===roomId);
       const cls  = classes.find(c=>c.id===entry.classId);
       if (cls && room) {
@@ -4540,18 +4626,23 @@ function renderGrid() {
    =========================================================== */
 function getRoomAssignmentForKey(key) {
   // key는 담임 시간표의 '${day}-${periodNum}' 형식
-  // 특별실 배정은 '${day}-${startTime}' 형식을 사용하므로 변환 필요
+  // 특별실 배정은 storageKey '${day}-${startTime}[|g학년그룹]' 형식
   if (!S.classId || !S.school?.roomSchedule) return null;
   const grade = getCurrentClassGrade();
   const [day, periodStr] = key.split('-');
   const pNum  = parseInt(periodStr);
   const times = getPeriodTimes(grade);
   const startTime = times[pNum - 1]?.start;
-  const timeKey = startTime ? `${day}-${startTime}` : key;
+  if (!startTime) return null;
+  const timeKey = `${day}-${startTime}`;
 
   for (const [roomId, schedule] of Object.entries(S.school.roomSchedule)) {
-    const entry = schedule[timeKey];
-    if (entry && entry.classId === S.classId) {
+    // storageKey는 timeKey 또는 timeKey|g학년그룹 형식
+    // 이 학급(classId)이 배정된 storageKey를 찾는다
+    for (const [sk, entry] of Object.entries(schedule)) {
+      if (!entry?.classId) continue;
+      if (entry.classId !== S.classId) continue;
+      if (stripGradeSuffix(sk) !== timeKey) continue;
       const room = (S.school.specialRooms||[]).find(r=>r.id===roomId);
       return { roomId, roomName: room?.name || '특별실', ...entry };
     }
@@ -5039,6 +5130,7 @@ function gradeColor(cls) {
 function goToRoomSchedule() {
   if (!S.school) return;
   if (!S.school.roomSchedule) S.school.roomSchedule = {};
+  migrateRoomScheduleKeys(); // 구형 key → storageKey 자동 변환
   q('#rs-school-label').textContent = S.school.name;
   _weekFilter = 'all';
   initWeekIndicator();
@@ -5172,8 +5264,11 @@ function renderRoomSchedule() {
 
     const gridRows = subRows.map(({ periodNum, slotStart, allowedGrades, label }) => {
       const rowCells = DAYS.map(day => {
-        const key   = `${day}-${slotStart}`;   // 시간 기반 키 (충돌 없음)
-        const entry = schedule[key];
+        const timeKey    = `${day}-${slotStart}`;
+        // 학년 그룹 접미사 포함 storageKey — 이 행(allowedGrades)에 해당하는 키로 읽기
+        const storageKey = makeStorageKey(timeKey, allowedGrades);
+        const entry      = schedule[storageKey]
+                        || schedule[timeKey]; // 구형 데이터 하위호환
         const visible = entry && (_weekFilter === 'all' || !entry.week || entry.week === _weekFilter);
         const cls   = visible ? (S.school.classes||[]).find(c=>c.id===entry.classId) : null;
         const gc    = cls ? gradeColor(cls) : null;
@@ -5197,14 +5292,14 @@ function renderRoomSchedule() {
 
         // 드래그는 배정된 셀만 (td 자체)
         const draggable = cls
-          ? `draggable="true" ondragstart="rsOnDragStart(event,'${room.id}','${key}')" ondragend="rsOnDragEnd(event)"`
+          ? `draggable="true" ondragstart="rsOnDragStart(event,'${room.id}','${storageKey}')" ondragend="rsOnDragEnd(event)"`
           : '';
-        return `<td class="rs-cell" ${draggable} data-rskey="${key}" data-roomid="${room.id}"
+        return `<td class="rs-cell" ${draggable} data-rskey="${storageKey}" data-roomid="${room.id}"
                     data-allowed-grades="${[...allowedGrades].join(',')}"
-                    onclick="rsOnCellClick(event,'${room.id}','${escHtml(room.name)}','${key}')"
+                    onclick="rsOnCellClick(event,'${room.id}','${escHtml(room.name)}','${storageKey}')"
                     ondragover="rsOnDragOver(event,this)"
                     ondragleave="rsOnDragLeave(event,this)"
-                    ondrop="rsOnDrop(event,'${room.id}','${key}')">${inner}</td>`;
+                    ondrop="rsOnDrop(event,'${room.id}','${storageKey}')">${inner}</td>`;
       }).join('');
       return `<tr><td class="rs-period">${label}</td>${rowCells}</tr>`;
     }).join('');
@@ -5479,21 +5574,18 @@ function runRandomAssign() {
   const allSlots = [];
   DAYS.forEach(day => {
     schedRows.forEach(slot => {
-      // 이 슬롯 시간대에서 교시번호별 허용학년 그룹 분리
       const byPeriod = {};
       Object.entries(slot.gradeMap).forEach(([g, p]) => {
         if (!byPeriod[p]) byPeriod[p] = new Set();
         byPeriod[p].add(parseInt(g));
       });
       Object.entries(byPeriod).forEach(([, gradesSet]) => {
-        const key = `${day}-${slot.start}`;
-        // 완전히 동일한 (key + grades) 쌍이 없을 때만 추가
-        const dup = allSlots.some(s =>
-          s.key === key &&
-          s.grades.size === gradesSet.size &&
-          [...gradesSet].every(g => s.grades.has(g))
-        );
-        if (!dup) allSlots.push({ day, key, grades: gradesSet });
+        const timeKey    = `${day}-${slot.start}`;
+        // 학년 그룹별 고유 storageKey: 12:30처럼 두 그룹이 공유하는 시간대에서
+        // grades={1,2} → "월-12:30|g12", grades={3,4} → "월-12:30|g34"
+        const storageKey = makeStorageKey(timeKey, gradesSet);
+        const dup = allSlots.some(s => s.storageKey === storageKey);
+        if (!dup) allSlots.push({ day, key: timeKey, storageKey, grades: gradesSet });
       });
     });
   });
@@ -5504,24 +5596,31 @@ function runRandomAssign() {
   // ── 한 슬롯이 배정 가능한지 실시간 검사 ──────────────────────
   // 호출 시점의 roomSchedule 상태를 기준으로 판단.
   // getAvailable과 달리 배정 루프 안에서 매번 호출해야 정확하다.
-  function canAssign(roomId, slotKey, slotGrades, cls) {
-    const rs = S.school.roomSchedule;
+  // storageKey = "요일-시간|g학년그룹" (예: "월-12:30|g12")
+  // timeKey    = "요일-시간"          (예: "월-12:30")  ← 동시간 충돌 체크용
+  function canAssign(roomId, storageKey, slotGrades, cls) {
+    const rs      = S.school.roomSchedule;
+    const timeKey = stripGradeSuffix(storageKey); // "|g.." 제거
 
-    // ① 이 특별실의 해당 슬롯이 비어있어야 함
-    if (rs[roomId]?.[slotKey]) return false;
+    // ① 이 특별실의 해당 storageKey가 비어있어야 함
+    if (rs[roomId]?.[storageKey]) return false;
 
-    // ② 학년 필터 — 슬롯이 허용하는 학년에 cls.grade가 포함돼야 함
+    // ② 학년 필터
     if (slotGrades && cls.grade && !slotGrades.has(cls.grade)) return false;
 
-    // ③ 모든 특별실에서 같은 시간(slotKey)에 이 반이 없어야 함 (동시간 중복)
+    // ③ 동시간 중복: 모든 특별실에서 같은 timeKey(시간대)에 이 반이 없어야 함
+    //   storageKey는 학년 그룹별로 다르지만, 실제 시간은 동일하므로
+    //   timeKey prefix로 비교 (예: "월-12:30|g12"와 "월-12:30|g34"는 같은 시간)
     for (const [rid, sched] of Object.entries(rs)) {
-      if (sched[slotKey]?.classId === cls.id) return false;
+      for (const [sk, entry] of Object.entries(sched)) {
+        if (entry?.classId === cls.id && stripGradeSuffix(sk) === timeKey) return false;
+      }
     }
 
-    // ④ 이 반이 이 특별실에서 이미 이 요일에 배정됐으면 안 됨 (하루 1회)
-    const day = slotKey.split('-')[0];
+    // ④ 하루 1회: 이 특별실에서 이 반이 이 요일에 이미 배정됐으면 안 됨
+    const day = storageKey.split('-')[0];
     const alreadyThisDay = Object.entries(rs[roomId] || {}).some(
-      ([k, v]) => v?.classId === cls.id && k.split('-')[0] === day
+      ([sk, v]) => v?.classId === cls.id && sk.split('-')[0] === day
     );
     if (alreadyThisDay) return false;
 
@@ -5550,15 +5649,14 @@ function runRandomAssign() {
         grp.forEach(cls => {
           // 배정 가능한 슬롯을 셔플
           const candidates = allSlots
-            .filter(s => canAssign(room.id, s.key, s.grades, cls))
+            .filter(s => canAssign(room.id, s.storageKey, s.grades, cls))
             .sort(() => Math.random() - .5);
 
           let assigned = 0;
           for (const s of candidates) {
             if (assigned >= count) break;
-            // 루프 내 재검사 (다른 반 배정으로 상태 변했을 수 있음)
-            if (!canAssign(room.id, s.key, s.grades, cls)) continue;
-            S.school.roomSchedule[room.id][s.key] = {
+            if (!canAssign(room.id, s.storageKey, s.grades, cls)) continue;
+            S.school.roomSchedule[room.id][s.storageKey] = {
               classId: cls.id, className: cls.name, week
             };
             totalAssigned++;
@@ -5572,14 +5670,14 @@ function runRandomAssign() {
       const shuffled = [...eligible].sort(() => Math.random() - .5);
       shuffled.forEach(cls => {
         const candidates = allSlots
-          .filter(s => canAssign(room.id, s.key, s.grades, cls))
+          .filter(s => canAssign(room.id, s.storageKey, s.grades, cls))
           .sort(() => Math.random() - .5);
 
         let assigned = 0;
         for (const s of candidates) {
           if (assigned >= count) break;
-          if (!canAssign(room.id, s.key, s.grades, cls)) continue;
-          S.school.roomSchedule[room.id][s.key] = {
+          if (!canAssign(room.id, s.storageKey, s.grades, cls)) continue;
+          S.school.roomSchedule[room.id][s.storageKey] = {
             classId: cls.id, className: cls.name,
             ...(assignWeek ? { week: assignWeek } : {})
           };
@@ -5612,38 +5710,46 @@ function validateRoomSchedule() {
   const schedRows = getScheduleRows();
   const classes   = S.school?.classes || [];
 
-  // key별로 배정된 학급 목록 수집
-  const keyClassMap = {}; // key → [{roomId, classId}]
+  // timeKey별로 배정된 학급 목록 수집 (storageKey → timeKey 변환)
+  const keyClassMap = {}; // timeKey → [{roomId, classId, storageKey}]
   for (const [roomId, sched] of Object.entries(rs)) {
-    for (const [key, entry] of Object.entries(sched)) {
+    for (const [sk, entry] of Object.entries(sched)) {
       if (!entry?.classId) continue;
-      if (!keyClassMap[key]) keyClassMap[key] = [];
-      keyClassMap[key].push({ roomId, classId: entry.classId, className: entry.className });
+      const timeKey = stripGradeSuffix(sk);
+      if (!keyClassMap[timeKey]) keyClassMap[timeKey] = [];
+      keyClassMap[timeKey].push({ roomId, classId: entry.classId, className: entry.className, storageKey: sk });
     }
   }
 
-  // ① 같은 시간에 한 반이 여러 특별실에 배정됐는지
-  for (const [key, list] of Object.entries(keyClassMap)) {
+  // ① 같은 시간(timeKey)에 한 반이 여러 특별실에 배정됐는지
+  for (const [timeKey, list] of Object.entries(keyClassMap)) {
     const seen = {};
     list.forEach(({ classId, className, roomId }) => {
       if (seen[classId]) {
-        violations.push(`동시간 중복: ${className} (${key}) — ${seen[classId]}과 ${roomId}`);
+        violations.push(`동시간 중복: ${className} (${timeKey}) — ${seen[classId]}과 ${roomId}`);
       }
       seen[classId] = roomId;
     });
   }
 
   // ② 허용 학년 위반
+  // storageKey = "요일-시간|g학년그룹" → gradeMap에서 이 그룹의 허용 학년 확인
   for (const [roomId, sched] of Object.entries(rs)) {
-    for (const [key, entry] of Object.entries(sched)) {
+    for (const [sk, entry] of Object.entries(sched)) {
       if (!entry?.classId) continue;
-      const slotStart = key.substring(key.indexOf('-') + 1);
-      const slot = schedRows.find(s => s.start === slotStart);
-      if (!slot) continue;
       const cls = classes.find(c => c.id === entry.classId);
       if (!cls?.grade) continue;
-      if (!slot.gradeMap.hasOwnProperty(cls.grade) && !slot.gradeMap.hasOwnProperty(String(cls.grade))) {
-        violations.push(`학년 위반: ${cls.name} → ${key} (이 시간대에 ${cls.grade}학년 없음)`);
+      const timeKey   = stripGradeSuffix(sk);
+      const slotStart = timeKey.substring(timeKey.indexOf('-') + 1);
+      const baseSlot  = schedRows.find(s => s.start === slotStart);
+      if (!baseSlot) continue;
+      // storageKey의 학년 그룹 접미사에서 허용 학년 집합 추출
+      const gradeSuffix = sk.includes('|g') ? sk.split('|g')[1] : '';
+      const allowedInKey = gradeSuffix
+        ? new Set(gradeSuffix.split('').map(Number).filter(n => n > 0))
+        : new Set(Object.keys(baseSlot.gradeMap).map(Number));
+      if (!allowedInKey.has(cls.grade)) {
+        violations.push(`학년 위반: ${cls.name} → ${sk} (허용: ${[...allowedInKey].sort().join(',')}학년)`);
       }
     }
   }
@@ -5672,15 +5778,28 @@ window.saveRoomSchedule = saveRoomSchedule;
 function openRsModal(roomId, roomName, key) {
   rsCurrent = { roomId, roomName, key };
   const day       = key.split('-')[0];
-  const slotStart = key.substring(key.indexOf('-') + 1);
-  // 시간 기반 키에서 사람이 읽기 좋은 레이블 생성
-  const schedRows = getScheduleRows();
-  const matchSlot = schedRows.find(s => s.start === slotStart);
-  const periodLabel = matchSlot
-    ? Object.values(matchSlot.gradeMap).sort((a,b)=>a-b).filter((v,i,a)=>a.indexOf(v)===i).join('/') + '교시'
-    : slotStart;
-  q('#mrs-title').textContent = `${roomName} — ${day}요일 ${periodLabel} (${slotStart})`;
+  const timeKey   = stripGradeSuffix(key);  // "|g.." 제거
+  const slotStart = timeKey.substring(timeKey.indexOf('-') + 1);
+  // 학년 그룹 접미사로 허용 학년 파악
+  const gradeSuffix = key.includes('|g') ? key.split('|g')[1] : '';
+  const gradeLabel = gradeSuffix
+    ? `(${gradeSuffix.split('').join(',').replace(/,(?=[^,]*$)/,',')}학년)`
+    : '';
+  const schedRows2 = getScheduleRows();
+  const matchSlot2 = schedRows2.find(s => s.start === slotStart);
+  // 이 storageKey의 학년 그룹에 해당하는 교시번호 찾기
+  let periodLabel = slotStart;
+  if (matchSlot2) {
+    const allowedSet = gradeSuffix ? new Set(gradeSuffix.split('').map(Number).filter(Boolean)) : null;
+    const periods = new Set();
+    Object.entries(matchSlot2.gradeMap).forEach(([g, p]) => {
+      if (!allowedSet || allowedSet.has(parseInt(g))) periods.add(p);
+    });
+    periodLabel = [...periods].sort((a,b)=>a-b).join('/') + '교시';
+  }
+  q('#mrs-title').textContent = `${roomName} — ${day}요일 ${gradeLabel}${periodLabel} (${slotStart})`;
 
+  // key는 storageKey ("요일-시간[|g학년그룹]") 형식
   const current = S.school.roomSchedule?.[roomId]?.[key];
   q('#mrs-clear').style.display = current ? 'flex' : 'none';
 
@@ -5698,12 +5817,14 @@ function openRsModal(roomId, roomName, key) {
     : null;
 
   // 다른 특별실에 이미 배정된 학급
+  // key(storageKey)와 같은 timeKey 를 가진 모든 storageKey 검사 (학년 그룹 불문)
   const takenByOtherRoom = {};
   const rs = S.school.roomSchedule || {};
   for (const [rId, schedule] of Object.entries(rs)) {
     if (rId === roomId) continue;
-    const entry = schedule[key];
-    if (entry?.classId) {
+    for (const [sk, entry] of Object.entries(schedule)) {
+      if (!entry?.classId) continue;
+      if (stripGradeSuffix(sk) !== timeKey) continue; // 같은 시간대만
       const room = (S.school.specialRooms||[]).find(r=>r.id===rId);
       takenByOtherRoom[entry.classId] = room?.name || '다른 특별실';
     }
@@ -6008,11 +6129,25 @@ function getSpecialtyAssignmentsForClassData(ttData, classId) {
 }
 
 function getRoomAssignmentForKeyData(school, classId, key) {
+  // key는 '요일-교시번호' 형식, roomSchedule은 storageKey '요일-시간[|g학년그룹]' 형식
+  const cls    = (school.classes||[]).find(c=>c.id===classId);
+  const grade  = cls?.grade;
+  const [day, periodStr] = key.split('-');
+  const pNum   = parseInt(periodStr);
+  const times  = grade ? (getPeriodTimesForExport(grade)) : [];
+  const start  = times[pNum-1]?.start;
+  if (!start) return null;
+  const timeKey = `${day}-${start}`;
+
   for (const [roomId, schedule] of Object.entries(school.roomSchedule || {})) {
-    const entry = schedule[key];
-    if (entry && entry.classId === classId) {
-      const room = (school.specialRooms||[]).find(r=>r.id===roomId);
-      return room?.name || null;
+    for (const [sk, entry] of Object.entries(schedule)) {
+      if (!entry?.classId) continue;
+      if (entry.classId !== classId) continue;
+      // storageKey의 timeKey 부분이 일치하면 반환
+      if (stripGradeSuffix(sk) === timeKey) {
+        const room = (school.specialRooms||[]).find(r=>r.id===roomId);
+        return room?.name || null;
+      }
     }
   }
   return null;
