@@ -5064,7 +5064,10 @@ function runRandomAssign() {
     rooms.forEach(r => { S.school.roomSchedule[r.id] = {}; });
   }
 
-  // 모든 슬롯 → 시간 기반 키 + 허용 학년 정보 (키 충돌 방지)
+  // 모든 슬롯 생성 — 학년 그룹별로 별도 항목으로 분리
+  // ※ 같은 시간대라도 학년별 교시가 다를 수 있음
+  //   (예: 12:30 = 1,2학년 4교시 / 3,4학년 5교시)
+  //   → 학년 그룹을 하나로 합치면 안 됨. 각 (key, grades) 쌍을 독립 슬롯으로 유지.
   const allSlots = [];
   const schedRows = getScheduleRows();
   DAYS.forEach(day => {
@@ -5076,8 +5079,14 @@ function runRandomAssign() {
       });
       Object.entries(byPeriod).forEach(([p, grades]) => {
         const key = `${day}-${slot.start}`;  // 시간 기반 키
-        if (!allSlots.find(s => s.key === key)) {
-          allSlots.push({ day, periodNum: parseInt(p), slotStart: slot.start, key, grades });
+        // 같은 key라도 grades가 다른 그룹이면 별도 슬롯으로 추가
+        // (배정 필터에서 cls.grade가 grades에 포함되는지로 판단)
+        const gradesSet = new Set(grades);
+        const alreadyExact = allSlots.find(s => s.key === key &&
+          s.grades.size === gradesSet.size &&
+          [...gradesSet].every(g => s.grades.has(g)));
+        if (!alreadyExact) {
+          allSlots.push({ day, periodNum: parseInt(p), slotStart: slot.start, key, grades: gradesSet });
         }
       });
     });
