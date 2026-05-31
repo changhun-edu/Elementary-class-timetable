@@ -2941,6 +2941,67 @@ window.spOnDrop = spOnDrop;
 /* ===========================================================
    SPECIALTY GRID — RANDOM ASSIGN
    =========================================================== */
+/* ===========================================================
+   교과목 ↔ 특별실 매칭 헬퍼
+   과목명 키워드로 연관 특별실을 찾아 반환한다.
+   =========================================================== */
+function getMatchedRoomsForSubject(subject) {
+  if (!subject || !S.school?.specialRooms?.length) return [];
+  const name = subject.toLowerCase().replace(/\s/g,'');
+  const rooms = S.school.specialRooms;
+
+  // 키워드 → 특별실 이름 패턴 매핑
+  const KEYWORD_PATTERNS = [
+    { keywords: ['과학'],            patterns: ['과학실','과학'] },
+    { keywords: ['영어'],            patterns: ['영어실','영어'] },
+    { keywords: ['체육'],            patterns: ['강당','체육관','운동장','체육'] },
+    { keywords: ['음악'],            patterns: ['음악실','음악'] },
+    { keywords: ['미술'],            patterns: ['미술실','미술'] },
+    { keywords: ['컴퓨터','정보'],   patterns: ['컴퓨터실','컴퓨터','정보실'] },
+    { keywords: ['도서','독서'],     patterns: ['도서실','도서관'] },
+    { keywords: ['실과'],            patterns: ['실과실','가사실','기술실'] },
+  ];
+
+  for (const { keywords, patterns } of KEYWORD_PATTERNS) {
+    if (keywords.some(k => name.includes(k))) {
+      const matched = rooms.filter(r =>
+        patterns.some(p => r.name.replace(/\s/g,'').includes(p))
+      );
+      if (matched.length) return matched;
+    }
+  }
+  return [];
+}
+
+/* 특정 학급(classId)이 특정 특별실들(rooms)에서 배정된 시간 슬롯 목록 반환
+ * 교담 슬롯 키 형식: "요일-교시번호" (ex: "월-3")
+ * 특별실 storageKey:  "요일-시간[|g학년그룹]" → 교시번호로 변환 필요 */
+function getRoomSlotKeysForClass(classId, rooms) {
+  if (!rooms.length || !S.school?.roomSchedule) return new Set();
+  const rs      = S.school.roomSchedule;
+  const cls     = (S.school.classes||[]).find(c => c.id === classId);
+  if (!cls?.grade) return new Set();
+  const pTimes  = getPeriodTimes(cls.grade);
+  const matched = new Set();
+
+  rooms.forEach(room => {
+    const sched = rs[room.id];
+    if (!sched) return;
+    Object.entries(sched).forEach(([sk, entry]) => {
+      if (entry?.classId !== classId) return;
+      // storageKey → timeKey → 시작시간 → 교시번호
+      const timeKey  = stripGradeSuffix(sk);
+      const start    = timeKey.substring(timeKey.indexOf('-') + 1);
+      const day      = timeKey.split('-')[0];
+      const pIdx     = pTimes.findIndex(t => t.start === start);
+      if (pIdx < 0) return;
+      const periodNum = pIdx + 1;
+      matched.add(`${day}-${periodNum}`); // 교담 슬롯 키 형식
+    });
+  });
+  return matched;
+}
+
 function openSpRandomModal() {
   if (!S.school) return;
   const subject = spCurrentSubject;
@@ -2956,6 +3017,29 @@ function openSpRandomModal() {
 
   if (!eligible.length) { toast('배정 가능한 학급이 없습니다.', 'warn'); return; }
 
+  // 교과목↔특별실 매칭 미리보기
+  const matchedRooms = getMatchedRoomsForSubject(subject);
+  let matchPreview = '';
+  if (matchedRooms.length) {
+    const roomNames = matchedRooms.map(r => `<strong>${escHtml(r.name)}</strong>`).join(', ');
+    // 각 학급에 대해 매칭 슬롯 수 계산
+    const matchCounts = eligible.map(cls => {
+      const keys = getRoomSlotKeysForClass(cls.id, matchedRooms);
+      return keys.size;
+    });
+    const avgMatch = matchCounts.length
+      ? Math.round(matchCounts.reduce((a,b)=>a+b,0) / matchCounts.length * 10) / 10
+      : 0;
+    matchPreview = `
+      <div style="margin-top:.75rem;padding:.75rem 1rem;background:#ecfdf5;border:1.5px solid #6ee7b7;border-radius:var(--r-md)">
+        <div style="font-size:.8rem;font-weight:700;color:#065f46;margin-bottom:.3rem">🏛️ 특별실 매칭 감지</div>
+        <div style="font-size:.78rem;color:#047857">${roomNames}과 연동하여 우선 배정합니다.</div>
+        <div style="font-size:.75rem;color:#6b7280;margin-top:.25rem">학급당 평균 ${avgMatch}개 매칭 슬롯 발견</div>
+      </div>`;
+  } else {
+    matchPreview = `<div style="margin-top:.75rem;font-size:.75rem;color:var(--g400)">💡 연관 특별실이 없거나 아직 배정되지 않아 일반 슬롯으로 배정합니다.</div>`;
+  }
+
   // 학급당 배정 시간 수 입력 UI
   const extraHtml = `
     <div style="margin-top:1rem;padding:1rem;background:var(--g50);border-radius:var(--r-md);border:1px solid var(--g200)">
@@ -2966,9 +3050,10 @@ function openSpRandomModal() {
         <input type="number" id="sp-random-count" min="1" max="10" value="1"
           style="width:72px;padding:.4rem .6rem;border:1.5px solid var(--g300);border-radius:var(--r-md);
                  font-size:.95rem;font-weight:700;text-align:center;font-family:inherit">
-        <span style="font-size:.82rem;color:var(--g500)">시간 / 학급 &nbsp;(총 ${eligible.length}개 학급 × ? = ? 슬롯)</span>
+        <span style="font-size:.82rem;color:var(--g500)">시간 / 학급</span>
       </div>
-      <div style="margin-top:.5rem;font-size:.75rem;color:var(--g400)">
+      ${matchPreview}
+      <div style="margin-top:.6rem;font-size:.75rem;color:var(--g400)">
         ⚠ 기존 배정이 <strong style="color:#dc2626">모두 초기화</strong>됩니다.
       </div>
     </div>`;
@@ -2990,63 +3075,79 @@ window.openSpRandomModal = openSpRandomModal;
 function runSpRandomAssign(subject, eligible, countPerClass = 1) {
   if (!S.school) return;
   const schedule = getSpecialtySchedule(subject);
-  // 기존 배정 초기화
   Object.keys(schedule).forEach(k => delete schedule[k]);
 
-  // 담당 학년 교시 슬롯 수집
   const spInfo   = S.user?.spInfo;
   const ttInfo   = S.user?.ttInfo;
   const myGrades = spInfo?.grades?.length ? new Set(spInfo.grades)
     : ttInfo?.gradeFilter?.length ? new Set(ttInfo.gradeFilter)
     : null;
 
-  const slots = [];
+  // 전체 가용 슬롯 목록 (교담 키: "요일-교시번호")
+  const allSlotsList = [];
   getScheduleRows().forEach(slot => {
     Object.entries(slot.gradeMap).forEach(([g, p]) => {
       if (myGrades && !myGrades.has(parseInt(g))) return;
       DAYS.forEach(day => {
         const key = `${day}-${p}`;
-        if (!slots.find(s => s.key === key && s.start === slot.start)) {
-          slots.push({ key, start: slot.start, periodNum: p, grade: parseInt(g) });
+        if (!allSlotsList.find(s => s.key === key)) {
+          allSlotsList.push({ key, start: slot.start, periodNum: p });
         }
       });
     });
   });
 
-  if (!slots.length) { toast('배정 가능한 교시 슬롯이 없습니다.', 'warn'); return; }
+  if (!allSlotsList.length) { toast('배정 가능한 교시 슬롯이 없습니다.', 'warn'); return; }
 
-  // 학급별 countPerClass 시간씩 랜덤 슬롯 배정
-  // 규칙:
-  //   ① 같은 슬롯(key)에는 한 학급만 배정
-  //   ② 한 학급이 같은 요일에 두 번 배정되지 않도록
-  //   ③ 학급의 학년에 맞는 슬롯만 선택
-  let totalAssigned = 0;
+  // 교과목↔특별실 매칭
+  const matchedRooms    = getMatchedRoomsForSubject(subject);
+  const hasRoomMatch    = matchedRooms.length > 0;
+  let   totalAssigned   = 0;
+  let   roomMatchedCount = 0;
+
   const shuffledClasses = [...eligible].sort(() => Math.random() - .5);
 
   shuffledClasses.forEach(cls => {
-    // 이 학급이 배정된 날 집합
-    const usedDays = new Set();
-    let classAssigned = 0;
+    const usedDays     = new Set();
+    let   classAssigned = 0;
 
-    // countPerClass 시간 배정
-    const available = [...slots]
-      .sort(() => Math.random() - .5)
-      .filter(s => {
-        if (schedule[s.key]) return false; // 이미 배정된 슬롯
-        // 학년 필터: myGrades가 있으면 cls.grade가 포함된 슬롯만
-        if (myGrades && cls.grade && !myGrades.has(cls.grade)) return false;
-        return true;
-      });
+    // ── 1순위: 특별실 매칭 슬롯 ─────────────────────────────────
+    const roomKeys = hasRoomMatch
+      ? getRoomSlotKeysForClass(cls.id, matchedRooms)
+      : new Set();
 
-    for (const s of available) {
+    const prioritySlots = [...allSlotsList]
+      .filter(s => roomKeys.has(s.key) && !schedule[s.key])
+      .sort(() => Math.random() - .5);
+
+    for (const s of prioritySlots) {
       if (classAssigned >= countPerClass) break;
-      if (schedule[s.key]) continue; // 재검사
+      if (schedule[s.key]) continue;
       const day = s.key.split('-')[0];
-      if (usedDays.has(day)) continue; // 같은 날 중복 방지
+      if (usedDays.has(day)) continue;
       schedule[s.key] = { classId: cls.id, className: cls.name };
       usedDays.add(day);
       classAssigned++;
       totalAssigned++;
+      roomMatchedCount++;
+    }
+
+    // ── 2순위: 일반 슬롯으로 나머지 채우기 ─────────────────────
+    if (classAssigned < countPerClass) {
+      const fallback = [...allSlotsList]
+        .filter(s => !roomKeys.has(s.key) && !schedule[s.key])
+        .sort(() => Math.random() - .5);
+
+      for (const s of fallback) {
+        if (classAssigned >= countPerClass) break;
+        if (schedule[s.key]) continue;
+        const day = s.key.split('-')[0];
+        if (usedDays.has(day)) continue;
+        schedule[s.key] = { classId: cls.id, className: cls.name };
+        usedDays.add(day);
+        classAssigned++;
+        totalAssigned++;
+      }
     }
   });
 
@@ -3055,8 +3156,14 @@ function runSpRandomAssign(subject, eligible, countPerClass = 1) {
   saveSchool(S.school);
 
   const perClass = Math.round(totalAssigned / (eligible.length || 1) * 10) / 10;
-  toast(`🎲 ${subject} 랜덤 배정 완료 — ${totalAssigned}개 슬롯 배정 (학급당 평균 ${perClass}시간) ✔`, 'success');
+  if (hasRoomMatch && roomMatchedCount > 0) {
+    const roomNames = matchedRooms.map(r => r.name).join('·');
+    toast(`🎲 ${subject} 랜덤 배정 완료 — ${totalAssigned}개 슬롯 (${roomMatchedCount}개 ${roomNames} 연동, 학급당 평균 ${perClass}시간) ✔`, 'success');
+  } else {
+    toast(`🎲 ${subject} 랜덤 배정 완료 — ${totalAssigned}개 슬롯 (학급당 평균 ${perClass}시간) ✔`, 'success');
+  }
 }
+
 
 /* ===========================================================
    SCHOOL PASSWORD CHANGE (관리자)
