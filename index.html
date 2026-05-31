@@ -911,7 +911,7 @@ a{color:inherit;text-decoration:none}
         <div class="adh-btn-icon">⭐</div>
         <div class="adh-btn-text">
           <div class="adh-btn-title">교담 시간표 입력</div>
-          <div class="adh-btn-sub">교과전담·협업 교사 수업 배정</div>
+          <div class="adh-btn-sub">교과전담·협업 교사 수업 배정 → 담임 시간표에 자동 반영</div>
         </div>
         <span class="adh-btn-arrow">›</span>
       </button>
@@ -1529,16 +1529,35 @@ a{color:inherit;text-decoration:none}
       <!-- 관리자 전용 이동 버튼 -->
       <button class="btn btn-ghost btn-sm" id="sp-btn-setup" style="display:none" onclick="goAdminSetup()">⚙️ 기초설정</button>
       <button class="btn btn-ghost btn-sm" id="sp-btn-room" style="display:none" onclick="goToRoomSchedule()">🏛️ 특별실</button>
-      <button class="btn btn-ghost btn-sm" id="sp-btn-timetable" style="display:none" onclick="initTimetable();goTo('screen-timetable')">📅 시간표</button>
       <button class="btn btn-ghost btn-sm" id="sp-btn-next-teacher" style="display:none" onclick="goFromRoomSchedule()">👩‍🏫 다른 교담</button>
       <button class="btn btn-ghost btn-sm" id="sp-btn-random" onclick="openSpRandomModal()">🎲 랜덤 배정</button>
       <button class="btn btn-ghost btn-sm" onclick="saveSpecialtySchedule()">💾 저장</button>
+      <button class="btn btn-primary btn-sm" id="sp-btn-timetable" style="display:none" onclick="initTimetable();goTo('screen-timetable')">📅 담임 시간표 보기 →</button>
       <button class="btn btn-ghost btn-sm" onclick="logout()">로그아웃</button>
     </div>
   </div>
 
   <!-- 교과목 탭 -->
   <div class="sp-tab-strip" id="sp-tab-strip"></div>
+
+  <!-- 관리자용 다음 단계 안내 배너 (교과전담 입력 완료 후) -->
+  <div id="sp-next-step-banner" style="display:none;
+    background:linear-gradient(135deg,#1e40af,#2563eb);
+    padding:.7rem 1.25rem;
+    display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
+    <div style="display:flex;align-items:center;gap:.6rem">
+      <span style="font-size:1.1rem">✅</span>
+      <div>
+        <div style="font-size:.82rem;font-weight:800;color:#fff">교과전담 시간표 입력 완료!</div>
+        <div style="font-size:.75rem;color:#bfdbfe">다음 단계: 담임교사가 각 반 시간표를 완성합니다.</div>
+      </div>
+    </div>
+    <button class="btn btn-sm" id="sp-next-step-btn"
+      style="background:#fff;color:#1e40af;font-weight:800;border:none;flex-shrink:0;white-space:nowrap"
+      onclick="initTimetable();goTo('screen-timetable')">
+      📅 담임 시간표 보기 →
+    </button>
+  </div>
 
   <div style="flex:1;overflow-y:auto;padding:1rem 1.25rem;background:var(--g50)">
     <div class="alert alert-info" style="margin-bottom:1rem" id="sp-alert">
@@ -1587,6 +1606,7 @@ a{color:inherit;text-decoration:none}
       <button class="btn btn-ghost btn-sm" onclick="exportAllToExcel()">📊 엑셀 저장</button>
       <button class="btn btn-ghost btn-sm" onclick="printTimetable()">🖨️ 인쇄</button>
       <button class="btn btn-ghost btn-sm" id="btn-admin-home" onclick="goToAdminHome()" style="display:none">🏠 관리자 홈</button>
+      <button class="btn btn-ghost btn-sm" id="btn-admin-sp" onclick="goFromRoomSchedule()" style="display:none">⭐ 교담 시간표</button>
       <button class="btn btn-ghost btn-sm" id="btn-admin-setup" onclick="goAdminSetup()" style="display:none">⚙️ 설정</button>
       <button class="btn btn-ghost btn-sm" onclick="logout()">로그아웃</button>
     </div>
@@ -2500,6 +2520,10 @@ function goToSpecialtyScreen() {
     const el = q(`#${id}`);
     if (el) el.style.display = isAdmin ? 'flex' : 'none';
   });
+
+  // 관리자: 다음 단계 배너 표시
+  const bannerEl = q('#sp-next-step-banner');
+  if (bannerEl) bannerEl.style.display = isAdmin ? 'flex' : 'none';
 
   goTo('screen-specialty');
 }
@@ -4609,6 +4633,7 @@ function initTimetable() {
 
   const isAdmin = user.role==='admin';
   q('#btn-admin-home').style.display     = isAdmin ? 'flex' : 'none';
+  q('#btn-admin-sp').style.display       = isAdmin ? 'flex' : 'none';
   q('#btn-admin-setup').style.display    = isAdmin ? 'flex' : 'none';
   q('#btn-clear-all').style.display      = isAdmin ? 'flex' : 'none';
   q('#btn-room-schedule').style.display  = isAdmin ? 'flex' : 'none';
