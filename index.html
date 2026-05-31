@@ -5516,8 +5516,41 @@ function runRandomAssign() {
       : classes;
     if (!eligible.length) return;
 
+    // ── 슬롯 필터 헬퍼 ──────────────────────────────────────────
+    // 한 반(cls)에 대해 배정 가능한 슬롯을 반환한다.
+    // 검사 항목:
+    //   ① 이 특별실에 해당 key가 아직 비어 있어야 함
+    //   ② 슬롯의 허용 학년에 cls.grade가 포함되어야 함
+    //   ③ 다른 특별실의 같은 key에 같은 반이 없어야 함 (시간 충돌)
+    //   ④ cls가 이미 이 특별실에 배정된 날(day)이 count번 미만이어야 함
+    //      → 같은 날 같은 반이 같은 특별실에 두 번 들어가지 않도록
+    //   ⑤ 모든 특별실에서 해당 key에 cls가 없어야 함 (동시간 중복 방지)
+    function getAvailable(cls) {
+      // 이미 이 특별실에 배정된 날 집합
+      const assignedDays = new Set(
+        Object.entries(sched)
+          .filter(([,v]) => v?.classId === cls.id)
+          .map(([k]) => k.split('-')[0])
+      );
+
+      return allSlots.filter(s => {
+        // ① 이 특별실 해당 key 빈칸
+        if (sched[s.key]) return false;
+        // ② 학년 필터
+        if (s.grades && cls.grade && !s.grades.has(cls.grade)) return false;
+        // ③ 다른 특별실 동시간 중복
+        for (const [rid, rs] of Object.entries(S.school.roomSchedule)) {
+          if (rid === room.id) continue;
+          if (rs[s.key]?.classId === cls.id) return false;
+        }
+        // ④ 같은 날 이미 배정됐으면 제외 (하루에 한 번만)
+        if (assignedDays.has(s.day)) return false;
+        return true;
+      });
+    }
+
     if (weekMode === 'split') {
-      // A주/B주 자동 분할: 학급을 절반씩 나눠 배정
+      // A주/B주 자동 분할
       const shuffled = [...eligible].sort(() => Math.random() - .5);
       const half     = Math.ceil(shuffled.length / 2);
       const groupA   = shuffled.slice(0, half);
@@ -5525,38 +5558,37 @@ function runRandomAssign() {
 
       [['A', groupA], ['B', groupB]].forEach(([week, grp]) => {
         grp.forEach(cls => {
-          const available = allSlots.filter(s => {
-            if (sched[s.key]) return false;
-            if (s.grades && cls.grade && !s.grades.has(cls.grade)) return false;
-            for (const [rid, rs] of Object.entries(S.school.roomSchedule)) {
-              if (rid === room.id) continue;
-              if (rs[s.key]?.classId === cls.id) return false;
-            }
-            return true;
-          }).sort(() => Math.random() - .5);
-          available.slice(0, count).forEach(s => {
+          const available = getAvailable(cls).sort(() => Math.random() - .5);
+          let assigned = 0;
+          for (const s of available) {
+            if (assigned >= count) break;
+            // 배정 직전 재검사 (직전 루프에서 같은 key 선택됐을 수 있음)
+            if (sched[s.key]) continue;
             sched[s.key] = { classId: cls.id, className: cls.name, week };
             totalAssigned++;
-          });
+            assigned++;
+          }
         });
       });
     } else {
       const assignWeek = weekMode === 'every' ? undefined : weekMode;
       const shuffled = [...eligible].sort(() => Math.random() - .5);
       shuffled.forEach(cls => {
-        const available = allSlots.filter(s => {
-          if (sched[s.key]) return false;
-          if (s.grades && cls.grade && !s.grades.has(cls.grade)) return false;
-          for (const [rid, rs] of Object.entries(S.school.roomSchedule)) {
-            if (rid === room.id) continue;
-            if (rs[s.key]?.classId === cls.id) return false;
-          }
-          return true;
-        }).sort(() => Math.random() - .5);
-        available.slice(0, count).forEach(s => {
+        const available = getAvailable(cls).sort(() => Math.random() - .5);
+        let assigned = 0;
+        for (const s of available) {
+          if (assigned >= count) break;
+          // 배정 직전 재검사
+          if (sched[s.key]) continue;
+          // 다른 특별실 동시간 재검사 (직전 루프에서 배정됐을 수 있음)
+          const conflict = Object.entries(S.school.roomSchedule).some(
+            ([rid, rs]) => rid !== room.id && rs[s.key]?.classId === cls.id
+          );
+          if (conflict) continue;
           sched[s.key] = { classId: cls.id, className: cls.name, ...(assignWeek ? { week: assignWeek } : {}) };
           totalAssigned++;
-        });
+          assigned++;
+        }
       });
     }
   });
@@ -5564,9 +5596,64 @@ function runRandomAssign() {
   closeModal('modal-random-assign');
   renderRoomSchedule();
   saveSchool(S.school);
-  toast(`🎲 랜덤 배정 완료 — ${totalAssigned}개 슬롯 배정됨 ✔`, 'success');
+
+  // ── 배정 결과 검증 ────────────────────────────────────────────
+  const violations = validateRoomSchedule();
+  if (violations.length) {
+    toast(`🎲 랜덤 배정 완료 (${totalAssigned}개) — ⚠ 충돌 ${violations.length}건 발견, 수동으로 확인해 주세요.`, 'warn');
+    console.warn('특별실 배정 충돌:', violations);
+  } else {
+    toast(`🎲 랜덤 배정 완료 — ${totalAssigned}개 슬롯 배정됨 ✔`, 'success');
+  }
 }
 window.runRandomAssign = runRandomAssign;
+
+/* 배정 결과 충돌 검증 */
+function validateRoomSchedule() {
+  const violations = [];
+  const rs = S.school?.roomSchedule || {};
+  const schedRows = getScheduleRows();
+  const classes   = S.school?.classes || [];
+
+  // key별로 배정된 학급 목록 수집
+  const keyClassMap = {}; // key → [{roomId, classId}]
+  for (const [roomId, sched] of Object.entries(rs)) {
+    for (const [key, entry] of Object.entries(sched)) {
+      if (!entry?.classId) continue;
+      if (!keyClassMap[key]) keyClassMap[key] = [];
+      keyClassMap[key].push({ roomId, classId: entry.classId, className: entry.className });
+    }
+  }
+
+  // ① 같은 시간에 한 반이 여러 특별실에 배정됐는지
+  for (const [key, list] of Object.entries(keyClassMap)) {
+    const seen = {};
+    list.forEach(({ classId, className, roomId }) => {
+      if (seen[classId]) {
+        violations.push(`동시간 중복: ${className} (${key}) — ${seen[classId]}과 ${roomId}`);
+      }
+      seen[classId] = roomId;
+    });
+  }
+
+  // ② 허용 학년 위반
+  for (const [roomId, sched] of Object.entries(rs)) {
+    for (const [key, entry] of Object.entries(sched)) {
+      if (!entry?.classId) continue;
+      const slotStart = key.substring(key.indexOf('-') + 1);
+      const slot = schedRows.find(s => s.start === slotStart);
+      if (!slot) continue;
+      const cls = classes.find(c => c.id === entry.classId);
+      if (!cls?.grade) continue;
+      if (!slot.gradeMap.hasOwnProperty(cls.grade) && !slot.gradeMap.hasOwnProperty(String(cls.grade))) {
+        violations.push(`학년 위반: ${cls.name} → ${key} (이 시간대에 ${cls.grade}학년 없음)`);
+      }
+    }
+  }
+
+  return violations;
+}
+window.validateRoomSchedule = validateRoomSchedule;
 
 function confirmClearRoomSchedule() {
   openConfirm('특별실 배정 전체 초기화', '모든 특별실 배정이 삭제됩니다. 계속하시겠습니까?', async () => {
