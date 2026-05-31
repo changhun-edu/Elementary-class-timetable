@@ -2622,6 +2622,18 @@ async function createSchool() {
   if (pwErr)   pwErr.style.display   = pw   ? 'none' : 'block';
   if (!name || !pw) { toast('학교 이름과 비밀번호를 입력해주세요.', 'error'); return; }
 
+  // ── 중복 이름 차단 ────────────────────────────────────────
+  try {
+    const existing = await fetchSchools();
+    const isDup = existing.some(s => s.name.trim() === name);
+    if (isDup) {
+      const dupWarn = q('#create-name-dup-warn');
+      if (dupWarn) dupWarn.style.display = 'block';
+      toast('⚠️ 이미 같은 이름의 학교(그룹)가 있습니다. 다른 이름을 사용해 주세요.', 'error');
+      return;
+    }
+  } catch(e) { /* 네트워크 오류 시 통과 허용 */ }
+
   const btn = q('#create-btn');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ 생성 중...'; }
 
@@ -4820,12 +4832,21 @@ function getCurrentWeekType() {
 
 function setWeekFilter(type) {
   _weekFilter = type;
-  document.querySelectorAll('#btn-week-all,#btn-week-A,#btn-week-B').forEach(b => {
-    b.style.fontWeight = '600';
-    b.style.background = '';
-  });
-  const active = q(`#btn-week-${type === 'all' ? 'all' : type}`);
-  if (active) { active.style.fontWeight = '900'; active.style.background = type === 'A' ? '#eff6ff' : type === 'B' ? '#fff7ed' : 'var(--g100)'; }
+  // 모든 주기 버튼 초기화
+  const btnAll = q('#btn-week-all');
+  const btnA   = q('#btn-week-A');
+  const btnB   = q('#btn-week-B');
+  if (btnAll) { btnAll.style.fontWeight='600'; btnAll.style.background=''; btnAll.style.color=''; btnAll.style.borderColor=''; btnAll.style.boxShadow=''; }
+  if (btnA)   { btnA.style.fontWeight='600';   btnA.style.background='';   btnA.style.color='#1d4ed8'; btnA.style.borderColor='#3b82f6'; btnA.style.boxShadow=''; }
+  if (btnB)   { btnB.style.fontWeight='600';   btnB.style.background='';   btnB.style.color='#c2410c'; btnB.style.borderColor='#f97316'; btnB.style.boxShadow=''; }
+  // 활성 버튼 강조
+  if (type === 'all' && btnAll) {
+    btnAll.style.fontWeight='900'; btnAll.style.background='var(--g200)'; btnAll.style.color='var(--g900)'; btnAll.style.boxShadow='inset 0 1px 3px rgba(0,0,0,.12)';
+  } else if (type === 'A' && btnA) {
+    btnA.style.fontWeight='900'; btnA.style.background='#dbeafe'; btnA.style.color='#1e40af'; btnA.style.borderColor='#2563eb'; btnA.style.boxShadow='inset 0 1px 3px rgba(37,99,235,.2)';
+  } else if (type === 'B' && btnB) {
+    btnB.style.fontWeight='900'; btnB.style.background='#ffedd5'; btnB.style.color='#9a3412'; btnB.style.borderColor='#ea580c'; btnB.style.boxShadow='inset 0 1px 3px rgba(234,88,12,.2)';
+  }
   renderRoomSchedule();
 }
 window.setWeekFilter = setWeekFilter;
@@ -4850,7 +4871,8 @@ function weekBadge(week) {
 /* ===========================================================
    ROOM SCHEDULE — DRAG & DROP
    =========================================================== */
-let _rsDrag = null; // { roomId, fromKey, classId, className }
+let _rsDrag    = null; // { roomId, fromKey, classId, className }
+let rsCurrent  = null; // { roomId, roomName, key } — currently open rs modal
 
 function rsOnDragStart(event, roomId, fromKey) {
   const entry = S.school.roomSchedule?.[roomId]?.[fromKey];
@@ -4895,22 +4917,14 @@ function rsOnDrop(event, toRoomId, toKey) {
   // 드래그하는 학급의 학년
   const cls = (S.school.classes||[]).find(c=>c.id===classId);
 
-  // 타겟 슬롯의 허용 학년 확인
+  // 타겟 슬롯의 허용 학년 확인 (시간 기반 키: "요일-HH:MM")
   if (cls?.grade) {
+    // toKey 형식: "요일-HH:MM" — 슬롯의 start와 매칭
+    const slotStart = toKey.substring(toKey.indexOf('-') + 1);
     const schedRows = getScheduleRows();
-    const day = toKey.split('-')[0];
-    const period = parseInt(toKey.split('-')[1]);
-    let slotGrades = null;
-    schedRows.forEach(slot => {
-      if (slot.gradeMap[cls.grade] === period) {
-        // 이 슬롯이 해당 교시에 허용하는 학년들 수집
-        const gs = new Set();
-        Object.entries(slot.gradeMap).forEach(([g,p]) => { if (p===period) gs.add(parseInt(g)); });
-        slotGrades = gs;
-      }
-    });
-    if (slotGrades && !slotGrades.has(cls.grade)) {
-      toast(`⚠ ${cls.name}은(는) 이 교시에 배정할 수 없습니다.`, 'warn');
+    const matchSlot = schedRows.find(s => s.start === slotStart);
+    if (matchSlot && !matchSlot.gradeMap.hasOwnProperty(String(cls.grade)) && !matchSlot.gradeMap.hasOwnProperty(cls.grade)) {
+      toast(`⚠ ${cls.name}은(는) 이 시간대에 수업이 없습니다.`, 'warn');
       _rsDrag = null; return;
     }
   }
@@ -5152,9 +5166,15 @@ window.saveRoomSchedule = saveRoomSchedule;
 
 function openRsModal(roomId, roomName, key) {
   rsCurrent = { roomId, roomName, key };
-  const day     = key.split('-')[0];
-  const period  = key.split('-')[1];
-  q('#mrs-title').textContent = `${roomName} — ${day}요일 ${period}교시`;
+  const day       = key.split('-')[0];
+  const slotStart = key.substring(key.indexOf('-') + 1);
+  // 시간 기반 키에서 사람이 읽기 좋은 레이블 생성
+  const schedRows = getScheduleRows();
+  const matchSlot = schedRows.find(s => s.start === slotStart);
+  const periodLabel = matchSlot
+    ? Object.values(matchSlot.gradeMap).sort((a,b)=>a-b).filter((v,i,a)=>a.indexOf(v)===i).join('/') + '교시'
+    : slotStart;
+  q('#mrs-title').textContent = `${roomName} — ${day}요일 ${periodLabel} (${slotStart})`;
 
   const current = S.school.roomSchedule?.[roomId]?.[key];
   q('#mrs-clear').style.display = current ? 'flex' : 'none';
