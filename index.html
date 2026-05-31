@@ -170,34 +170,226 @@ a{color:inherit;text-decoration:none}
 .add-row{display:flex;gap:.5rem;margin-top:.85rem;flex-wrap:wrap}
 .add-row .form-input{flex:1;min-width:100px}
 
+
+/* ============================================================ */
+/* ADMIN HOME SCREEN                                            */
+/* ============================================================ */
+#screen-admin-home{
+  background:linear-gradient(140deg,#1e3a8a 0%,#1d4ed8 35%,#2563eb 65%,#3b82f6 100%);
+  align-items:center;justify-content:center;padding:2rem;position:relative;overflow:hidden;
+}
+#screen-admin-home::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(circle at 15% 25%,rgba(255,255,255,.07) 0%,transparent 50%),
+             radial-gradient(circle at 85% 75%,rgba(255,255,255,.04) 0%,transparent 40%);
+}
+.adh-card{
+  background:rgba(255,255,255,.97);backdrop-filter:blur(20px);border-radius:var(--r-2xl);
+  padding:2.25rem 2.25rem 2rem;max-width:480px;width:100%;
+  box-shadow:var(--sh-xl),0 0 0 1px rgba(255,255,255,.15);position:relative;z-index:1;
+}
+.adh-header{display:flex;align-items:center;gap:.85rem;margin-bottom:1.5rem}
+.adh-badge{
+  width:48px;height:48px;border-radius:var(--r-lg);flex-shrink:0;
+  background:linear-gradient(135deg,#f59e0b 0%,#d97706 100%);
+  display:flex;align-items:center;justify-content:center;font-size:1.4rem;
+  box-shadow:0 4px 14px rgba(217,119,6,.35);
+}
+.adh-title{font-size:1.15rem;font-weight:900;color:var(--g900);letter-spacing:-.03em}
+.adh-school{font-size:.82rem;color:var(--g500);margin-top:2px;font-weight:500}
+.adh-stats{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:.55rem;
+  margin-bottom:1.5rem;
+}
+.adh-stat{
+  background:var(--g50);border:1px solid var(--g200);border-radius:var(--r-md);
+  padding:.65rem .5rem;text-align:center;
+}
+.adh-stat-num{font-size:1.35rem;font-weight:900;color:var(--brand);line-height:1}
+.adh-stat-lbl{font-size:.7rem;color:var(--g400);font-weight:600;margin-top:.25rem}
+.adh-menu{display:flex;flex-direction:column;gap:.6rem}
+.adh-btn{
+  display:flex;align-items:center;gap:1rem;padding:.95rem 1.1rem;
+  border-radius:var(--r-lg);border:2px solid transparent;
+  cursor:pointer;transition:all var(--t);background:#fff;text-align:left;
+  box-shadow:var(--sh-sm);
+}
+.adh-btn:hover{transform:translateY(-2px);box-shadow:var(--sh-md)}
+.adh-btn:active{transform:translateY(0)}
+.adh-btn-icon{
+  width:42px;height:42px;border-radius:var(--r-md);display:flex;align-items:center;
+  justify-content:center;font-size:1.2rem;flex-shrink:0;
+}
+.adh-btn-text{flex:1;min-width:0}
+.adh-btn-title{font-size:.93rem;font-weight:800;color:var(--g900)}
+.adh-btn-sub{font-size:.75rem;color:var(--g400);margin-top:2px}
+.adh-btn-arrow{font-size:.85rem;color:var(--g300);flex-shrink:0}
+.adh-btn.primary{border-color:var(--brand-100);background:var(--brand-50)}
+.adh-btn.primary:hover{border-color:var(--brand);background:#fff}
+.adh-btn.primary .adh-btn-title{color:var(--brand-dark)}
+.adh-btn.primary .adh-btn-icon{background:var(--brand-100)}
+.adh-btn.green{border-color:#bbf7d0;background:#f0fdf4}
+.adh-btn.green:hover{border-color:#16a34a;background:#fff}
+.adh-btn.green .adh-btn-title{color:#15803d}
+.adh-btn.green .adh-btn-icon{background:#dcfce7}
+.adh-btn.purple{border-color:#e9d5ff;background:#faf5ff}
+.adh-btn.purple:hover{border-color:#7c3aed;background:#fff}
+.adh-btn.purple .adh-btn-title{color:#6d28d9}
+.adh-btn.purple .adh-btn-icon{background:#f3e8ff}
+.adh-btn.gray{border-color:var(--g200);background:var(--g50)}
+.adh-btn.gray:hover{border-color:var(--g400);background:#fff}
+.adh-btn.gray .adh-btn-icon{background:var(--g100)}
+.adh-divider{height:1px;background:var(--g100);margin:.4rem 0}
+.adh-footer{display:flex;justify-content:space-between;align-items:center;margin-top:1.1rem;padding-top:.85rem;border-top:1px solid var(--g100)}
+.adh-footer-info{font-size:.75rem;color:var(--g400)}
 /* ============================================================ */
 /* LANDING                                                      */
 /* ============================================================ */
 #screen-landing{
-  background:linear-gradient(140deg,#1e3a8a 0%,#1d4ed8 35%,#2563eb 65%,#3b82f6 100%);
-  align-items:center;justify-content:center;padding:2rem;position:relative;overflow:hidden;
+  background:#fafaf9;
+  align-items:flex-start;justify-content:flex-start;
+  overflow-y:auto;overflow-x:hidden;
 }
-#screen-landing::before{
+
+/* ── Hero ── */
+.ld-hero{
+  width:100%;padding:4rem 1.5rem 3.5rem;
+  background:linear-gradient(160deg,#0f172a 0%,#1e293b 45%,#0f3460 100%);
+  position:relative;overflow:hidden;
+  display:flex;flex-direction:column;align-items:center;text-align:center;
+}
+.ld-hero::before{
   content:'';position:absolute;inset:0;
-  background:radial-gradient(circle at 20% 30%,rgba(255,255,255,.06) 0%,transparent 50%),
-             radial-gradient(circle at 80% 70%,rgba(255,255,255,.04) 0%,transparent 40%);
+  background:radial-gradient(ellipse at 25% 60%,rgba(99,102,241,.18) 0%,transparent 55%),
+             radial-gradient(ellipse at 80% 20%,rgba(16,185,129,.12) 0%,transparent 45%),
+             radial-gradient(ellipse at 60% 90%,rgba(245,158,11,.08) 0%,transparent 40%);
+  pointer-events:none;
 }
-.landing-card{
-  background:rgba(255,255,255,.97);backdrop-filter:blur(20px);border-radius:var(--r-2xl);
-  padding:2.75rem 2.5rem;max-width:420px;width:100%;
-  box-shadow:var(--sh-xl),0 0 0 1px rgba(255,255,255,.15);position:relative;z-index:1;
+.ld-hero-badge{
+  display:inline-flex;align-items:center;gap:.45rem;
+  background:rgba(99,102,241,.2);border:1px solid rgba(99,102,241,.4);
+  color:#a5b4fc;font-size:.75rem;font-weight:700;letter-spacing:.04em;
+  padding:.32rem .85rem;border-radius:20px;margin-bottom:1.5rem;
+  position:relative;z-index:1;
 }
-.logo-row{display:flex;align-items:center;gap:.75rem;margin-bottom:.4rem}
-.logo-badge{
-  width:46px;height:46px;
-  background:linear-gradient(135deg,var(--brand) 0%,var(--brand-dark) 100%);
-  border-radius:var(--r-lg);display:flex;align-items:center;justify-content:center;
-  font-size:1.35rem;box-shadow:0 4px 14px rgba(37,99,235,.35);flex-shrink:0;
+.ld-hero-title{
+  font-size:clamp(1.75rem,5vw,2.6rem);font-weight:900;
+  color:#f8fafc;line-height:1.15;letter-spacing:-.04em;
+  margin-bottom:.7rem;position:relative;z-index:1;
+  max-width:520px;
 }
-.logo-name{font-size:1.4rem;font-weight:900;color:var(--g900);letter-spacing:-.04em}
-.logo-tagline{color:var(--g400);font-size:.82rem;margin-left:58px;margin-bottom:2rem}
-.landing-hr{height:1px;background:var(--g100);margin:1.4rem 0}
-.landing-actions{display:flex;flex-direction:column;gap:.7rem}
+.ld-hero-title em{
+  font-style:normal;
+  background:linear-gradient(90deg,#34d399,#6ee7b7);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.ld-hero-sub{
+  font-size:1rem;color:#94a3b8;line-height:1.65;
+  margin-bottom:2.25rem;position:relative;z-index:1;
+  max-width:400px;
+}
+.ld-hero-actions{
+  display:flex;flex-direction:column;gap:.7rem;width:100%;max-width:340px;
+  position:relative;z-index:1;
+}
+.ld-btn-main{
+  display:flex;align-items:center;justify-content:center;gap:.55rem;
+  padding:1rem 1.5rem;border-radius:var(--r-lg);border:none;cursor:pointer;
+  font-size:1rem;font-weight:800;font-family:inherit;
+  background:linear-gradient(135deg,#10b981,#059669);
+  color:#fff;box-shadow:0 4px 20px rgba(16,185,129,.4);
+  transition:all .2s;
+}
+.ld-btn-main:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(16,185,129,.45)}
+.ld-btn-main:active{transform:translateY(0)}
+.ld-btn-sub{
+  display:flex;align-items:center;justify-content:center;gap:.5rem;
+  padding:.75rem 1.25rem;border-radius:var(--r-lg);
+  font-size:.88rem;font-weight:700;font-family:inherit;cursor:pointer;
+  background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.15);
+  color:#cbd5e1;transition:all .2s;
+}
+.ld-btn-sub:hover{background:rgba(255,255,255,.13);border-color:rgba(255,255,255,.28);color:#f1f5f9}
+.ld-hero-scroll{
+  margin-top:2.5rem;color:rgba(148,163,184,.5);font-size:.72rem;
+  display:flex;flex-direction:column;align-items:center;gap:.3rem;
+  position:relative;z-index:1;animation:bobble 2s ease-in-out infinite;
+}
+@keyframes bobble{0%,100%{transform:translateY(0)}50%{transform:translateY(5px)}}
+
+/* ── Section shared ── */
+.ld-section{width:100%;padding:3rem 1.5rem;max-width:640px;margin:0 auto}
+.ld-section-label{
+  font-size:.72rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+  color:#10b981;margin-bottom:.55rem;
+}
+.ld-section-title{
+  font-size:1.35rem;font-weight:900;color:#0f172a;
+  letter-spacing:-.03em;line-height:1.3;margin-bottom:.5rem;
+}
+.ld-section-desc{font-size:.88rem;color:var(--g500);line-height:1.65}
+
+/* ── Features ── */
+.ld-features{display:flex;flex-direction:column;gap:.75rem;margin-top:1.5rem}
+.ld-feat{
+  display:flex;align-items:flex-start;gap:1rem;padding:1.1rem 1.2rem;
+  background:#fff;border-radius:var(--r-lg);
+  border:1.5px solid var(--g200);
+  box-shadow:0 2px 8px rgba(0,0,0,.04);
+  transition:all .2s;
+}
+.ld-feat:hover{border-color:var(--g300);box-shadow:0 4px 16px rgba(0,0,0,.07);transform:translateY(-1px)}
+.ld-feat-icon{
+  width:44px;height:44px;border-radius:var(--r-md);flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:1.2rem;
+}
+.ld-feat-body{flex:1;min-width:0}
+.ld-feat-title{font-size:.92rem;font-weight:800;color:#0f172a;margin-bottom:.25rem}
+.ld-feat-desc{font-size:.8rem;color:var(--g500);line-height:1.55}
+.ld-feat-tag{
+  display:inline-block;margin-top:.4rem;font-size:.7rem;font-weight:700;
+  padding:.12rem .5rem;border-radius:10px;
+}
+
+/* ── Roles ── */
+.ld-roles{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.6rem;margin-top:1.5rem}
+.ld-role{
+  padding:.9rem .75rem;border-radius:var(--r-lg);text-align:center;
+  border:1.5px solid transparent;transition:all .2s;cursor:default;
+}
+.ld-role-icon{font-size:1.5rem;margin-bottom:.4rem}
+.ld-role-name{font-size:.8rem;font-weight:800;margin-bottom:.25rem}
+.ld-role-desc{font-size:.68rem;line-height:1.45;opacity:.8}
+
+/* ── Steps ── */
+.ld-steps{display:flex;flex-direction:column;gap:0;margin-top:1.5rem;position:relative}
+.ld-steps::before{
+  content:'';position:absolute;left:19px;top:20px;bottom:20px;width:2px;
+  background:linear-gradient(to bottom,#e2e8f0,#e2e8f0);
+}
+.ld-step{
+  display:flex;align-items:flex-start;gap:1rem;padding:.85rem 0;
+  position:relative;
+}
+.ld-step-num{
+  width:38px;height:38px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:.8rem;font-weight:900;z-index:1;border:2px solid #fff;
+}
+.ld-step-body{flex:1;padding-top:.45rem}
+.ld-step-title{font-size:.88rem;font-weight:800;color:#0f172a;margin-bottom:.15rem}
+.ld-step-desc{font-size:.78rem;color:var(--g500);line-height:1.5}
+
+/* ── CTA Bottom ── */
+.ld-cta{
+  width:100%;background:linear-gradient(135deg,#0f172a,#1e293b);
+  padding:2.75rem 1.5rem;display:flex;flex-direction:column;
+  align-items:center;text-align:center;gap:1rem;
+}
+.ld-cta-title{font-size:1.25rem;font-weight:900;color:#f8fafc;letter-spacing:-.03em}
+.ld-cta-sub{font-size:.85rem;color:#94a3b8}
+
+.ld-divider{height:1px;background:var(--g200);margin:0 1.5rem}
 .easter-zone{
   position:fixed;bottom:.85rem;right:1.1rem;
   color:rgba(150,150,160,.45);font-size:.7rem;
@@ -666,33 +858,251 @@ a{color:inherit;text-decoration:none}
 <body>
 
 <!-- ═══════════════════════════════════════════════════════ -->
+<!-- SCREEN: ADMIN HOME                                        -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div id="screen-admin-home" class="screen">
+  <div class="adh-card">
+    <!-- 헤더 -->
+    <div class="adh-header">
+      <div class="adh-badge">👑</div>
+      <div>
+        <div class="adh-title">관리자 홈</div>
+        <div class="adh-school" id="adh-school-name">학교명</div>
+      </div>
+    </div>
+
+    <!-- 통계 -->
+    <div class="adh-stats">
+      <div class="adh-stat">
+        <div class="adh-stat-num" id="adh-stat-classes">0</div>
+        <div class="adh-stat-lbl">전체 학급</div>
+      </div>
+      <div class="adh-stat">
+        <div class="adh-stat-num" id="adh-stat-rooms">0</div>
+        <div class="adh-stat-lbl">특별실</div>
+      </div>
+      <div class="adh-stat">
+        <div class="adh-stat-num" id="adh-stat-teachers">0</div>
+        <div class="adh-stat-lbl">교담 교사</div>
+      </div>
+    </div>
+
+    <!-- 메뉴 -->
+    <div class="adh-menu">
+      <button class="adh-btn primary" onclick="goToRoomSchedule()">
+        <div class="adh-btn-icon">🏛️</div>
+        <div class="adh-btn-text">
+          <div class="adh-btn-title">특별실 배정</div>
+          <div class="adh-btn-sub">학급별 특별실 사용 시간 배정 및 관리</div>
+        </div>
+        <span class="adh-btn-arrow">›</span>
+      </button>
+
+      <button class="adh-btn green" onclick="adhGoTimetable()">
+        <div class="adh-btn-icon">📅</div>
+        <div class="adh-btn-text">
+          <div class="adh-btn-title">시간표 보기</div>
+          <div class="adh-btn-sub">학급별 주간 시간표 확인 및 편집</div>
+        </div>
+        <span class="adh-btn-arrow">›</span>
+      </button>
+
+      <button class="adh-btn purple" onclick="adhGoSpecialty()">
+        <div class="adh-btn-icon">⭐</div>
+        <div class="adh-btn-text">
+          <div class="adh-btn-title">교담 시간표 입력</div>
+          <div class="adh-btn-sub">교과전담·협업 교사 수업 배정</div>
+        </div>
+        <span class="adh-btn-arrow">›</span>
+      </button>
+
+      <div class="adh-divider"></div>
+
+      <button class="adh-btn gray" onclick="goAdminSetup()">
+        <div class="adh-btn-icon">⚙️</div>
+        <div class="adh-btn-text">
+          <div class="adh-btn-title">기초 설정</div>
+          <div class="adh-btn-sub">학급 구성, 교시 시간, 교과목 등 변경</div>
+        </div>
+        <span class="adh-btn-arrow">›</span>
+      </button>
+    </div>
+
+    <!-- 푸터 -->
+    <div class="adh-footer">
+      <span class="adh-footer-info" id="adh-footer-date"></span>
+      <button class="btn btn-ghost btn-sm" onclick="logout()">로그아웃</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
 <!-- SCREEN 1: LANDING                                       -->
 <!-- ═══════════════════════════════════════════════════════ -->
 <div id="screen-landing" class="screen active">
-  <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:2rem;
-              background:linear-gradient(140deg,#1e3a8a 0%,#1d4ed8 35%,#2563eb 65%,#3b82f6 100%);
-              position:relative;overflow:hidden;">
-    <div style="position:absolute;top:-120px;right:-80px;width:380px;height:380px;background:rgba(255,255,255,.04);border-radius:50%"></div>
-    <div style="position:absolute;bottom:-80px;left:-60px;width:280px;height:280px;background:rgba(255,255,255,.03);border-radius:50%"></div>
-    <div class="landing-card">
-      <div class="logo-row">
-        <div class="logo-badge">📅</div>
-        <span class="logo-name">초등 반별 시간표 만들기</span>
-      </div>
-      <div class="logo-tagline">초등학교 선생님을 위한 실시간 협업 플랫폼</div>
-      <div class="landing-actions">
-        <button class="btn btn-primary btn-lg btn-block" onclick="goToJoin()">
-          🗓️ 반별 시간표 만들기
-        </button>
-        <button class="btn btn-outline btn-lg btn-block" onclick="goToCreate()">
-          ✨ 새 학교 만들기 <span class="badge badge-orange" style="font-size:.7rem">관리자</span>
-        </button>
-        <button class="btn btn-outline btn-lg btn-block" onclick="goToManage()">
-          ⚙️ 기존 학교 관리하기 <span class="badge badge-blue" style="font-size:.7rem">관리자</span>
-        </button>
-      </div>
+
+  <!-- ① 히어로 -->
+  <div class="ld-hero">
+    <div class="ld-hero-badge">📅 초등학교 선생님 전용</div>
+    <h1 class="ld-hero-title">시간표 만들기,<br><em>이제 쉽고 빠르게</em></h1>
+    <p class="ld-hero-sub">복잡한 엑셀 없이 클릭 몇 번으로 완성.<br>특별실 충돌·교시 중복을 프로그램이 자동으로 잡아줍니다.</p>
+    <div class="ld-hero-actions">
+      <button class="ld-btn-main" onclick="goToJoin()">
+        🗓️ 시간표 입력 시작하기
+      </button>
+      <button class="ld-btn-sub" onclick="goToCreate()">
+        ✨ 새 학교(그룹) 만들기
+        <span style="font-size:.7rem;padding:.1rem .4rem;background:rgba(245,158,11,.25);color:#fcd34d;border-radius:8px;font-weight:700">관리자</span>
+      </button>
+      <button class="ld-btn-sub" onclick="goToManage()">
+        ⚙️ 기존 학교 관리하기
+        <span style="font-size:.7rem;padding:.1rem .4rem;background:rgba(99,102,241,.25);color:#a5b4fc;border-radius:8px;font-weight:700">관리자</span>
+      </button>
+    </div>
+    <div class="ld-hero-scroll">
+      <span>더 알아보기</span>
+      <span style="font-size:1rem">↓</span>
     </div>
   </div>
+
+  <!-- ② 핵심 기능 -->
+  <div class="ld-section">
+    <div class="ld-section-label">핵심 기능</div>
+    <div class="ld-section-title">오류 없는 시간표,<br>프로그램이 지켜줍니다</div>
+    <div class="ld-section-desc">선생님은 배정에만 집중하세요. 충돌·중복·누락은 자동으로 감지됩니다.</div>
+    <div class="ld-features">
+
+      <div class="ld-feat">
+        <div class="ld-feat-icon" style="background:#ecfdf5;color:#059669">🛡️</div>
+        <div class="ld-feat-body">
+          <div class="ld-feat-title">자동 오류 방지</div>
+          <div class="ld-feat-desc">같은 시간에 두 특별실 동시 배정, 교시 수 초과, 학년별 교시 불일치 등을 실시간으로 경고합니다.</div>
+          <span class="ld-feat-tag" style="background:#ecfdf5;color:#059669">충돌 감지 · 시수 추적</span>
+        </div>
+      </div>
+
+      <div class="ld-feat">
+        <div class="ld-feat-icon" style="background:#fff7ed;color:#d97706">🏛️</div>
+        <div class="ld-feat-body">
+          <div class="ld-feat-title">특별실 배정</div>
+          <div class="ld-feat-desc">강당·과학실·컴퓨터실 등 학급별 사용 시간을 클릭이나 드래그로 배정. 랜덤 자동 배정도 지원합니다.</div>
+          <span class="ld-feat-tag" style="background:#fff7ed;color:#d97706">드래그 · 랜덤배정 · A/B주</span>
+        </div>
+      </div>
+
+      <div class="ld-feat">
+        <div class="ld-feat-icon" style="background:#f0f9ff;color:#0284c7">⭐</div>
+        <div class="ld-feat-body">
+          <div class="ld-feat-title">교과전담 연동</div>
+          <div class="ld-feat-desc">교과전담 교사가 배정한 시간이 담임 시간표에 자동 반영됩니다. 따로 입력할 필요 없습니다.</div>
+          <span class="ld-feat-tag" style="background:#f0f9ff;color:#0284c7">자동 반영 · 중복 방지</span>
+        </div>
+      </div>
+
+      <div class="ld-feat">
+        <div class="ld-feat-icon" style="background:#faf5ff;color:#7c3aed">📊</div>
+        <div class="ld-feat-body">
+          <div class="ld-feat-title">엑셀 한 번에 저장</div>
+          <div class="ld-feat-desc">모든 학급 시간표, 특별실 배정표, 교과전담 시간표를 엑셀 파일 하나로 내보냅니다.</div>
+          <span class="ld-feat-tag" style="background:#faf5ff;color:#7c3aed">전체 학급 일괄 저장</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="ld-divider"></div>
+
+  <!-- ③ 역할 안내 -->
+  <div class="ld-section">
+    <div class="ld-section-label">누가 사용하나요?</div>
+    <div class="ld-section-title">선생님 모두를 위한 도구</div>
+    <div class="ld-roles">
+
+      <div class="ld-role" style="background:#f0fdf4;border-color:#bbf7d0">
+        <div class="ld-role-icon">🏠</div>
+        <div class="ld-role-name" style="color:#15803d">담임 교사</div>
+        <div class="ld-role-desc" style="color:#166534">내 반 시간표<br>직접 입력</div>
+      </div>
+
+      <div class="ld-role" style="background:#fff7ed;border-color:#fed7aa">
+        <div class="ld-role-icon">⭐</div>
+        <div class="ld-role-name" style="color:#c2410c">교과전담</div>
+        <div class="ld-role-desc" style="color:#9a3412">담당 학급·교시<br>일괄 배정</div>
+      </div>
+
+      <div class="ld-role" style="background:#faf5ff;border-color:#e9d5ff">
+        <div class="ld-role-icon">👑</div>
+        <div class="ld-role-name" style="color:#6d28d9">관리자</div>
+        <div class="ld-role-desc" style="color:#5b21b6">특별실·교담<br>전체 관리</div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="ld-divider"></div>
+
+  <!-- ④ 사용 순서 -->
+  <div class="ld-section">
+    <div class="ld-section-label">사용 순서</div>
+    <div class="ld-section-title">처음이라면 이 순서로</div>
+    <div class="ld-steps">
+
+      <div class="ld-step">
+        <div class="ld-step-num" style="background:#0f172a;color:#fff">1</div>
+        <div class="ld-step-body">
+          <div class="ld-step-title">학교(그룹) 만들기 <span style="font-size:.7rem;padding:.1rem .45rem;background:#fef3c7;color:#d97706;border-radius:8px;font-weight:700;margin-left:.3rem">관리자</span></div>
+          <div class="ld-step-desc">학교 이름과 비밀번호를 설정합니다. 이 비밀번호로 모든 선생님이 접속합니다.</div>
+        </div>
+      </div>
+
+      <div class="ld-step">
+        <div class="ld-step-num" style="background:#6366f1;color:#fff">2</div>
+        <div class="ld-step-body">
+          <div class="ld-step-title">기초 설정 <span style="font-size:.7rem;padding:.1rem .45rem;background:#fef3c7;color:#d97706;border-radius:8px;font-weight:700;margin-left:.3rem">관리자</span></div>
+          <div class="ld-step-desc">학급 구성, 교시 시간, 교과전담 교사, 특별실 목록, 교과목·시수를 입력합니다.</div>
+        </div>
+      </div>
+
+      <div class="ld-step">
+        <div class="ld-step-num" style="background:#f59e0b;color:#fff">3</div>
+        <div class="ld-step-body">
+          <div class="ld-step-title">특별실 배정 <span style="font-size:.7rem;padding:.1rem .45rem;background:#fef3c7;color:#d97706;border-radius:8px;font-weight:700;margin-left:.3rem">관리자</span></div>
+          <div class="ld-step-desc">강당·과학실 등 특별실을 학급별로 배정합니다. 랜덤 배정으로 빠르게 완성할 수 있습니다.</div>
+        </div>
+      </div>
+
+      <div class="ld-step">
+        <div class="ld-step-num" style="background:#0ea5e9;color:#fff">4</div>
+        <div class="ld-step-body">
+          <div class="ld-step-title">교담 시간표 입력 <span style="font-size:.7rem;padding:.1rem .45rem;background:#dbeafe;color:#1d4ed8;border-radius:8px;font-weight:700;margin-left:.3rem">교과전담</span></div>
+          <div class="ld-step-desc">교과전담 교사가 담당 학년·과목의 수업 시간을 직접 배정합니다. 담임 시간표에 자동 반영됩니다.</div>
+        </div>
+      </div>
+
+      <div class="ld-step">
+        <div class="ld-step-num" style="background:#10b981;color:#fff">5</div>
+        <div class="ld-step-body">
+          <div class="ld-step-title">담임 시간표 입력 <span style="font-size:.7rem;padding:.1rem .45rem;background:#dcfce7;color:#15803d;border-radius:8px;font-weight:700;margin-left:.3rem">담임</span></div>
+          <div class="ld-step-desc">각 담임교사가 자기 반 시간표를 완성합니다. 교담 시간은 이미 고정되어 있습니다.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ⑤ 하단 CTA -->
+  <div class="ld-cta">
+    <div class="ld-cta-title">지금 바로 시작해보세요</div>
+    <div class="ld-cta-sub">설치 없이 브라우저에서 바로 사용할 수 있습니다</div>
+    <button class="ld-btn-main" style="max-width:280px;width:100%" onclick="goToJoin()">
+      🗓️ 시간표 입력 시작하기
+    </button>
+    <button class="ld-btn-sub" style="max-width:280px;width:100%;margin-top:-.1rem" onclick="goToCreate()">
+      ✨ 새 학교 만들기
+    </button>
+  </div>
+
 </div>
 
 <!-- 이스터에그: 화면 우측 하단 고정 (모든 화면에서 표시) -->
@@ -832,11 +1242,12 @@ a{color:inherit;text-decoration:none}
 <!-- ═══════════════════════════════════════════════════════ -->
 <div id="screen-setup" class="screen">
   <div class="page-header">
-    <div>
+    <button class="btn btn-ghost btn-sm" onclick="goToAdminHome()">← 관리자 홈</button>
+    <div style="flex:1">
       <div class="page-header-title">⚙️ 기초 설정</div>
       <div class="text-sm text-muted" id="setup-school-label">학교 이름</div>
     </div>
-    <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="logout()">로그아웃</button>
+    <button class="btn btn-ghost btn-sm" onclick="logout()">로그아웃</button>
   </div>
   <div class="page-body-wide">
     <div class="alert alert-success">
@@ -1040,6 +1451,7 @@ a{color:inherit;text-decoration:none}
 <!-- ═══════════════════════════════════════════════════════ -->
 <div id="screen-room-schedule" class="screen">
   <div class="page-header">
+    <button class="btn btn-ghost btn-sm" onclick="goToAdminHome()">← 관리자 홈</button>
     <button class="btn btn-ghost btn-sm" onclick="goAdminSetup()">⚙️ 기초 설정</button>
     <h1 class="page-header-title">🏛️ 특별실 배정</h1>
     <span style="flex:1"></span>
@@ -1147,6 +1559,7 @@ a{color:inherit;text-decoration:none}
       <button class="btn btn-ghost btn-sm" id="btn-clear-all" onclick="confirmClearAll()" style="display:none">🗑️ 초기화</button>
       <button class="btn btn-ghost btn-sm" onclick="exportAllToExcel()">📊 엑셀 저장</button>
       <button class="btn btn-ghost btn-sm" onclick="printTimetable()">🖨️ 인쇄</button>
+      <button class="btn btn-ghost btn-sm" id="btn-admin-home" onclick="goToAdminHome()" style="display:none">🏠 관리자 홈</button>
       <button class="btn btn-ghost btn-sm" id="btn-admin-setup" onclick="goAdminSetup()" style="display:none">⚙️ 설정</button>
       <button class="btn btn-ghost btn-sm" onclick="logout()">로그아웃</button>
     </div>
@@ -2567,9 +2980,7 @@ async function confirmManageAuth() {
   saveSession();
   toast(`${found.name} 관리자로 접속했습니다. 👑`, 'success');
   initTimetable();
-  q('#setup-school-label').textContent = S.school.name;
-  initSetup();
-  goTo('screen-setup');
+  goToAdminHome();
 }
 window.confirmManageAuth = confirmManageAuth;
 
@@ -3597,8 +4008,8 @@ window.saveTabRooms = saveTabRooms;
 async function saveTabSubjects() {
   if (!S.school) return;
   await saveSchool(S.school);
-  toast('기초 설정 완료 ✔ 특별실 배정 화면으로 이동합니다 🎉', 'success');
-  setTimeout(() => goToRoomSchedule(), 800);
+  toast('기초 설정 완료 ✔ 관리자 홈으로 이동합니다 🎉', 'success');
+  setTimeout(() => goToAdminHome(), 800);
 }
 window.saveTabSubjects = saveTabSubjects;
 
@@ -3606,7 +4017,7 @@ async function saveSetup() {
   await saveSchool(S.school);
   toast('설정 저장 완료 ✔', 'success');
   initTimetable();
-  goToRoomSchedule();
+  goToAdminHome();
 }
 window.saveSetup = saveSetup;
 
@@ -3850,7 +4261,7 @@ async function joinSchool() {
   toast(`${joinSchoolRef.name}에 접속했습니다. 👋`, 'success');
 
   if (isAdmin) {
-    initTimetable(); goToRoomSchedule();
+    initTimetable(); goToAdminHome();
   } else if (isSp || isTt) {
     goToSpecialtyScreen();
   } else {
@@ -3874,6 +4285,7 @@ function initTimetable() {
   q('#tt-user-chip').textContent = roleLabel;
 
   const isAdmin = user.role==='admin';
+  q('#btn-admin-home').style.display     = isAdmin ? 'flex' : 'none';
   q('#btn-admin-setup').style.display    = isAdmin ? 'flex' : 'none';
   q('#btn-clear-all').style.display      = isAdmin ? 'flex' : 'none';
   q('#btn-room-schedule').style.display  = isAdmin ? 'flex' : 'none';
@@ -5590,13 +6002,65 @@ document.addEventListener('keydown', e => {
   }
 });
 
+
+/* ===========================================================
+   ADMIN HOME SCREEN
+   =========================================================== */
+function goToAdminHome() {
+  if (!S.school || !S.user) return;
+  const school = S.school;
+
+  // 통계 업데이트
+  const classes  = school.classes || [];
+  const rooms    = school.specialRooms || [];
+  const teachers = school.specialtyTeachers || [];
+
+  const el = id => document.getElementById(id);
+  if (el('adh-school-name')) el('adh-school-name').textContent = school.name;
+  if (el('adh-stat-classes')) el('adh-stat-classes').textContent = classes.length;
+  if (el('adh-stat-rooms'))   el('adh-stat-rooms').textContent   = rooms.length;
+  if (el('adh-stat-teachers')) el('adh-stat-teachers').textContent = teachers.length;
+
+  // 날짜 표시
+  const dateEl = el('adh-footer-date');
+  if (dateEl) {
+    const now = new Date();
+    dateEl.textContent = now.toLocaleDateString('ko-KR', { year:'numeric', month:'long', day:'numeric', weekday:'short' });
+  }
+
+  goTo('screen-admin-home');
+}
+window.goToAdminHome = goToAdminHome;
+
+function adhGoTimetable() {
+  initTimetable();
+  goTo('screen-timetable');
+}
+window.adhGoTimetable = adhGoTimetable;
+
+function adhGoSpecialty() {
+  // 교담 교사가 있으면 선택 모달, 없으면 안내
+  const spTeachers  = S.school?.specialtyTeachers || [];
+  const collabTypes = S.school?.teacherTypes?.filter(t => !t.builtin && t.mode === 'collaborative') || [];
+  const all = [...spTeachers, ...collabTypes];
+  if (!all.length) {
+    toast('등록된 교담·협업 교사가 없습니다. 기초 설정에서 먼저 추가해 주세요.', 'warn');
+    return;
+  }
+  goFromRoomSchedule();
+}
+window.adhGoSpecialty = adhGoSpecialty;
+
 /* ===========================================================
    INIT
    =========================================================== */
 (function init() {
   if (loadSession()) {
-    if (S.user?.role === 'specialty') {
+    if (S.user?.role === 'specialty' || S.user?.role === 'collaborative') {
       goToSpecialtyScreen();
+    } else if (S.user?.role === 'admin') {
+      initTimetable();
+      goToAdminHome();
     } else {
       initTimetable();
       goTo('screen-timetable');
