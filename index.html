@@ -1410,6 +1410,7 @@ a{color:inherit;text-decoration:none}
           </div>
         </div>
         <div id="period-times-list"></div>
+        <div id="daily-periods-wrap" style="display:none"></div>
       </div>
 
       <div class="tab-save-bar">
@@ -2036,6 +2037,67 @@ function getScheduleRows() {
   return rows;
 }
 
+/* ===========================================================
+   요일별 최대 교시 수 (dailyPeriods)
+   저장: school.dailyPeriods[grade][day] = maxPeriod
+   없으면 제한 없음(해당 학년의 총 교시 수 = getPeriodTimes(grade).length)
+   =========================================================== */
+
+const DAYS_KO = ['월','화','수','목','금'];
+
+/** 학년별 요일별 교시 수 기본값 (2022 개정 기준) */
+const DEFAULT_DAILY_PERIODS = {
+  1: { 월:5, 화:5, 수:4, 목:5, 금:4 },
+  2: { 월:5, 화:5, 수:4, 목:5, 금:4 },
+  3: { 월:6, 화:5, 수:5, 목:5, 금:5 },
+  4: { 월:6, 화:5, 수:5, 목:5, 금:5 },
+  5: { 월:6, 화:6, 수:6, 목:6, 금:5 },
+  6: { 월:6, 화:6, 수:6, 목:6, 금:5 },
+};
+
+/** grade+day 조합의 최대 교시 수 반환.
+ *  설정이 없으면 getPeriodTimes(grade).length 반환 (기존 동작 유지) */
+function getDailyMaxPeriod(grade, day) {
+  const dp = S.school?.dailyPeriods;
+  // 1순위: 학교에 저장된 커스텀 값
+  // JSON 저장/복원 시 키가 문자열('1')로 변환되므로 숫자·문자열 모두 검사
+  const g = grade;
+  const gradeVal = dp?.[g]?.[day] ?? dp?.[String(g)]?.[day];
+  if (gradeVal != null) return gradeVal;
+  // 2순위: 기본값 상수
+  if (DEFAULT_DAILY_PERIODS[g]?.[day] != null) return DEFAULT_DAILY_PERIODS[g][day];
+  // 3순위: 제한 없음 (총 교시 수)
+  return getPeriodTimes(grade).length;
+}
+
+/** 특정 (grade, day, periodNum) 조합이 배정 가능한지 반환 */
+function isDayPeriodAllowed(grade, day, periodNum) {
+  return periodNum <= getDailyMaxPeriod(grade, day);
+}
+
+/** 학교 전체 dailyPeriods 초기화 보장
+ *  school.dailyPeriods가 없으면 DEFAULT_DAILY_PERIODS로 초기화
+ *  Firebase/JSON 복원 시 키가 문자열로 변환될 수 있으므로 숫자 키로 정규화 */
+function ensureDailyPeriods() {
+  if (!S.school) return;
+  if (!S.school.dailyPeriods) {
+    S.school.dailyPeriods = {};
+    [1,2,3,4,5,6].forEach(g => {
+      S.school.dailyPeriods[g] = { ...DEFAULT_DAILY_PERIODS[g] };
+    });
+    return;
+  }
+  // 문자열 키('1','2'...) → 숫자 키(1,2...)로 정규화
+  const dp = S.school.dailyPeriods;
+  [1,2,3,4,5,6].forEach(g => {
+    if (dp[String(g)] && !dp[g]) {
+      dp[g] = dp[String(g)];
+      delete dp[String(g)];
+    }
+    if (!dp[g]) dp[g] = { ...DEFAULT_DAILY_PERIODS[g] };
+  });
+}
+
 /* 학년 그룹 접미사: 12:30처럼 여러 학년 그룹이 공유하는 시간대에서
  * 학년별로 독립된 storageKey를 만들기 위해 사용.
  * grades가 전체(1~6)이면 접미사 없음, 일부 그룹이면 "|g12" 등 반환 */
@@ -2656,7 +2718,12 @@ function renderSpecialtyGrid() {
           : '';
 
         let inner;
-        if (cls) {
+        if (rsBlocked && !cls) {
+          // 요일별 교시 수 초과 — 비활성 셀
+          inner = `<div class="rs-ci" style="background:var(--g100);border:1.5px dashed var(--g300);cursor:not-allowed;opacity:.4">
+            <span style="font-size:.6rem;color:var(--g400)">—</span>
+          </div>`;
+        } else if (cls) {
           inner = `<div class="sp-ci" style="background:${hexAlpha(clrG,.12)};color:${clrG};border:1.5px solid ${hexAlpha(clrG,.35)};cursor:grab;pointer-events:none">${escHtml(cls.name)}</div>`;
         } else if (otherSubj && otherCls) {
           inner = `<div class="sp-ci" style="background:var(--g50);color:var(--g400);border:1.5px dashed var(--g200);font-size:.7rem;pointer-events:none">${escHtml(otherCls.name)}<br><span style="font-size:.65rem;opacity:.7">${escHtml(otherSubj)}</span></div>`;
@@ -3141,7 +3208,10 @@ function runSpRandomAssign(subject, eligible, countPerClass = 1) {
       : new Set();
 
     const prioritySlots = [...allSlotsList]
-      .filter(s => roomKeys.has(s.key) && !schedule[s.key])
+      .filter(s => roomKeys.has(s.key) && !schedule[s.key] && (() => {
+        const [sDay, sPStr] = s.key.split('-');
+        return !cls.grade || isDayPeriodAllowed(cls.grade, sDay, parseInt(sPStr));
+      })())
       .sort(() => Math.random() - .5);
 
     for (const s of prioritySlots) {
@@ -3159,7 +3229,10 @@ function runSpRandomAssign(subject, eligible, countPerClass = 1) {
     // ── 2순위: 일반 슬롯으로 나머지 채우기 ─────────────────────
     if (classAssigned < countPerClass) {
       const fallback = [...allSlotsList]
-        .filter(s => !roomKeys.has(s.key) && !schedule[s.key])
+        .filter(s => !roomKeys.has(s.key) && !schedule[s.key] && (() => {
+          const [fDay, fPStr] = s.key.split('-');
+          return !cls.grade || isDayPeriodAllowed(cls.grade, fDay, parseInt(fPStr));
+        })())
         .sort(() => Math.random() - .5);
 
       for (const s of fallback) {
@@ -3391,6 +3464,7 @@ async function createSchool() {
       subjectsByGrade: sbg,
       subjects:     [],
       specialRooms: DEFAULT_ROOMS.map((r,i) => ({id:'rm'+i, name:r})),
+      dailyPeriods: Object.fromEntries([1,2,3,4,5,6].map(g => [g, {...DEFAULT_DAILY_PERIODS[g]}])),
       classes:      [],
       gradeConfig:  [4,4,4,4,4,4],
       periodTimes: {
@@ -3664,7 +3738,88 @@ function renderPeriodTimesList() {
         ℹ️ <strong>${grpName} 그룹 기본값</strong> 표시 중. 수정하면 ${timesGrade}학년 전용으로 저장됩니다.
       </div>`);
   }
+
+  // 요일별 최대 교시 수 UI (학년 탭이 선택된 경우만 표시)
+  renderDailyPeriodsUI(timesGrade, times.length);
 }
+
+function renderDailyPeriodsUI(grade, totalPeriods) {
+  const container = q('#daily-periods-wrap');
+  if (!container) return;
+  if (!grade || grade === 0) { container.style.display = 'none'; return; }
+
+  container.style.display = 'block';
+  const dp       = S.school?.dailyPeriods?.[grade] || {};
+  const defDp    = DEFAULT_DAILY_PERIODS[grade] || {};
+  const days     = DAYS_KO;
+
+  container.innerHTML = `
+    <div style="margin-top:1.2rem;padding:1rem;background:#f8fafc;border-radius:var(--r-lg);border:1px solid var(--g200)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.65rem;gap:.5rem;flex-wrap:wrap">
+        <div style="font-size:.83rem;font-weight:800;color:var(--g700)">
+          📅 요일별 교시 수
+        </div>
+        <button class="btn btn-ghost btn-sm" style="font-size:.72rem"
+          onclick="resetDailyPeriods(${grade})">🔄 기본값으로 초기화</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:.5rem">
+        ${days.map(day => {
+          const saved   = dp[day] != null ? dp[day] : null;
+          const defVal  = defDp[day] != null ? defDp[day] : totalPeriods;
+          const val     = saved != null ? saved : defVal;
+          const isCustom = saved != null && saved !== defVal;
+          return `
+            <div style="text-align:center">
+              <div style="font-size:.75rem;font-weight:700;color:var(--g500);margin-bottom:.3rem">${day}요일</div>
+              <input type="number" min="1" max="${totalPeriods}"
+                value="${val}"
+                id="dp-${grade}-${day}"
+                style="width:100%;padding:.4rem .3rem;
+                       border:1.5px solid ${isCustom ? 'var(--brand)' : 'var(--g300)'};
+                       border-radius:var(--r-md);
+                       background:${isCustom ? 'var(--brand-50)' : '#fff'};
+                       font-size:.9rem;font-weight:700;text-align:center;font-family:inherit"
+                onchange="updateDailyPeriod(${grade},'${day}',this.value,${totalPeriods})">
+              <div style="font-size:.65rem;color:var(--g400);margin-top:.15rem">기본 ${defVal}교시</div>
+            </div>`;
+        }).join('')}
+      </div>
+      <div style="margin-top:.55rem;font-size:.73rem;color:var(--g400)">
+        💡 수정된 값은 파란 테두리로 표시됩니다. 해당 교시를 초과하는 칸은 자동으로 비활성화됩니다.
+      </div>
+    </div>`;
+}
+
+function resetDailyPeriods(grade) {
+  ensureDailyPeriods();
+  S.school.dailyPeriods[grade] = { ...DEFAULT_DAILY_PERIODS[grade] };
+  const times = getPeriodTimes(grade);
+  renderDailyPeriodsUI(grade, times.length);
+  toast(`${grade}학년 요일별 교시 수를 기본값으로 초기화했습니다.`, 'success');
+}
+window.resetDailyPeriods = resetDailyPeriods;
+
+function updateDailyPeriod(grade, day, val, totalPeriods) {
+  ensureDailyPeriods();
+  if (!S.school.dailyPeriods[grade]) S.school.dailyPeriods[grade] = {};
+  const num    = parseInt(val);
+  const defVal = DEFAULT_DAILY_PERIODS[grade]?.[day];
+  if (!val || isNaN(num)) {
+    // 비워두면 기본값으로 복원
+    delete S.school.dailyPeriods[grade][day];
+  } else {
+    S.school.dailyPeriods[grade][day] = Math.max(1, Math.min(num, totalPeriods));
+  }
+  // 입력 테두리 색상 즉시 업데이트
+  const inp = q(`#dp-${grade}-${day}`);
+  if (inp) {
+    const isCustom = S.school.dailyPeriods[grade]?.[day] != null &&
+                     S.school.dailyPeriods[grade][day] !== defVal;
+    inp.style.border = `1.5px solid ${isCustom ? 'var(--brand)' : 'var(--g300)'}`;
+    inp.style.background = isCustom ? 'var(--brand-50)' : '#fff';
+  }
+}
+window.updateDailyPeriod = updateDailyPeriod;
 
 function addPeriodTime() {
   ensurePeriodTimes();
@@ -4307,6 +4462,7 @@ window.saveTabClasses = saveTabClasses;
 
 async function saveTabTimes() {
   if (!S.school) return;
+  ensureDailyPeriods();
   await saveSchool(S.school);
 
   // 교시 시간 저장 후 → 특별실 배정 그리드 미리보기 정보 계산
@@ -4804,6 +4960,9 @@ function renderGrid() {
       <td class="period-cell">${periodLabel(p, ptimes)}</td>
       ${DAYS.map(day => {
         const key        = `${day}-${p}`;
+        // 요일별 최대 교시 수 초과 여부 확인
+        const grade      = getCurrentClassGrade();
+        const dayBlocked = grade && !isDayPeriodAllowed(grade, day, p);
         const cell       = S.ttData[key];
         const roomAssign = getRoomAssignmentForKey(key);
         const spSubject  = spAssign[key];
@@ -4867,6 +5026,14 @@ function renderGrid() {
                 <span class="cell-subj" style="color:${color}">${escHtml(cell.subject)}</span>
                 ${cell.specialRoom?`<span class="cell-room" style="color:${color}">📍${escHtml(cell.specialRoom)}</span>`:''}
                 ${(collabMap[key]||[]).map(n=>`<span class="cell-room" style="color:#7c3aed;font-size:.62rem">🤝${escHtml(n)}</span>`).join('')}
+              </div>
+            </td>`;
+        } else if (dayBlocked) {
+          // 요일별 교시 수 초과 — 비활성화 셀
+          return `
+            <td class="tt-cell" data-key="${key}" style="background:var(--g50)">
+              <div class="cell-inner" style="background:var(--g100);border:1.5px dashed var(--g300);cursor:not-allowed;opacity:.45">
+                <span style="font-size:.62rem;color:var(--g400)">—</span>
               </div>
             </td>`;
         } else {
@@ -5033,6 +5200,13 @@ function renderTracker() {
    =========================================================== */
 function onCellClick(key) {
   if (!S.user || !S.classId) return;
+  // 요일별 교시 수 초과 셀 클릭 차단
+  const [clickDay, clickPStr] = key.split('-');
+  const clickGrade = getCurrentClassGrade();
+  if (clickGrade && !isDayPeriodAllowed(clickGrade, clickDay, parseInt(clickPStr))) {
+    toast(`${clickDay}요일 ${clickPStr}교시는 이 학년의 수업이 없는 시간입니다.`, 'warn');
+    return;
+  }
   const cell       = S.ttData[key];
   const roomAssign = getRoomAssignmentForKey(key);
   const spSubject  = getSpecialtyAssignmentsForClass(S.classId)[key];
@@ -5540,6 +5714,11 @@ function renderRoomSchedule() {
         // 이 행이 허용하는 학년에 속하지 않는 반이 배정돼 있으면 경고 표시
         const wrongGrade = cls && allowedGrades.size > 0 && cls.grade && !allowedGrades.has(cls.grade);
 
+        // 요일별 교시 수 제한: allowedGrades의 모든 학년이 이 요일/교시에 수업 없으면 비활성화
+        const rsBlocked = allowedGrades.size > 0
+          ? [...allowedGrades].every(g => !isDayPeriodAllowed(g, day, periodNum))
+          : false;
+
         let inner;
         if (cls) {
           const bg  = wrongGrade ? '#fef2f2' : gc.bg;
@@ -5872,6 +6051,15 @@ function runRandomAssign() {
     // ② 학년 필터
     if (slotGrades && cls.grade && !slotGrades.has(cls.grade)) return false;
 
+    // ② -2 요일별 교시 수 제한 체크
+    if (cls.grade) {
+      const cDay     = storageKey.split('-')[0];
+      const slotSt   = timeKey.substring(timeKey.indexOf('-') + 1);
+      const pTimesC  = getPeriodTimes(cls.grade);
+      const pIdxC    = pTimesC.findIndex(t => t.start === slotSt);
+      if (pIdxC >= 0 && !isDayPeriodAllowed(cls.grade, cDay, pIdxC + 1)) return false;
+    }
+
     // ③ 동시간 중복: 모든 특별실에서 같은 timeKey(시간대)에 이 반이 없어야 함
     //   storageKey는 학년 그룹별로 다르지만, 실제 시간은 동일하므로
     //   timeKey prefix로 비교 (예: "월-12:30|g12"와 "월-12:30|g34"는 같은 시간)
@@ -6040,6 +6228,23 @@ async function saveRoomSchedule() {
 window.saveRoomSchedule = saveRoomSchedule;
 
 function openRsModal(roomId, roomName, key) {
+  // 요일별 교시 수 제한 체크
+  const rsDay      = key.split('-')[0];
+  const allowedStr = document.querySelector(`[data-rskey="${key}"][data-roomid="${roomId}"]`)
+                       ?.dataset?.allowedGrades || '';
+  if (allowedStr) {
+    const grades = allowedStr.split(',').map(Number).filter(Boolean);
+    const rsTk   = stripGradeSuffix(key);
+    const rsStart = rsTk.substring(rsTk.indexOf('-') + 1);
+    if (grades.length > 0) {
+      const pTimesG = getPeriodTimes(grades[0]);
+      const pIdxG   = pTimesG.findIndex(t => t.start === rsStart);
+      if (pIdxG >= 0 && grades.every(g => !isDayPeriodAllowed(g, rsDay, pIdxG + 1))) {
+        toast(`${rsDay}요일은 이 학년의 수업이 없는 시간입니다.`, 'warn');
+        return;
+      }
+    }
+  }
   rsCurrent = { roomId, roomName, key };
   const day       = key.split('-')[0];
   const timeKey   = stripGradeSuffix(key);  // "|g.." 제거
