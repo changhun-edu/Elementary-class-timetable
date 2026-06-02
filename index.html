@@ -4993,7 +4993,13 @@ function renderSubjectPalette() {
 }
 
 function countSubj(name) {
-  return Object.values(S.ttData).filter(c=>c&&c.subject===name).length;
+  // 담임이 직접 배정한 시수
+  const direct = Object.values(S.ttData).filter(c => c && c.subject === name).length;
+  // 교담이 배정한 시수 (specialtySchedule에서 현재 학급에 배정된 해당 과목)
+  const spCount = S.classId
+    ? Object.values(getSpecialtyAssignmentsForClass(S.classId)).filter(subj => subj === name).length
+    : 0;
+  return direct + spCount;
 }
 
 /* ===========================================================
@@ -5003,8 +5009,15 @@ function renderTracker() {
   // special:true 과목(방과후·맞춤형)은 시수 계산에서 제외
   const subjects    = getSubjectsForCurrentClass().filter(s => !s.special);
   const specialSubj = getSubjectsForCurrentClass().filter(s => !!s.special);
-  const total    = subjects.reduce((a,s)=>a+s.weeklyHours, 0);
-  const used     = Object.values(S.ttData).filter(c=>c?.subject && !getSubjectsForCurrentClass().find(s=>s.name===c.subject&&s.special)).length;
+  const total = subjects.reduce((a, s) => a + s.weeklyHours, 0);
+  // 교담 시수 포함 전체 사용 시수
+  const spAssign = S.classId ? getSpecialtyAssignmentsForClass(S.classId) : {};
+  const spUsed   = Object.values(spAssign).filter(subj => {
+    const s = getSubjectsForCurrentClass().find(x => x.name === subj);
+    return s && !s.special;
+  }).length;
+  const directUsed = Object.values(S.ttData).filter(c => c?.subject && !getSubjectsForCurrentClass().find(s => s.name === c.subject && s.special)).length;
+  const used = directUsed + spUsed;
 
   const hdr = q('.tracker-head');
   if (hdr) hdr.textContent = `📊 시수 현황 (${used}/${total}h)`;
@@ -5170,12 +5183,19 @@ async function runTtRandomAssign() {
   const newData = keepExisting ? { ...S.ttData } : {};
 
   // 남은 시수 계산 (채워야 할 과목별 횟수)
+  // 교담이 이미 담당한 시수도 차감해야 중복 배정 방지
+  const spSubjCounts = {};
+  Object.values(spAssign).forEach(subj => {
+    spSubjCounts[subj] = (spSubjCounts[subj] || 0) + 1;
+  });
+
   const needed = {};
   subjects.forEach(s => {
-    const already = keepExisting
+    const alreadyDirect = keepExisting
       ? Object.entries(newData).filter(([k, v]) => v?.subject === s.name && !spAssign[k]).length
       : 0;
-    const rem = s.weeklyHours - already;
+    const alreadySp = spSubjCounts[s.name] || 0;
+    const rem = s.weeklyHours - alreadyDirect - alreadySp;
     if (rem > 0) needed[s.name] = rem;
   });
 
