@@ -5638,11 +5638,17 @@ function goFromRoomSchedule() {
   // 교담/협업 교사 선택 모달 열기
   const el = q('#specialty-nav-list');
   if (el) {
-    el.innerHTML = allTeachers.map(t => `
-      <button class="btn btn-outline btn-block" style="margin-bottom:.4rem;text-align:left"
-              onclick="goToSpecialtyAs('${t.id}','${escHtml(t.label)}','${t.type}')">
-        ${t.type === 'specialty' ? '🎓' : '🤝'} ${escHtml(t.label)}
-      </button>`).join('');
+    // innerHTML onclick은 일부 환경에서 실행 안 될 수 있으므로
+    // DOM 직접 생성 + addEventListener 방식 사용
+    el.innerHTML = '';
+    allTeachers.forEach(t => {
+      const btn = document.createElement('button');
+      btn.className = 'btn btn-outline btn-block';
+      btn.style.cssText = 'margin-bottom:.4rem;text-align:left;display:flex;align-items:center;gap:.5rem';
+      btn.textContent = (t.type === 'specialty' ? '🎓 ' : '🤝 ') + t.label;
+      btn.addEventListener('click', () => goToSpecialtyAs(t.id, t.label, t.type));
+      el.appendChild(btn);
+    });
   }
   openModal('modal-specialty-nav');
 }
