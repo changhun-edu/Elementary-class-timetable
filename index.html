@@ -1173,11 +1173,12 @@ a{color:inherit;text-decoration:none}
           <div id="join-subject-err" class="form-error">⚠️ 교과목을 1개 이상 선택해주세요.</div>
         </div>
         <div class="form-group" id="join-class-group">
-          <label class="form-label">담당 학급 <span class="text-muted text-sm">(선택)</span></label>
-          <select id="join-class" class="form-select">
+          <label class="form-label">담당 학급 <span class="badge badge-red text-sm" style="background:#fee2e2;color:#dc2626;padding:1px 6px;border-radius:8px;font-size:.72rem;font-weight:700">필수</span></label>
+          <select id="join-class" class="form-select" onchange="q('#join-class-err').style.display='none'">
             <option value="">-- 학급을 선택하세요 --</option>
           </select>
-          <div class="form-hint">📌 교과전담교사이거나 전체 학급 담당이면 선택하지 않아도 됩니다.</div>
+          <div id="join-class-err" class="form-error" style="display:none">⚠️ 담당 학급을 선택해주세요.</div>
+          <div class="form-hint" id="join-class-hint">📌 교과전담교사이거나 전체 학급 담당이면 선택하지 않아도 됩니다.</div>
         </div>
         <div class="form-group">
           <label class="form-label">학교 비밀번호 <span id="join-pw-label-hint" class="text-muted text-sm"></span></label>
@@ -4769,6 +4770,17 @@ function onJoinRoleChange() {
     hintEl.textContent = isAdmin ? '(관리자 비밀번호)' : '(교사 비밀번호)';
   }
 
+  // 학급 선택: 담임은 필수, 교담은 선택
+  const classHintEl = q('#join-class-hint');
+  if (classHintEl) {
+    classHintEl.textContent = isHomeroom
+      ? '📌 담임교사는 담당 학급을 반드시 선택해주세요.'
+      : '📌 교과전담교사이거나 전체 학급 담당이면 선택하지 않아도 됩니다.';
+  }
+  // 에러 메시지 초기화
+  const clsErrEl = q('#join-class-err');
+  if (clsErrEl) clsErrEl.style.display = 'none';
+
   // 협업 안내
   let hint = q('#join-collab-hint');
   if (!hint) {
@@ -4861,6 +4873,13 @@ async function joinSchool() {
   if (pw !== correctPw) { err.style.display = 'block'; return; }
 
   const clsId = q('#join-class').value;
+  // 담임 교사는 학급 선택 필수
+  if (isHomeroom && !clsId) {
+    const clsErr = q('#join-class-err');
+    if (clsErr) clsErr.style.display = 'block';
+    toast('담당 학급을 선택해주세요.', 'error'); return;
+  }
+  if (clsId) { const clsErrEl = q('#join-class-err'); if (clsErrEl) clsErrEl.style.display = 'none'; }
   const cls   = joinSchoolRef.classes?.find(c => c.id === clsId);
 
   // 역할 결정
@@ -4918,7 +4937,7 @@ function initTimetable() {
   q('#btn-admin-home').style.display     = isAdmin ? 'flex' : 'none';
   q('#btn-admin-sp').style.display       = isAdmin ? 'flex' : 'none';
   q('#btn-admin-setup').style.display    = isAdmin ? 'flex' : 'none';
-  q('#btn-clear-all').style.display      = isAdmin ? 'flex' : 'none';
+  q('#btn-clear-all').style.display      = 'none'; // btn-clear-tt로 통합
   q('#btn-room-schedule').style.display  = isAdmin ? 'flex' : 'none';
   // 랜덤 배정 / 초기화: 관리자 또는 담임 교사(classId가 있는 경우) 모두 사용 가능
   const showForTeacher = isAdmin || !!S.classId;
@@ -4934,7 +4953,8 @@ function initTimetable() {
     ['btn-admin-setup',   () => goAdminSetup()],
     ['btn-room-schedule', () => goToRoomSchedule()],
     ['btn-clear-all',     () => confirmClearAll()],
-    ['btn-clear-tt',      () => confirmClearCurrentClass()],
+    ['btn-clear-tt',      () => isAdmin ? confirmClearAll() : confirmClearCurrentClass()],
+    ['btn-tt-random',     () => openTtRandomModal()],
   ].forEach(([id, handler]) => {
     const el = q(`#${id}`);
     if (!el) return;
