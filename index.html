@@ -524,6 +524,25 @@ a{color:inherit;text-decoration:none}
 .cell-teacher{font-size:.68rem;opacity:.7;text-align:center;line-height:1.2}
 .cell-room{font-size:.65rem;opacity:.6;text-align:center;line-height:1.2}
 
+/* 특별실 뱃지 하단 바 — flex 세로 레이아웃으로 과목명과 절대 겹치지 않음 */
+.cell-inner.has-room-badge {
+  justify-content:space-between;
+  padding-bottom:0;
+}
+.cell-subj-wrap {
+  flex:1;display:flex;align-items:center;justify-content:center;
+  padding:2px 4px;min-height:0;overflow:hidden;width:100%;
+}
+.cell-room-bar {
+  width:100%;
+  display:flex;align-items:center;justify-content:center;gap:3px;
+  padding:3px 6px;
+  font-size:.74rem;font-weight:800;
+  border-radius:0 0 5px 5px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  flex-shrink:0;
+}
+
 /* Tracker */
 .tt-tracker{
   width:196px;background:#fff;border-left:1px solid var(--g200);
@@ -4885,7 +4904,9 @@ function initTimetable() {
   const { school, user } = S;
 
   q('#tt-school-name').textContent  = school.name;
-  const roleLabel = user.role === 'admin' ? '👑 관리자'
+  // originalRole 포함: 관리자가 교담 화면을 거쳐 왔을 때도 관리자로 표시
+  const isAdminUser = user.role === 'admin' || user.originalRole === 'admin';
+  const roleLabel = isAdminUser ? '👑 관리자'
     : user.role === 'specialty' ? '⭐ 교과전담교사'
     : user.className ? `🏠 ${user.className}`
     : '🏠 담임교사';
@@ -5097,45 +5118,45 @@ function renderGrid() {
           const color      = getSubjColor(spSubject);
           const teacherLbl = getTeacherLabelForSubject(spSubject);
           const collabs    = collabMap[key] || [];
-          const collabBadge = collabs.map(n =>
-            `<span class="cell-room" style="color:#7c3aed;font-size:.62rem">🤝${escHtml(n)}</span>`
-          ).join('');
-          // 상단 바: 교담 교사명 표시 (보라 계열 고정 색)
-          const barBg   = '#7c3aed';
-          const barText = '#fff';
-          const topBar  = `<div class="sp-top-bar" style="background:${barBg};color:${barText}">⭐ ${escHtml(teacherLbl||'교담')}</div>`;
+          // 교담 상단 바 (보라)
+          const topBar = `<div class="sp-top-bar" style="background:#7c3aed;color:#fff">⭐ ${escHtml(teacherLbl||'교담')}</div>`;
+          // 협업강사 하단 바 (청록) — 있을 때만 표시
+          const collabBar = collabs.length
+            ? `<div class="sp-top-bar" style="background:#0891b2;color:#fff;border-radius:0 0 4px 4px;margin-top:2px">🤝 ${collabs.map(n=>escHtml(n)).join(' · ')}</div>`
+            : '';
           return `
             <td class="tt-cell" data-key="${key}">
               <div class="cell-inner filled specialty-cell locked"
                    style="background:${hexAlpha(color,.1)};border:1.5px solid ${hexAlpha(color,.3)};">
                 ${topBar}
                 <span class="cell-subj" style="color:${color}">${escHtml(spSubject)}</span>
-                ${collabBadge}
+                ${collabBar}
               </div>
             </td>`;
         } else if (roomAssign) {
-          // ── 특별실 배정 칸: 교담처럼 과목 배경색 + 우하단 특별실 뱃지
-          const rc       = getRoomColor(roomAssign.roomName);
-          const canDrag  = !isLocked && !!cell?.subject;
+          // ── 특별실 배정 칸: flex 세로 분리 — 과목(상단 flex) + 특별실 바(하단 고정)
+          const rc        = getRoomColor(roomAssign.roomName);
+          const canDrag   = !isLocked && !!cell?.subject;
           const subjColor = cell?.subject ? getSubjColor(cell.subject) : null;
           const bg        = subjColor ? hexAlpha(subjColor, .11) : 'transparent';
           const border    = subjColor ? hexAlpha(subjColor, .35) : 'var(--g200)';
-          const subjSpan  = cell?.subject
+          const subjInner = cell?.subject
             ? `<span class="cell-subj" style="color:${subjColor}">${escHtml(cell.subject)}</span>`
             : `<span style="font-size:.82rem;color:var(--g300)">+</span>`;
-          const roomBadgeTt = `<span style="position:absolute;bottom:4px;right:4px;font-size:.78rem;font-weight:800;color:${rc.text};background:${rc.bg};border:1.5px solid ${rc.border};border-radius:6px;padding:2px 6px;pointer-events:none;line-height:1.4;max-width:calc(100% - 8px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${rc.icon} ${escHtml(roomAssign.roomName)}</span>`;
+          const subjWrap = `<div class="cell-subj-wrap">${subjInner}</div>`;
+          const roomBar  = `<div class="cell-room-bar" style="background:${rc.bg};color:${rc.text};border-top:1px solid ${rc.border}">${rc.icon} ${escHtml(roomAssign.roomName)}</div>`;
           return `
             <td class="tt-cell" data-key="${key}"
                 ondragover="onDragOver(event,'${key}',this)"
                 ondragleave="onDragLeave(event,this)"
                 ondrop="onDrop(event,'${key}',this)">
-              <div class="cell-inner ${cell?.subject?'filled':''} room-cell ${isLocked?'locked':''}"
-                   style="background:${bg};border:1.5px solid ${border};position:relative;"
+              <div class="cell-inner has-room-badge ${cell?.subject?'filled':''} room-cell ${isLocked?'locked':''}"
+                   style="background:${bg};border:1.5px solid ${border};"
                    draggable="${canDrag}"
                    ${canDrag?`ondragstart="onCellDragStart(event,'${key}')" ondragend="onDragEnd(event)"` : ''}
                    onclick="onCellClick('${key}')">
-                ${subjSpan}
-                ${roomBadgeTt}
+                ${subjWrap}
+                ${roomBar}
               </div>
             </td>`;
         } else if (cell) {
@@ -5157,8 +5178,8 @@ function renderGrid() {
                    onclick="onCellClick('${key}')">
                 <span class="cell-subj" style="color:${color}">${escHtml(cell.subject)}</span>
                 ${cell.specialRoom?`<span class="cell-room" style="color:${color}">📍${escHtml(cell.specialRoom)}</span>`:''}
-                ${(collabMap[key]||[]).map(n=>`<span class="cell-room" style="color:#7c3aed;font-size:.62rem">🤝${escHtml(n)}</span>`).join('')}
               </div>
+              ${(collabMap[key]||[]).length ? `<div class="sp-top-bar" style="background:#0891b2;color:#fff;position:absolute;bottom:0;left:0;right:0;border-radius:0 0 5px 5px;margin:0;font-size:.7rem;padding:2px 6px">${(collabMap[key]||[]).map(n=>`🤝 ${escHtml(n)}`).join(' · ')}</div>` : ''}
             </td>`;
         } else if (dayBlocked) {
           // 요일별 교시 수 초과 — 비활성화 셀
