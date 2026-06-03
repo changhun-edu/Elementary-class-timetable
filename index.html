@@ -680,7 +680,16 @@ a{color:inherit;text-decoration:none}
 .sp-ci.empty{border:1.5px dashed var(--g200);color:var(--g300)}
 .sp-cell:hover .sp-ci.empty{border-color:var(--brand);color:var(--brand);background:var(--brand-50)}
 /* Specialty cell in homeroom timetable */
-.cell-inner.specialty-cell{cursor:default}
+.cell-inner.specialty-cell{cursor:default;padding-top:0;overflow:hidden}
+.cell-inner.specialty-cell .sp-top-bar{
+  display:flex;align-items:center;justify-content:center;gap:3px;
+  width:100%;padding:3px 6px;
+  font-size:.7rem;font-weight:800;
+  border-radius:4px 4px 0 0;
+  margin-bottom:3px;
+  letter-spacing:.01em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
 
 /* Teacher type card */
 .tt-type-card{
@@ -1737,7 +1746,7 @@ a{color:inherit;text-decoration:none}
       <label class="form-label">과목 선택</label>
       <select id="mcell-subject" class="form-select"></select>
     </div>
-    <div class="form-group">
+    <div class="form-group" id="mcell-room-group">
       <label class="form-label">특별실 사용 <span class="text-muted text-sm">(선택)</span></label>
       <select id="mcell-room" class="form-select">
         <option value="">사용 안 함</option>
@@ -3007,6 +3016,18 @@ function confirmClearSpecialty() {
     });
 }
 window.confirmClearSpecialty = confirmClearSpecialty;
+
+/* 교과목명 → 담당 교담 교사 레이블 반환 */
+function getTeacherLabelForSubject(subject) {
+  const teachers = S.school?.specialtyTeachers || [];
+  const found = teachers.find(t => (t.subjects||[]).includes(subject));
+  if (found) return found.label;
+  // teacherTypes(협업 강사)도 확인
+  const types = S.school?.teacherTypes || [];
+  const collab = types.find(t => !t.builtin && (t.subjects||[]).includes(subject));
+  if (collab) return collab.name || collab.label;
+  return null;
+}
 
 function getSpecialtyAssignmentsForClass(classId) {
   const result = {};
@@ -5073,17 +5094,22 @@ function renderGrid() {
         const isLocked   = lockState !== 'none';
 
         if (spSubject) {
-          const color = getSubjColor(spSubject);
-          const collabs = collabMap[key] || [];
+          const color      = getSubjColor(spSubject);
+          const teacherLbl = getTeacherLabelForSubject(spSubject);
+          const collabs    = collabMap[key] || [];
           const collabBadge = collabs.map(n =>
             `<span class="cell-room" style="color:#7c3aed;font-size:.62rem">🤝${escHtml(n)}</span>`
           ).join('');
+          // 상단 바: 교담 교사명 표시 (보라 계열 고정 색)
+          const barBg   = '#7c3aed';
+          const barText = '#fff';
+          const topBar  = `<div class="sp-top-bar" style="background:${barBg};color:${barText}">⭐ ${escHtml(teacherLbl||'교담')}</div>`;
           return `
             <td class="tt-cell" data-key="${key}">
               <div class="cell-inner filled specialty-cell locked"
                    style="background:${hexAlpha(color,.1)};border:1.5px solid ${hexAlpha(color,.3)};">
-                <span class="cell-subj" style="color:${color}">교담</span>
-                <span class="cell-room" style="color:${color}">(${escHtml(spSubject)})</span>
+                ${topBar}
+                <span class="cell-subj" style="color:${color}">${escHtml(spSubject)}</span>
                 ${collabBadge}
               </div>
             </td>`;
@@ -5248,7 +5274,18 @@ function renderSubjectPalette() {
 }
 
 function countSubj(name) {
-  return Object.values(S.ttData).filter(c=>c&&c.subject===name).length;
+  // 담임 직접 입력 시수
+  const fromDamim = Object.values(S.ttData).filter(c => c && c.subject === name).length;
+  // 교담 배정 시수 (S.school.specialtySchedule에서 이 학급에 배정된 과목)
+  let fromSpec = 0;
+  if (S.classId && S.school?.specialtySchedule) {
+    for (const [subject, sched] of Object.entries(S.school.specialtySchedule)) {
+      if (subject === name) {
+        fromSpec += Object.values(sched).filter(e => e?.classId === S.classId).length;
+      }
+    }
+  }
+  return fromDamim + fromSpec;
 }
 
 /* ===========================================================
@@ -5259,7 +5296,16 @@ function renderTracker() {
   const subjects    = getSubjectsForCurrentClass().filter(s => !s.special);
   const specialSubj = getSubjectsForCurrentClass().filter(s => !!s.special);
   const total    = subjects.reduce((a,s)=>a+s.weeklyHours, 0);
-  const used     = Object.values(S.ttData).filter(c=>c?.subject && !getSubjectsForCurrentClass().find(s=>s.name===c.subject&&s.special)).length;
+  // 담임 입력 + 교담 배정 합산 (special 과목 제외)
+  const specialNames = new Set(getSubjectsForCurrentClass().filter(s=>s.special).map(s=>s.name));
+  const usedDamim = Object.values(S.ttData).filter(c=>c?.subject && !specialNames.has(c.subject)).length;
+  let usedSpec = 0;
+  if (S.classId && S.school?.specialtySchedule) {
+    for (const sched of Object.values(S.school.specialtySchedule)) {
+      usedSpec += Object.values(sched).filter(e => e?.classId === S.classId).length;
+    }
+  }
+  const used = usedDamim + usedSpec;
 
   const hdr = q('.tracker-head');
   if (hdr) hdr.textContent = `📊 시수 현황 (${used}/${total}h)`;
@@ -5357,6 +5403,12 @@ function onCellClick(key) {
   // 삭제 버튼: 특별실 배정 칸은 비관리자 숨김
   const canDelete = cell && (S.user.role === 'admin' || !roomAssign);
   q('#mcell-clear').style.display = canDelete ? 'flex' : 'none';
+
+  // 담임 교사(admin 아닌 경우)는 특별실 선택 숨김
+  // 특별실 배정은 관리자가 특별실 배정 화면에서 전담
+  const isAdmin = S.user?.role === 'admin' || S.user?.originalRole === 'admin';
+  const roomGroupEl = q('#mcell-room-group');
+  if (roomGroupEl) roomGroupEl.style.display = isAdmin ? 'block' : 'none';
 
   openModal('modal-cell');
 }
