@@ -5186,16 +5186,16 @@ async function subscribeToClass() {
       });
 
       // ── ① school 문서 실시간 구독 (specialtySchedule 변경 감지) ──
+      // fresh fetch로 이미 최신화된 상태이므로 JSON 비교는 무의미
+      // → 항상 S.school을 최신 데이터로 갱신하고 renderTracker 호출
       const schoolRef2 = doc(db, 'schools', S.school.id);
       S.unsubSchool = onSnapshot(schoolRef2, snap => {
         if (!snap.exists()) return;
         const fresh = snap.data();
-        // specialtySchedule만 비교해 변경 시에만 갱신 (불필요한 렌더 방지)
-        const prevJson = JSON.stringify(S.school.specialtySchedule || {});
-        const nextJson = JSON.stringify(fresh.specialtySchedule || {});
-        if (prevJson === nextJson) return; // 변경 없으면 skip
+        if (fresh.specialtySchedule === undefined) return;
+        // 항상 최신 데이터로 갱신 (JSON 비교 제거 — fresh fetch 이후엔 같을 수 있음)
         S.school.specialtySchedule = fresh.specialtySchedule;
-        // 시수현황 + 그리드 갱신 (교담 칸 표시 + 시수 재계산)
+        // 담임 시간표에서 교담 칸 + 시수현황 즉시 재계산
         renderGrid();
         renderSubjectPalette();
         renderTracker();
