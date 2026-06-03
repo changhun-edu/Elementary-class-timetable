@@ -3004,18 +3004,36 @@ async function saveSpCell() {
   const subject  = spCurrentSubject;
   const classId  = q('#sp-class-select').value;
   const schedule = getSpecialtySchedule(subject);
-  if (!classId) { delete schedule[spEditKey]; }
-  else { const cls = (S.school.classes||[]).find(c=>c.id===classId); schedule[spEditKey] = { classId, className: cls?.name || classId }; }
+  // 기존 배정 학급 저장 (변경 전)
+  const prevEntry = schedule[spEditKey];
+  const prevClassId = prevEntry?.classId;
+  if (!classId) {
+    delete schedule[spEditKey];
+  } else {
+    const cls = (S.school.classes||[]).find(c=>c.id===classId);
+    schedule[spEditKey] = { classId, className: cls?.name || classId };
+  }
   closeModal('modal-sp-cell');
   renderSpTabs(); renderSpecialtyGrid();
+  // 기존 배정이 있고 다른 학급으로 바뀌거나 삭제된 경우 담임 데이터 정리
+  if (prevClassId && prevClassId !== classId) {
+    await cleanDamimDataForRemovedSpSlots(subject, [{ key: spEditKey, classId: prevClassId }]);
+  }
   toast(classId ? `${(S.school.classes||[]).find(c=>c.id===classId)?.name} 배정됨` : '배정 취소됨', classId?'success':'');
 }
 window.saveSpCell = saveSpCell;
 
-function clearSpCell() {
+async function clearSpCell() {
   if (!spEditKey) return;
-  delete getSpecialtySchedule(spCurrentSubject)[spEditKey];
+  const subject  = spCurrentSubject;
+  const schedule = getSpecialtySchedule(subject);
+  const prevEntry = schedule[spEditKey];
+  delete schedule[spEditKey];
   closeModal('modal-sp-cell'); renderSpTabs(); renderSpecialtyGrid(); toast('배정 취소됨');
+  // 취소된 슬롯의 담임 데이터 정리
+  if (prevEntry?.classId) {
+    await cleanDamimDataForRemovedSpSlots(subject, [{ key: spEditKey, classId: prevEntry.classId }]);
+  }
 }
 window.clearSpCell = clearSpCell;
 
@@ -3030,13 +3048,71 @@ function confirmClearSpecialty() {
   const subject = spCurrentSubject;
   openConfirm(`${subject} 시간표 초기화`, `${subject}의 모든 배정이 삭제됩니다. 계속하시겠습니까?`,
     async () => {
+      // 삭제 전 모든 배정 슬롯 수집
+      const allEntries = Object.entries(getSpecialtySchedule(subject))
+        .map(([key, entry]) => ({ key, classId: entry?.classId }))
+        .filter(e => e.classId);
       if (S.school.specialtySchedule) delete S.school.specialtySchedule[subject];
       await saveSchool(S.school);
       renderSpTabs(); renderSpecialtyGrid();
       toast('초기화 완료', 'success');
+      // 담임 데이터 정리
+      await cleanDamimDataForRemovedSpSlots(subject, allEntries);
     });
 }
 window.confirmClearSpecialty = confirmClearSpecialty;
+
+/* ===========================================================
+   교담 배정 변경 시 해당 슬롯의 담임 ttData 자동 정리
+   교담이 A교시에서 B교시로 이동할 때:
+   → A교시에 담임이 직접 입력한 과목을 삭제 (이중 카운팅 방지)
+   =========================================================== */
+
+/**
+ * 교담 배정이 해제된 키(들)에 대해 각 학급의 담임 ttData에서
+ * 해당 교시에 저장된 과목 데이터를 삭제한다.
+ * @param {string} subject  - 교과목명 (예: '영어')
+ * @param {Array}  removedEntries - [{key, classId}] 해제된 배정 목록
+ */
+async function cleanDamimDataForRemovedSpSlots(subject, removedEntries) {
+  if (!removedEntries?.length || !S.school) return;
+  for (const { key: spKey, classId } of removedEntries) {
+    // spKey = "요일-교시번호" 형식 (예: "화-4")
+    // 담임 ttData 키도 동일 형식
+    const lsKey = `stt_${S.school.id}_${classId}`;
+    let ttData = {};
+    try {
+      const stored = localStorage.getItem(lsKey);
+      if (stored) ttData = JSON.parse(stored);
+    } catch(e) {}
+
+    const cell = ttData[spKey];
+    if (!cell) continue; // 담임이 그 슬롯에 아무것도 없으면 skip
+
+    // 교담이 담당하는 과목과 같은 과목이 담임 ttData에 있으면 삭제
+    if (cell.subject === subject) {
+      delete ttData[spKey];
+      // localStorage 업데이트
+      localStorage.setItem(lsKey, JSON.stringify(ttData));
+
+      // Firestore 업데이트
+      if (typeof db !== 'undefined' && db) {
+        try {
+          const ref = doc(db, 'schools', S.school.id, 'timetables', classId);
+          await setDoc(ref, toFirestoreDoc({ ...ttData, _updatedAt: Date.now() }), { merge: false });
+        } catch(e) { console.warn('교담 이동 후 담임 데이터 정리 오류:', e); }
+      }
+
+      // 현재 보고 있는 학급이면 화면 갱신
+      if (S.classId === classId) {
+        S.ttData = ttData;
+        renderGrid();
+        renderSubjectPalette();
+        renderTracker();
+      }
+    }
+  }
+}
 
 /* 교과목명 → 담당 교담 교사 레이블 반환 */
 function getTeacherLabelForSubject(subject) {
@@ -3117,12 +3193,15 @@ function spOnDrop(event, toKey) {
     toast('⚠ 이미 배정된 칸입니다.', 'warn');
     _spDrag = null; return;
   }
+  const removedEntry = { key: fromKey, classId };
   delete schedule[fromKey];
   schedule[toKey] = { classId, className };
   _spDrag = null;
   renderSpTabs();
   renderSpecialtyGrid();
   saveSchool(S.school);
+  // fromKey 슬롯에서 담임이 직접 입력한 같은 과목 자동 삭제
+  cleanDamimDataForRemovedSpSlots(subject, [removedEntry]);
   toast(`${className} → 이동 완료`, 'success');
 }
 window.spOnDrop = spOnDrop;
