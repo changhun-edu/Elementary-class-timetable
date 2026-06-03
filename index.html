@@ -5088,11 +5088,14 @@ function renderGrid() {
               </div>
             </td>`;
         } else if (roomAssign) {
-          // ── 특별실 배정 칸: 빈 셀에 소형 뱃지 방식 (교담과 동일 스타일)
-          const rc      = getRoomColor(roomAssign.roomName);
-          const canDrag = !isLocked && !!cell?.subject;
-          const subjSpan = cell?.subject
-            ? `<span class="cell-subj" style="color:${getSubjColor(cell.subject)}">${escHtml(cell.subject)}</span>`
+          // ── 특별실 배정 칸: 교담처럼 과목 배경색 + 우하단 특별실 뱃지
+          const rc       = getRoomColor(roomAssign.roomName);
+          const canDrag  = !isLocked && !!cell?.subject;
+          const subjColor = cell?.subject ? getSubjColor(cell.subject) : null;
+          const bg        = subjColor ? hexAlpha(subjColor, .11) : 'transparent';
+          const border    = subjColor ? hexAlpha(subjColor, .35) : 'var(--g200)';
+          const subjSpan  = cell?.subject
+            ? `<span class="cell-subj" style="color:${subjColor}">${escHtml(cell.subject)}</span>`
             : `<span style="font-size:.82rem;color:var(--g300)">+</span>`;
           const roomBadgeTt = `<span style="position:absolute;bottom:4px;right:4px;font-size:.78rem;font-weight:800;color:${rc.text};background:${rc.bg};border:1.5px solid ${rc.border};border-radius:6px;padding:2px 6px;pointer-events:none;line-height:1.4;max-width:calc(100% - 8px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${rc.icon} ${escHtml(roomAssign.roomName)}</span>`;
           return `
@@ -5101,7 +5104,7 @@ function renderGrid() {
                 ondragleave="onDragLeave(event,this)"
                 ondrop="onDrop(event,'${key}',this)">
               <div class="cell-inner ${cell?.subject?'filled':''} room-cell ${isLocked?'locked':''}"
-                   style="position:relative;"
+                   style="background:${bg};border:1.5px solid ${border};position:relative;"
                    draggable="${canDrag}"
                    ${canDrag?`ondragstart="onCellDragStart(event,'${key}')" ondragend="onDragEnd(event)"` : ''}
                    onclick="onCellClick('${key}')">
