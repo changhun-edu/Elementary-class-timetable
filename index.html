@@ -5453,7 +5453,24 @@ function countSubj(name) {
 /* ===========================================================
    HOUR TRACKER
    =========================================================== */
+/* specialtySchedule을 localStorage의 최신 school 데이터로 갱신
+ * Firestore 실시간 구독 외에도 같은 기기의 다른 탭/세션에서 변경된 경우도 반영 */
+function refreshSpecialtyFromStorage() {
+  if (!S.school?.id) return;
+  try {
+    const raw = localStorage.getItem('stt_schools');
+    if (!raw) return;
+    const schools = JSON.parse(raw);
+    const fresh = schools.find(s => s.id === S.school.id);
+    if (fresh?.specialtySchedule !== undefined) {
+      S.school.specialtySchedule = fresh.specialtySchedule;
+    }
+  } catch(e) { /* localStorage 읽기 실패 시 기존 데이터 유지 */ }
+}
+
 function renderTracker() {
+  // specialtySchedule 항상 최신화 (Firestore 구독 여부와 무관)
+  refreshSpecialtyFromStorage();
   // special:true 과목(방과후·맞춤형)은 시수 계산에서 제외
   const subjects    = getSubjectsForCurrentClass().filter(s => !s.special);
   const specialSubj = getSubjectsForCurrentClass().filter(s => !!s.special);
@@ -5812,6 +5829,10 @@ async function saveSchool(data) {
   const i   = all.findIndex(s=>s.id===data.id);
   if (i>=0) all[i]=data; else all.push(data);
   localStorage.setItem('stt_schools', JSON.stringify(all));
+  // 현재 세션의 S.school도 즉시 갱신 (같은 기기에서 교담→담임 전환 시 즉시 반영)
+  if (S.school?.id === data.id) {
+    S.school = data;
+  }
   if (db) {
     try {
       await setDoc(doc(db,'schools',data.id), toFirestoreDoc(data));
