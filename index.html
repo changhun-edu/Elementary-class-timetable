@@ -2560,51 +2560,49 @@ function getSelectedSubjects() {
 
 function goToSpecialtyScreen() {
   if (!S.school || !S.user) return;
-  try {
-    const isCollab = S.user.role === 'collaborative';
+  const isCollab = S.user.role === 'collaborative';
+  const isAdmin  = S.user?.role === 'admin' || S.user?.originalRole === 'admin';
 
-    const nameEl = q('#sp-school-name');
-    if (nameEl) nameEl.textContent = S.school.name;
-    const chipEl = q('#sp-user-chip');
-    if (chipEl) chipEl.textContent = `${isCollab ? '🤝' : '⭐'} ${S.user.name}`;
+  // ── 기본 UI 업데이트 ────────────────────────────────────
+  const nameEl = q('#sp-school-name');
+  if (nameEl) nameEl.textContent = S.school.name;
+  const chipEl = q('#sp-user-chip');
+  if (chipEl) chipEl.textContent = `${isCollab ? '🤝' : '⭐'} ${S.user.name}`;
 
-    // 협업 교사: 안내 문구 변경
-    const alert = q('#sp-alert');
-    if (alert) {
-      if (isCollab) {
-        alert.innerHTML = `🤝 <strong>${escHtml(S.user.name)}</strong> — 협업 수업 시간 배정<br>
-          <span style="font-size:.82rem">기존 수업이 있는 시간에만 배정할 수 있습니다. 담임교사 시간표에 협업 표시가 나타납니다.</span>`;
-      } else {
-        alert.innerHTML = `💡 위에서 교과목을 선택 후, 각 시간에 수업할 <strong>학년-반</strong>을 배정하세요. 담임교사 시간표에 <strong>교담(과목명)</strong>으로 자동 반영됩니다.`;
-      }
-    }
-
-    if (isCollab) {
-      const tabStrip = q('#sp-tab-strip');
-      if (tabStrip) tabStrip.innerHTML = '';
-      spCurrentSubject = `__collab__${S.user.name}`;
-    } else {
-      spCurrentSubject = (S.user.subjects||[])[0] || null;
-      renderSpTabs();
-    }
-    renderSpecialtyGrid();
-
-    // 관리자 전용 이동 버튼 표시/숨김
-    const isAdmin = S.user?.role === 'admin' || S.user?.originalRole === 'admin';
-    ['sp-btn-setup','sp-btn-room','sp-btn-timetable','sp-btn-next-teacher'].forEach(id => {
-      const el = q(`#${id}`);
-      if (el) el.style.display = isAdmin ? 'flex' : 'none';
-    });
-
-    // 관리자: 다음 단계 배너 표시
-    const bannerEl = q('#sp-next-step-banner');
-    if (bannerEl) bannerEl.style.display = isAdmin ? 'flex' : 'none';
-
-  } catch(err) {
-    console.error('goToSpecialtyScreen 오류:', err);
+  const alertEl = q('#sp-alert');
+  if (alertEl) {
+    alertEl.innerHTML = isCollab
+      ? `🤝 <strong>${escHtml(S.user.name)}</strong> — 협업 수업 시간 배정<br>
+         <span style="font-size:.82rem">기존 수업이 있는 시간에만 배정할 수 있습니다. 담임교사 시간표에 협업 표시가 나타납니다.</span>`
+      : `💡 위에서 교과목을 선택 후, 각 시간에 수업할 <strong>학년-반</strong>을 배정하세요. 담임교사 시간표에 <strong>교담(과목명)</strong>으로 자동 반영됩니다.`;
   }
 
-  // 에러가 있어도 화면 전환은 반드시 실행
+  // ── 관리자 버튼 표시 (렌더링 전에 먼저 설정) ────────────
+  ['sp-btn-setup','sp-btn-room','sp-btn-timetable','sp-btn-next-teacher'].forEach(id => {
+    const el = q(`#${id}`);
+    if (el) el.style.display = isAdmin ? 'flex' : 'none';
+  });
+  const bannerEl = q('#sp-next-step-banner');
+  if (bannerEl) bannerEl.style.display = isAdmin ? 'flex' : 'none';
+
+  // ── 탭 및 그리드 렌더링 ─────────────────────────────────
+  if (isCollab) {
+    const tabStrip = q('#sp-tab-strip');
+    if (tabStrip) tabStrip.innerHTML = '';
+    spCurrentSubject = `__collab__${S.user.name}`;
+  } else {
+    spCurrentSubject = (S.user.subjects||[])[0] || null;
+    renderSpTabs();
+  }
+
+  try {
+    renderSpecialtyGrid();
+  } catch(err) {
+    console.error('renderSpecialtyGrid 오류:', err);
+    const tbody = q('#sp-tbody');
+    if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--g400);padding:1rem">그리드 렌더링 오류가 발생했습니다. 페이지를 새로고침해 주세요.</td></tr>';
+  }
+
   goTo('screen-specialty');
 }
 window.goToSpecialtyScreen = goToSpecialtyScreen;
@@ -2735,10 +2733,16 @@ function renderSpecialtyGrid() {
           ? `<span style="position:absolute;bottom:2px;right:2px;font-size:.55rem;color:#7c3aed;background:#f3e8ff;border-radius:4px;padding:0 3px;pointer-events:none">📍${roomsAtKey[0]}${roomsAtKey.length>1?`+${roomsAtKey.length-1}`:''}</span>`
           : '';
 
+        // 요일별 교시 수 초과 여부 (교담 시간표용)
+        const spDayBlocked = (() => {
+          if (!assignedGrades) return false;
+          return [...assignedGrades].every(g => !isDayPeriodAllowed(g, day, periodNum));
+        })();
+
         let inner;
-        if (rsBlocked && !cls) {
+        if (spDayBlocked && !cls) {
           // 요일별 교시 수 초과 — 비활성 셀
-          inner = `<div class="rs-ci" style="background:var(--g100);border:1.5px dashed var(--g300);cursor:not-allowed;opacity:.4">
+          inner = `<div class="sp-ci" style="background:var(--g100);border:1.5px dashed var(--g300);cursor:not-allowed;opacity:.4;pointer-events:none">
             <span style="font-size:.6rem;color:var(--g400)">—</span>
           </div>`;
         } else if (cls) {
