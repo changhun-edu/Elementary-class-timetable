@@ -1640,7 +1640,8 @@ a{color:inherit;text-decoration:none}
       <span id="sync-indicator" title="저장 방식"><span class="sync-dot" id="sync-dot"></span><span id="sync-label" class="text-sm text-muted">로컬</span></span>
       <button class="btn btn-ghost btn-sm" id="btn-room-schedule" onclick="goToRoomSchedule()" style="display:none">🏛️ 특별실 배정</button>
       <button class="btn btn-ghost btn-sm" id="btn-clear-all" onclick="confirmClearAll()" style="display:none">🗑️ 초기화</button>
-      <button class="btn btn-ghost btn-sm" id="btn-tt-random" onclick="openTtRandomModal()" style="display:none">🎲 랜덤 배정</button>
+      <button class="btn btn-ghost btn-sm" id="btn-clear-tt" style="display:none">🗑️ 시간표 초기화</button>
+      <button class="btn btn-ghost btn-sm" id="btn-tt-random" style="display:none">🎲 랜덤 배정</button>
       <button class="btn btn-ghost btn-sm" onclick="exportAllToExcel()">📊 엑셀 저장</button>
       <button class="btn btn-ghost btn-sm" onclick="printTimetable()">🖨️ 인쇄</button>
       <button class="btn btn-ghost btn-sm" id="btn-admin-home" onclick="goToAdminHome()" style="display:none">🏠 관리자 홈</button>
@@ -4919,10 +4920,12 @@ function initTimetable() {
   q('#btn-admin-setup').style.display    = isAdmin ? 'flex' : 'none';
   q('#btn-clear-all').style.display      = isAdmin ? 'flex' : 'none';
   q('#btn-room-schedule').style.display  = isAdmin ? 'flex' : 'none';
-  // 랜덤 배정: 관리자 또는 담임 교사 (classId가 있으면)
-  const showRandom = isAdmin || !!S.classId;
+  // 랜덤 배정 / 초기화: 관리자 또는 담임 교사(classId가 있는 경우) 모두 사용 가능
+  const showForTeacher = isAdmin || !!S.classId;
   const btnRandom  = q('#btn-tt-random');
-  if (btnRandom) btnRandom.style.display = showRandom ? 'flex' : 'none';
+  const btnClearTt = q('#btn-clear-tt');
+  if (btnRandom)  btnRandom.style.display  = showForTeacher ? 'flex' : 'none';
+  if (btnClearTt) btnClearTt.style.display = showForTeacher ? 'flex' : 'none';
 
   // 관리자 버튼 addEventListener 연결 (inline onclick 대신 안정적 방식)
   [
@@ -4931,6 +4934,7 @@ function initTimetable() {
     ['btn-admin-setup',   () => goAdminSetup()],
     ['btn-room-schedule', () => goToRoomSchedule()],
     ['btn-clear-all',     () => confirmClearAll()],
+    ['btn-clear-tt',      () => confirmClearCurrentClass()],
   ].forEach(([id, handler]) => {
     const el = q(`#${id}`);
     if (!el) return;
@@ -5136,7 +5140,7 @@ function renderGrid() {
         } else if (roomAssign) {
           // ── 특별실 배정 칸: flex 세로 분리 — 과목(상단 flex) + 특별실 바(하단 고정)
           const rc        = getRoomColor(roomAssign.roomName);
-          const canDrag   = !isLocked && !!cell?.subject;
+          const canDrag   = !!cell?.subject; // 특별실 배정 여부와 무관하게 드래그 허용
           const subjColor = cell?.subject ? getSubjColor(cell.subject) : null;
           const bg        = subjColor ? hexAlpha(subjColor, .11) : 'transparent';
           const border    = subjColor ? hexAlpha(subjColor, .35) : 'var(--g200)';
@@ -5150,7 +5154,7 @@ function renderGrid() {
                 ondragover="onDragOver(event,'${key}',this)"
                 ondragleave="onDragLeave(event,this)"
                 ondrop="onDrop(event,'${key}',this)">
-              <div class="cell-inner has-room-badge ${cell?.subject?'filled':''} room-cell ${isLocked?'locked':''}"
+              <div class="cell-inner has-room-badge ${cell?.subject?'filled':''} room-cell"
                    style="background:${bg};border:1.5px solid ${border};"
                    draggable="${canDrag}"
                    ${canDrag?`ondragstart="onCellDragStart(event,'${key}')" ondragend="onDragEnd(event)"` : ''}
@@ -5237,7 +5241,7 @@ function getCellLockState(cell, key, spSubject) {
   if (S.user.role === 'admin') return 'none';
   // 교담 배정 칸: 담임은 수정 불가
   if (spSubject) return 'full';
-  if (key && getRoomAssignmentForKey(key)) return 'room';
+  // 특별실 배정 칸: 잠금 없음 — 과목은 자유롭게 편집 가능 (특별실 배정은 독립 저장)
   if (cell && S.user.role === 'homeroom' && cell.role === 'specialty') return 'full';
   if (cell?.isSpecialRoom) return 'full';
   return 'none';
@@ -5393,7 +5397,7 @@ function onCellClick(key) {
 
   q('#mcell-title').textContent = `${day}요일 ${period}교시`;
   q('#mcell-desc').textContent  = roomAssign
-    ? `📍 ${roomAssign.roomName} 배정됨 — 과목을 선택해 주세요.`
+    ? `ℹ️ ${roomAssign.roomName} 배정된 교시입니다. 과목을 자유롭게 편집할 수 있습니다.`
     : '과목을 선택하거나 드래그로 배정하세요.';
 
   // 과목 선택 (현재 학급 학년 기준)
@@ -5422,14 +5426,16 @@ function onCellClick(key) {
   }
 
   // 삭제 버튼: 특별실 배정 칸은 비관리자 숨김
-  const canDelete = cell && (S.user.role === 'admin' || !roomAssign);
+  const canDelete = !!cell; // 특별실 배정 여부와 무관하게 삭제 허용
   q('#mcell-clear').style.display = canDelete ? 'flex' : 'none';
 
   // 담임 교사(admin 아닌 경우)는 특별실 선택 숨김
   // 특별실 배정은 관리자가 특별실 배정 화면에서 전담
   const isAdmin = S.user?.role === 'admin' || S.user?.originalRole === 'admin';
+  // 담임 시간표에서는 역할 무관하게 특별실 선택 숨김
+  // 특별실 배정은 관리자가 특별실 배정 화면에서 전담
   const roomGroupEl = q('#mcell-room-group');
-  if (roomGroupEl) roomGroupEl.style.display = isAdmin ? 'block' : 'none';
+  if (roomGroupEl) roomGroupEl.style.display = 'none';
 
   openModal('modal-cell');
 }
@@ -5493,7 +5499,7 @@ function onDragOver(event, key, el) {
 
   const fromCell  = S.dragSrc?.type === 'cell';
   // Full lock or (room lock + cell-to-cell move) = blocked
-  const blocked   = lockState === 'full' || (lockState === 'room' && fromCell);
+  const blocked   = lockState === 'full'; // 특별실 잠금(room) 드래그 제한 제거
 
   if (blocked) {
     event.dataTransfer.dropEffect = 'none';
@@ -7049,6 +7055,39 @@ window.printTimetable = printTimetable;
 /* ===========================================================
    CLEAR ALL CELLS (admin only)
    =========================================================== */
+/* 현재 학급(담임) 시간표만 초기화 */
+function confirmClearCurrentClass() {
+  if (!S.classId) { toast('학급을 먼저 선택하세요.', 'warn'); return; }
+  const className = S.user?.className || '현재 반';
+  openConfirm(
+    `🗑️ ${className} 시간표 초기화`,
+    `<strong>${className}</strong>의 시간표가 모두 삭제됩니다.<br><span style="font-size:.82rem;color:var(--g500)">교담·특별실 배정은 유지됩니다.</span>`,
+    async () => {
+      if (!S.ttData) return;
+      // 교담 배정된 키는 제외하고 담임 직접 입력만 삭제
+      const spAssign = getSpecialtyAssignmentsForClass(S.classId);
+      Object.keys(S.ttData).forEach(k => {
+        if (!spAssign[k]) delete S.ttData[k]; // 교담 칸 제외
+      });
+      const lsKey = `stt_${S.school.id}_${S.classId}`;
+      localStorage.setItem(lsKey, JSON.stringify(S.ttData));
+      if (typeof db !== 'undefined' && db) {
+        try {
+          const ref = doc(db, 'schools', S.school.id, 'timetables', S.classId);
+          const payload = toFirestoreDoc({ ...S.ttData, _updatedAt: Date.now() });
+          await setDoc(ref, payload);
+        } catch(e) { console.warn('초기화 저장 오류:', e); }
+      }
+      renderGrid();
+      renderSubjectPalette();
+      renderTracker();
+      toast(`✔ ${className} 시간표가 초기화되었습니다.`, 'success');
+    },
+    '', '초기화', 'btn-danger'
+  );
+}
+window.confirmClearCurrentClass = confirmClearCurrentClass;
+
 function confirmClearAll() {
   const cls = (S.school?.classes||[]).find(c=>c.id===S.classId);
   openConfirm(
