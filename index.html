@@ -6190,7 +6190,7 @@ async function runTtRandom() {
     slots.forEach(key => {
       if (rem <= 0) return;
       if (usedKeys.has(key)) return;
-      if (!overwrite && S.ttData[key]) return;
+      // 특별실 우선 배정은 기존 입력 덮어쓰기 허용
       S.ttData[key] = { subject: subjName };
       usedKeys.add(key);
       remaining[subjName] = (remaining[subjName] || 1) - 1;
