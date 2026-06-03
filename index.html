@@ -1543,7 +1543,6 @@ a{color:inherit;text-decoration:none}
       <button class="btn btn-ghost btn-sm" id="sp-btn-next-teacher" style="display:none" onclick="goFromRoomSchedule()">👩‍🏫 다른 교담</button>
       <button class="btn btn-ghost btn-sm" id="sp-btn-random" onclick="openSpRandomModal()">🎲 랜덤 배정</button>
       <button class="btn btn-ghost btn-sm" onclick="saveSpecialtySchedule()">💾 저장</button>
-      <button class="btn btn-primary btn-sm" id="sp-btn-timetable" style="display:none" onclick="initTimetable();goTo('screen-timetable')">📅 담임 시간표 보기 →</button>
       <button class="btn btn-ghost btn-sm" onclick="logout()">로그아웃</button>
     </div>
   </div>
@@ -1564,8 +1563,7 @@ a{color:inherit;text-decoration:none}
       </div>
     </div>
     <button class="btn btn-sm" id="sp-next-step-btn"
-      style="background:#fff;color:#1e40af;font-weight:800;border:none;flex-shrink:0;white-space:nowrap"
-      onclick="initTimetable();goTo('screen-timetable')">
+      style="background:#fff;color:#1e40af;font-weight:800;border:none;flex-shrink:0;white-space:nowrap">
       📅 담임 시간표 보기 →
     </button>
   </div>
@@ -2578,12 +2576,26 @@ function goToSpecialtyScreen() {
   }
 
   // ── 관리자 버튼 표시 (렌더링 전에 먼저 설정) ────────────
-  ['sp-btn-setup','sp-btn-room','sp-btn-timetable','sp-btn-next-teacher'].forEach(id => {
+  ['sp-btn-setup','sp-btn-room','sp-btn-next-teacher'].forEach(id => {
     const el = q(`#${id}`);
     if (el) el.style.display = isAdmin ? 'flex' : 'none';
   });
   const bannerEl = q('#sp-next-step-banner');
   if (bannerEl) bannerEl.style.display = isAdmin ? 'flex' : 'none';
+
+  // 배너 "담임 시간표 보기" 버튼 — addEventListener로 안정적 연결
+  const nextStepBtn = q('#sp-next-step-btn');
+  if (nextStepBtn) {
+    nextStepBtn.replaceWith(nextStepBtn.cloneNode(true)); // 기존 리스너 제거
+    const freshBtn = q('#sp-next-step-btn');
+    if (freshBtn) {
+      freshBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        initTimetable();
+        goTo('screen-timetable');
+      });
+    }
+  }
 
   // ── 탭 및 그리드 렌더링 ─────────────────────────────────
   if (isCollab) {
