@@ -4999,7 +4999,7 @@ window.joinSchool = joinSchool;
 /* ===========================================================
    TIMETABLE INIT
    =========================================================== */
-function initTimetable() {
+async function initTimetable() {
   if (!S.school || !S.user) return;
   const { school, user } = S;
 
@@ -5104,7 +5104,7 @@ function initTimetable() {
   }
 
   renderSubjectPalette();
-  subscribeToClass();
+  await subscribeToClass(); // async - fresh fetch 완료 후 setSyncDot
   setSyncDot();
 }
 
@@ -5123,12 +5123,12 @@ function setSyncDot() {
 /* ===========================================================
    CHANGE CLASS
    =========================================================== */
-function changeClass(id) {
+async function changeClass(id) {
   S.classId = id;
   S.ttData  = {};
   if (S.unsub)       { S.unsub();       S.unsub=null;       }
   if (S.unsubSchool) { S.unsubSchool(); S.unsubSchool=null; }
-  subscribeToClass();
+  await subscribeToClass();
 }
 window.changeClass = changeClass;
 
@@ -5138,13 +5138,20 @@ window.changeClass = changeClass;
 async function subscribeToClass() {
   if (!S.classId || !S.school) return;
 
+  // Load from localStorage first (fast render)
+  const lsKey = `stt_${S.school.id}_${S.classId}`;
+  try {
+    const raw = localStorage.getItem(lsKey);
+    S.ttData = raw ? JSON.parse(raw) : {};
+  } catch { S.ttData={}; }
+
   // ── ② 진입 시 school 문서 fresh fetch (specialtySchedule 최신화) ──
+  // renderTracker 전에 await로 완료 보장
   if (db) {
     try {
       const schoolRef = doc(db, 'schools', S.school.id);
       const schoolSnap = await getDoc(schoolRef);
       if (schoolSnap.exists()) {
-        // 기존 S.school의 다른 필드는 유지하고 specialtySchedule만 갱신
         const fresh = schoolSnap.data();
         if (fresh.specialtySchedule !== undefined) {
           S.school.specialtySchedule = fresh.specialtySchedule;
@@ -5153,13 +5160,7 @@ async function subscribeToClass() {
     } catch(e) { console.warn('School fresh fetch error:', e); }
   }
 
-  // Load from localStorage first (fast)
-  const lsKey = `stt_${S.school.id}_${S.classId}`;
-  try {
-    const raw = localStorage.getItem(lsKey);
-    S.ttData = raw ? JSON.parse(raw) : {};
-  } catch { S.ttData={}; }
-
+  // fresh fetch 완료 후 렌더링 → countSubj가 최신 specialtySchedule 사용
   renderGrid();
   renderSubjectPalette();
   renderTracker();
