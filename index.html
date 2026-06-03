@@ -5243,7 +5243,8 @@ function getCellLockState(cell, key, spSubject) {
   if (spSubject) return 'full';
   // 특별실 배정 칸: 잠금 없음 — 과목은 자유롭게 편집 가능 (특별실 배정은 독립 저장)
   if (cell && S.user.role === 'homeroom' && cell.role === 'specialty') return 'full';
-  if (cell?.isSpecialRoom) return 'full';
+  // cell.isSpecialRoom 체크 제거 — 특별실 배정은 roomSchedule에서 별도 관리
+  // ttData에 저장된 isSpecialRoom 플래그로 잠금하지 않음
   return 'none';
 }
 
@@ -5455,7 +5456,7 @@ async function saveCellModal() {
     subject,
     role:         S.user.role,
     specialRoom:  room || null,
-    isSpecialRoom:!!room,
+    // isSpecialRoom은 저장하지 않음 — 특별실 배정은 roomSchedule에서 별도 관리
     updatedAt:    Date.now(),
   };
   await saveCellToStorage(S.editingKey, data);
