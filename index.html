@@ -4939,8 +4939,10 @@ function initTimetable() {
   q('#btn-admin-setup').style.display    = isAdmin ? 'flex' : 'none';
   q('#btn-clear-all').style.display      = 'none'; // btn-clear-tt로 통합
   q('#btn-room-schedule').style.display  = isAdmin ? 'flex' : 'none';
-  // 랜덤 배정 / 초기화: 관리자 또는 담임 교사(classId가 있는 경우) 모두 사용 가능
-  const showForTeacher = isAdmin || !!S.classId;
+  // 랜덤 배정 / 초기화: 관리자 또는 담임 교사 모두 사용 가능
+  // S.classId는 아래쪽에서 설정되므로 role로 판단 (타이밍 버그 수정)
+  const isHomeroom = user.role === 'homeroom';
+  const showForTeacher = isAdmin || isHomeroom;
   const btnRandom  = q('#btn-tt-random');
   const btnClearTt = q('#btn-clear-tt');
   if (btnRandom)  btnRandom.style.display  = showForTeacher ? 'flex' : 'none';
