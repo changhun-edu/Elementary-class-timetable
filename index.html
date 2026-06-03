@@ -2764,7 +2764,7 @@ function renderSpecialtyGrid() {
         const roomBadge = roomsAtKey.length ? (() => {
           const rc = getRoomColor(roomsAtKey[0]);
           const label = roomsAtKey[0] + (roomsAtKey.length > 1 ? `+${roomsAtKey.length-1}` : '');
-          return `<span style="position:absolute;bottom:2px;right:2px;font-size:.55rem;font-weight:700;color:${rc.text};background:${rc.bg};border:1px solid ${rc.border};border-radius:4px;padding:0 3px;pointer-events:none">${rc.icon}${label}</span>`;
+          return `<span style="position:absolute;bottom:4px;right:4px;font-size:.78rem;font-weight:800;color:${rc.text};background:${rc.bg};border:1.5px solid ${rc.border};border-radius:6px;padding:2px 6px;pointer-events:none;line-height:1.4;max-width:calc(100% - 8px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${rc.icon} ${label}</span>`;
         })() : '';
 
         // 요일별 교시 수 초과 여부 (교담 시간표용)
@@ -5088,24 +5088,25 @@ function renderGrid() {
               </div>
             </td>`;
         } else if (roomAssign) {
-          // ── 특별실 배정 칸: 교담 칸처럼 아이콘+명칭만 표시, 특별실별 고유 색
-          const rc     = getRoomColor(roomAssign.roomName);
+          // ── 특별실 배정 칸: 빈 셀에 소형 뱃지 방식 (교담과 동일 스타일)
+          const rc      = getRoomColor(roomAssign.roomName);
           const canDrag = !isLocked && !!cell?.subject;
           const subjSpan = cell?.subject
-            ? `<span class="cell-subj" style="color:${rc.text};font-size:.72rem;font-weight:700">${escHtml(cell.subject)}</span>`
-            : '';
+            ? `<span class="cell-subj" style="color:${getSubjColor(cell.subject)}">${escHtml(cell.subject)}</span>`
+            : `<span style="font-size:.82rem;color:var(--g300)">+</span>`;
+          const roomBadgeTt = `<span style="position:absolute;bottom:4px;right:4px;font-size:.78rem;font-weight:800;color:${rc.text};background:${rc.bg};border:1.5px solid ${rc.border};border-radius:6px;padding:2px 6px;pointer-events:none;line-height:1.4;max-width:calc(100% - 8px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${rc.icon} ${escHtml(roomAssign.roomName)}</span>`;
           return `
             <td class="tt-cell" data-key="${key}"
                 ondragover="onDragOver(event,'${key}',this)"
                 ondragleave="onDragLeave(event,this)"
                 ondrop="onDrop(event,'${key}',this)">
-              <div class="cell-inner filled room-cell ${isLocked?'locked':''}"
-                   style="background:${rc.bg};border:1.5px solid ${rc.border};"
+              <div class="cell-inner ${cell?.subject?'filled':''} room-cell ${isLocked?'locked':''}"
+                   style="position:relative;"
                    draggable="${canDrag}"
                    ${canDrag?`ondragstart="onCellDragStart(event,'${key}')" ondragend="onDragEnd(event)"` : ''}
                    onclick="onCellClick('${key}')">
                 ${subjSpan}
-                <span style="font-size:.75rem;font-weight:800;color:${rc.text}">${rc.icon} ${escHtml(roomAssign.roomName)}</span>
+                ${roomBadgeTt}
               </div>
             </td>`;
         } else if (cell) {
