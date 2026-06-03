@@ -1800,16 +1800,18 @@ a{color:inherit;text-decoration:none}
 </div>
 <!-- Timetable Random Fill Modal -->
 <div class="modal-bg" id="modal-tt-random">
-  <div class="modal-box" style="max-width:380px">
+  <div class="modal-box" style="max-width:400px">
     <div class="modal-title">🎲 담임 시간표 랜덤 배정</div>
-    <div class="modal-desc">남은 빈 교시에 과목 팔레트의 과목을 자동으로 채웁니다.<br>
-      <span style="font-size:.8rem;color:var(--g500)">시수가 남은 과목 순서대로 채웁니다. 고정된 교담·특별실 교시는 건너뜁니다.</span>
-    </div>
-    <div style="margin:.85rem 0;padding:.75rem;background:var(--g50);border-radius:var(--r-md);font-size:.82rem">
-      <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer">
-        <input type="checkbox" id="ttr-overwrite" style="accent-color:var(--brand);width:15px;height:15px">
-        <span>이미 입력된 과목도 덮어쓰기 (교담·특별실 고정 교시는 제외)</span>
-      </label>
+    <div class="modal-desc">빈 교시에 과목 팔레트의 과목을 자동으로 채웁니다.</div>
+    <div style="margin:.85rem 0;padding:.75rem;background:var(--g50);border-radius:var(--r-md);font-size:.81rem;line-height:1.65;color:var(--g600)">
+      <div style="font-weight:700;color:var(--g700);margin-bottom:.4rem">📋 배정 규칙</div>
+      <div>• 교담이 수업하는 교시는 배정 불가 (건너뜀)</div>
+      <div>• 특별실이 배정된 교시는 <strong>우선 배정</strong>:
+        국어→도서실, 영어→영어실, 과학→과학실,
+        체육→강당(없으면 운동장), 음악→음악실,
+        미술→미술실, 실과→실과실, 창체→컴퓨터실</div>
+      <div>• 나머지 빈 교시에 시수 순서대로 랜덤 배정</div>
+      <div>• 교담·특별실 교시를 제외한 기존 입력은 유지됩니다</div>
     </div>
     <div id="ttr-warn" class="form-error" style="display:none">⚠️ 배정할 과목이 없습니다. 과목 팔레트를 확인하세요.</div>
     <div class="modal-actions">
@@ -2759,9 +2761,11 @@ function renderSpecialtyGrid() {
             }
           }
         }
-        const roomBadge = roomsAtKey.length
-          ? `<span style="position:absolute;bottom:2px;right:2px;font-size:.55rem;color:#7c3aed;background:#f3e8ff;border-radius:4px;padding:0 3px;pointer-events:none">📍${roomsAtKey[0]}${roomsAtKey.length>1?`+${roomsAtKey.length-1}`:''}</span>`
-          : '';
+        const roomBadge = roomsAtKey.length ? (() => {
+          const rc = getRoomColor(roomsAtKey[0]);
+          const label = roomsAtKey[0] + (roomsAtKey.length > 1 ? `+${roomsAtKey.length-1}` : '');
+          return `<span style="position:absolute;bottom:2px;right:2px;font-size:.55rem;font-weight:700;color:${rc.text};background:${rc.bg};border:1px solid ${rc.border};border-radius:4px;padding:0 3px;pointer-events:none">${rc.icon}${label}</span>`;
+        })() : '';
 
         // 요일별 교시 수 초과 여부 (교담 시간표용)
         const spDayBlocked = (() => {
@@ -3100,7 +3104,8 @@ function getMatchedRoomsForSubject(subject) {
     { keywords: ['체육'],            patterns: ['강당','체육관','운동장','체육'] },
     { keywords: ['음악'],            patterns: ['음악실','음악'] },
     { keywords: ['미술'],            patterns: ['미술실','미술'] },
-    { keywords: ['컴퓨터','정보'],   patterns: ['컴퓨터실','컴퓨터','정보실'] },
+    { keywords: ['컴퓨터','정보','창체','창의체험'], patterns: ['컴퓨터실','컴퓨터','정보실'] },
+    { keywords: ['국어'],            patterns: ['도서실','도서관'] },
     { keywords: ['도서','독서'],     patterns: ['도서실','도서관'] },
     { keywords: ['실과'],            patterns: ['실과실','가사실','기술실'] },
   ];
@@ -5083,25 +5088,24 @@ function renderGrid() {
               </div>
             </td>`;
         } else if (roomAssign) {
-          // ── 특별실 배정 칸 ─────────────────────────
-          const color  = cell?.subject ? getSubjColor(cell.subject) : '#7c3aed';
-          const bg     = hexAlpha(color, .1);
-          const border = hexAlpha(color, .3);
+          // ── 특별실 배정 칸: 교담 칸처럼 아이콘+명칭만 표시, 특별실별 고유 색
+          const rc     = getRoomColor(roomAssign.roomName);
           const canDrag = !isLocked && !!cell?.subject;
+          const subjSpan = cell?.subject
+            ? `<span class="cell-subj" style="color:${rc.text};font-size:.72rem;font-weight:700">${escHtml(cell.subject)}</span>`
+            : '';
           return `
             <td class="tt-cell" data-key="${key}"
                 ondragover="onDragOver(event,'${key}',this)"
                 ondragleave="onDragLeave(event,this)"
                 ondrop="onDrop(event,'${key}',this)">
               <div class="cell-inner filled room-cell ${isLocked?'locked':''}"
-                   style="background:${bg};border-color:${border};border-width:1.5px;border-style:solid;"
+                   style="background:${rc.bg};border:1.5px solid ${rc.border};"
                    draggable="${canDrag}"
                    ${canDrag?`ondragstart="onCellDragStart(event,'${key}')" ondragend="onDragEnd(event)"` : ''}
                    onclick="onCellClick('${key}')">
-                ${cell?.subject
-                  ? `<span class="cell-subj" style="color:${color}">${escHtml(cell.subject)}</span>`
-                  : `<span class="cell-subj" style="color:#7c3aed;font-size:.68rem;opacity:.7">과목 입력</span>`}
-                <span class="cell-room" style="color:#7c3aed">📍${escHtml(roomAssign.roomName)}</span>
+                ${subjSpan}
+                <span style="font-size:.75rem;font-weight:800;color:${rc.text}">${rc.icon} ${escHtml(roomAssign.roomName)}</span>
               </div>
             </td>`;
         } else if (cell) {
@@ -6021,6 +6025,28 @@ window.rsOnCellClick = rsOnCellClick;
 /* ===========================================================
    ROOM SCHEDULE — RANDOM ASSIGN
    =========================================================== */
+/* 특별실 색상 팔레트 (이름 키워드 기반) */
+const ROOM_COLORS = [
+  { keywords:['강당','체육관'],          bg:'#fef3c7', border:'#f59e0b', text:'#92400e', icon:'🏃' },
+  { keywords:['운동장'],                 bg:'#d1fae5', border:'#10b981', text:'#065f46', icon:'⚽' },
+  { keywords:['과학실','과학'],          bg:'#dbeafe', border:'#3b82f6', text:'#1e40af', icon:'🔬' },
+  { keywords:['영어실','영어'],          bg:'#ede9fe', border:'#8b5cf6', text:'#4c1d95', icon:'🔤' },
+  { keywords:['음악실','음악'],          bg:'#fce7f3', border:'#ec4899', text:'#9d174d', icon:'🎵' },
+  { keywords:['미술실','미술'],          bg:'#fee2e2', border:'#ef4444', text:'#991b1b', icon:'🎨' },
+  { keywords:['컴퓨터실','컴퓨터','정보실'], bg:'#e0f2fe', border:'#0ea5e9', text:'#0c4a6e', icon:'💻' },
+  { keywords:['도서실','도서관'],        bg:'#fef9c3', border:'#eab308', text:'#713f12', icon:'📚' },
+  { keywords:['실과실','가사실','기술실','실과'], bg:'#f0fdf4', border:'#22c55e', text:'#14532d', icon:'🔧' },
+];
+
+function getRoomColor(roomName) {
+  const name = (roomName||'').replace(/\s/g,'');
+  for (const c of ROOM_COLORS) {
+    if (c.keywords.some(k => name.includes(k))) return c;
+  }
+  // 기본값
+  return { bg:'#f3e8ff', border:'#a855f7', text:'#581c87', icon:'🏛️' };
+}
+
 /* 특별실 이름에서 숫자 접미사 제거해 베이스 이름 추출 */
 function roomBaseName(name) {
   return name.replace(/[1-9]$/, '').trim();
@@ -6044,7 +6070,6 @@ function openTtRandomModal() {
   if (!S.classId) { toast('학급을 먼저 선택하세요.', 'warn'); return; }
   const subjects = getSubjectsForCurrentClass(); // 과목 팔레트
   if (!subjects.length) { toast('과목이 없습니다. 기초 설정에서 교과목을 추가하세요.', 'warn'); return; }
-  q('#ttr-overwrite').checked = false;
   q('#ttr-warn').style.display = 'none';
 
   // OK 버튼 addEventListener
@@ -6054,14 +6079,14 @@ function openTtRandomModal() {
     okBtn.replaceWith(fresh);
     q('#ttr-ok-btn').addEventListener('click', (e) => {
       e.stopPropagation();
-      runTtRandom(q('#ttr-overwrite').checked);
+      runTtRandom();
     });
   }
   openModal('modal-tt-random');
 }
 window.openTtRandomModal = openTtRandomModal;
 
-async function runTtRandom(overwrite = false) {
+async function runTtRandom() {
   if (!S.classId || !S.school) return;
   const grade    = getCurrentClassGrade();
   const ptimes   = getPeriodTimes(grade);
@@ -6095,18 +6120,21 @@ async function runTtRandom(overwrite = false) {
   }
 
   // ── 배정 가능한 슬롯 수집 ────────────────────────────────────────
+  // 교담이 수업하는 교시만 skip; 특별실 배정 교시는 포함 (우선 배정 대상)
   const availableKeys = [];
   DAYS.forEach(day => {
     ptimes.forEach((_, idx) => {
       const p   = idx + 1;
       const key = `${day}-${p}`;
-      if (!isDayPeriodAllowed(grade, day, p)) return; // 요일별 제한
-      const cell = S.ttData?.[key];
-      if (!overwrite && cell) return;                  // 이미 채워진 칸 skip
-      const roomAssign = getRoomAssignmentForKey(key);
-      if (roomAssign) return;                          // 특별실 고정 교시 skip
+      if (!isDayPeriodAllowed(grade, day, p)) return;  // 요일별 제한
       const spAssigned = getSpecialtyAssignedForKey(key);
       if (spAssigned) return;                          // 교담 고정 교시 skip
+      // 특별실 교시는 포함 (1순위 우선 배정 대상)
+      // 이미 입력된 과목도 포함 (특별실 우선 배정 시 덮어쓸 수 있음)
+      const cell = S.ttData?.[key];
+      const roomAssign = getRoomAssignmentForKey(key);
+      // 이미 과목 입력된 칸 중 특별실도 없는 일반 칸은 skip (기존 유지)
+      if (cell && !roomAssign) return;
       availableKeys.push(key);
     });
   });
