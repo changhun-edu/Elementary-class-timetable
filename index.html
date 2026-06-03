@@ -1612,6 +1612,7 @@ a{color:inherit;text-decoration:none}
       <span id="sync-indicator" title="저장 방식"><span class="sync-dot" id="sync-dot"></span><span id="sync-label" class="text-sm text-muted">로컬</span></span>
       <button class="btn btn-ghost btn-sm" id="btn-room-schedule" onclick="goToRoomSchedule()" style="display:none">🏛️ 특별실 배정</button>
       <button class="btn btn-ghost btn-sm" id="btn-clear-all" onclick="confirmClearAll()" style="display:none">🗑️ 초기화</button>
+      <button class="btn btn-ghost btn-sm" id="btn-tt-random" onclick="openTtRandomModal()" style="display:none">🎲 랜덤 배정</button>
       <button class="btn btn-ghost btn-sm" onclick="exportAllToExcel()">📊 엑셀 저장</button>
       <button class="btn btn-ghost btn-sm" onclick="printTimetable()">🖨️ 인쇄</button>
       <button class="btn btn-ghost btn-sm" id="btn-admin-home" onclick="goToAdminHome()" style="display:none">🏠 관리자 홈</button>
@@ -1797,6 +1798,27 @@ a{color:inherit;text-decoration:none}
     </div>
   </div>
 </div>
+<!-- Timetable Random Fill Modal -->
+<div class="modal-bg" id="modal-tt-random">
+  <div class="modal-box" style="max-width:380px">
+    <div class="modal-title">🎲 담임 시간표 랜덤 배정</div>
+    <div class="modal-desc">남은 빈 교시에 과목 팔레트의 과목을 자동으로 채웁니다.<br>
+      <span style="font-size:.8rem;color:var(--g500)">시수가 남은 과목 순서대로 채웁니다. 고정된 교담·특별실 교시는 건너뜁니다.</span>
+    </div>
+    <div style="margin:.85rem 0;padding:.75rem;background:var(--g50);border-radius:var(--r-md);font-size:.82rem">
+      <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer">
+        <input type="checkbox" id="ttr-overwrite" style="accent-color:var(--brand);width:15px;height:15px">
+        <span>이미 입력된 과목도 덮어쓰기 (교담·특별실 고정 교시는 제외)</span>
+      </label>
+    </div>
+    <div id="ttr-warn" class="form-error" style="display:none">⚠️ 배정할 과목이 없습니다. 과목 팔레트를 확인하세요.</div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-tt-random')">취소</button>
+      <button class="btn btn-primary btn-sm" id="ttr-ok-btn">🎲 배정 시작</button>
+    </div>
+  </div>
+</div>
+
 <!-- Random Room Assignment Modal -->
 <div class="modal-bg" id="modal-specialty-nav">
   <div class="modal-box" style="max-width:360px">
@@ -4847,12 +4869,32 @@ function initTimetable() {
     : '🏠 담임교사';
   q('#tt-user-chip').textContent = roleLabel;
 
-  const isAdmin = user.role==='admin';
+  // originalRole 포함: 관리자가 교담 화면을 거쳐 왔을 때도 관리자 버튼 표시
+  const isAdmin = user.role==='admin' || user.originalRole==='admin';
   q('#btn-admin-home').style.display     = isAdmin ? 'flex' : 'none';
   q('#btn-admin-sp').style.display       = isAdmin ? 'flex' : 'none';
   q('#btn-admin-setup').style.display    = isAdmin ? 'flex' : 'none';
   q('#btn-clear-all').style.display      = isAdmin ? 'flex' : 'none';
   q('#btn-room-schedule').style.display  = isAdmin ? 'flex' : 'none';
+  // 랜덤 배정: 관리자 또는 담임 교사 (classId가 있으면)
+  const showRandom = isAdmin || !!S.classId;
+  const btnRandom  = q('#btn-tt-random');
+  if (btnRandom) btnRandom.style.display = showRandom ? 'flex' : 'none';
+
+  // 관리자 버튼 addEventListener 연결 (inline onclick 대신 안정적 방식)
+  [
+    ['btn-admin-home',    () => goToAdminHome()],
+    ['btn-admin-sp',      () => goFromRoomSchedule()],
+    ['btn-admin-setup',   () => goAdminSetup()],
+    ['btn-room-schedule', () => goToRoomSchedule()],
+    ['btn-clear-all',     () => confirmClearAll()],
+  ].forEach(([id, handler]) => {
+    const el = q(`#${id}`);
+    if (!el) return;
+    const fresh = el.cloneNode(true); // 기존 리스너 제거
+    el.replaceWith(fresh);
+    q(`#${id}`)?.addEventListener('click', (e) => { e.stopPropagation(); handler(); });
+  });
 
   // 관리자 전용 1년 경과 안내
   const noticeEl = q('#admin-expire-notice');
@@ -5998,6 +6040,198 @@ function getRoomGroups(rooms) {
   });
   return groups;
 }
+
+/* ===========================================================
+   담임 시간표 랜덤 배정 (openTtRandomModal / runTtRandom)
+   =========================================================== */
+function openTtRandomModal() {
+  if (!S.classId) { toast('학급을 먼저 선택하세요.', 'warn'); return; }
+  const subjects = getSubjectsForCurrentClass(); // 과목 팔레트
+  if (!subjects.length) { toast('과목이 없습니다. 기초 설정에서 교과목을 추가하세요.', 'warn'); return; }
+  q('#ttr-overwrite').checked = false;
+  q('#ttr-warn').style.display = 'none';
+
+  // OK 버튼 addEventListener
+  const okBtn = q('#ttr-ok-btn');
+  if (okBtn) {
+    const fresh = okBtn.cloneNode(true);
+    okBtn.replaceWith(fresh);
+    q('#ttr-ok-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      runTtRandom(q('#ttr-overwrite').checked);
+    });
+  }
+  openModal('modal-tt-random');
+}
+window.openTtRandomModal = openTtRandomModal;
+
+async function runTtRandom(overwrite = false) {
+  if (!S.classId || !S.school) return;
+  const grade    = getCurrentClassGrade();
+  const ptimes   = getPeriodTimes(grade);
+
+  // ── 버그1 수정: getSubjectsForCurrentClass() 사용 ───────────────
+  const subjects = getSubjectsForCurrentClass();
+  if (!subjects || !subjects.length) {
+    q('#ttr-warn').style.display = 'block'; return;
+  }
+
+  // ── 버그2 수정: 교담 배정 시수도 포함해 남은 시수 계산 ──────────
+  // S.ttData: 담임이 직접 입력한 과목
+  // spAssign:  교담이 배정한 과목 (S.school.specialtySchedule)
+  const spAssign = getSpecialtyAssignmentsForClass(S.classId); // {key: subjectName}
+
+  const remaining = {};
+  subjects.forEach(s => {
+    // 담임 직접 입력 카운트
+    const usedByDamim = Object.values(S.ttData||{})
+      .filter(c => c?.subject === s.name).length;
+    // 교담 배정 카운트 (교담이 수업하는 과목도 시수 소진)
+    const usedBySpec  = Object.values(spAssign)
+      .filter(subj => subj === s.name).length;
+    const used = usedByDamim + usedBySpec;
+    const rem  = (s.weeklyHours||0) - used;
+    if (rem > 0) remaining[s.name] = rem;
+  });
+
+  if (!Object.keys(remaining).length) {
+    toast('모든 과목의 시수가 채워졌습니다.', 'info'); closeModal('modal-tt-random'); return;
+  }
+
+  // ── 배정 가능한 슬롯 수집 ────────────────────────────────────────
+  const availableKeys = [];
+  DAYS.forEach(day => {
+    ptimes.forEach((_, idx) => {
+      const p   = idx + 1;
+      const key = `${day}-${p}`;
+      if (!isDayPeriodAllowed(grade, day, p)) return; // 요일별 제한
+      const cell = S.ttData?.[key];
+      if (!overwrite && cell) return;                  // 이미 채워진 칸 skip
+      const roomAssign = getRoomAssignmentForKey(key);
+      if (roomAssign) return;                          // 특별실 고정 교시 skip
+      const spAssigned = getSpecialtyAssignedForKey(key);
+      if (spAssigned) return;                          // 교담 고정 교시 skip
+      availableKeys.push(key);
+    });
+  });
+
+  if (!availableKeys.length) {
+    toast('배정 가능한 빈 교시가 없습니다.', 'warn'); closeModal('modal-tt-random'); return;
+  }
+
+  // ── 버그3 수정: 특별실 우선 배정 ────────────────────────────────
+  // 과목별로 매칭되는 특별실 슬롯을 우선 배정
+  // 예: 영어→영어실, 과학→과학실, 체육→강당/운동장, 국어→도서실
+  //
+  // key→이 반의 특별실 배정 슬롯 맵 (이 반이 사용하는 특별실 시간)
+  // getRoomAssignmentForKey는 S.classId 기준으로 특별실 배정을 반환
+  // 여기서는 key→특별실 이름 맵이 필요
+  const classRoomSlots = {}; // key → roomName (이 반이 배정된 특별실)
+  for (const [rId, sched] of Object.entries(S.school.roomSchedule || {})) {
+    for (const [sk, entry] of Object.entries(sched)) {
+      if (entry?.classId !== S.classId) continue;
+      // storageKey → timeKey → 교시 key 변환
+      const timeKey = stripGradeSuffix(sk);
+      const slotStart = timeKey.substring(timeKey.indexOf('-') + 1);
+      const day = timeKey.split('-')[0];
+      const pIdx = ptimes.findIndex(t => t.start === slotStart);
+      if (pIdx < 0) continue;
+      const ttKey = `${day}-${pIdx + 1}`;
+      const room  = (S.school.specialRooms||[]).find(r => r.id === rId);
+      if (room) classRoomSlots[ttKey] = room.name;
+    }
+  }
+
+  // 과목→우선 배정 슬롯 맵 구성
+  // getMatchedRoomsForSubject(subjName) → 연관 특별실 목록
+  const priorityMap = {}; // subjName → [key, ...] (이 반이 그 특별실 쓰는 슬롯)
+  Object.keys(remaining).forEach(subjName => {
+    const matchedRooms = getMatchedRoomsForSubject(subjName);
+    if (!matchedRooms.length) return;
+    const matchedNames = new Set(matchedRooms.map(r => r.name));
+    priorityMap[subjName] = availableKeys.filter(k => {
+      const roomAtSlot = classRoomSlots[k];
+      return roomAtSlot && matchedNames.has(roomAtSlot);
+    });
+  });
+
+  // ── 배정 실행 ────────────────────────────────────────────────────
+  if (!S.ttData) S.ttData = {};
+  let assigned = 0;
+  const usedKeys = new Set(); // 이미 배정한 키
+
+  // 1순위: 특별실 매칭 슬롯에 해당 과목 배정
+  Object.entries(priorityMap).forEach(([subjName, slots]) => {
+    let rem = remaining[subjName] || 0;
+    slots.forEach(key => {
+      if (rem <= 0) return;
+      if (usedKeys.has(key)) return;
+      if (!overwrite && S.ttData[key]) return;
+      S.ttData[key] = { subject: subjName };
+      usedKeys.add(key);
+      remaining[subjName] = (remaining[subjName] || 1) - 1;
+      rem--;
+      assigned++;
+    });
+  });
+
+  // 2순위: 나머지 과목을 남은 슬롯에 랜덤 배정
+  const leftoverKeys = availableKeys
+    .filter(k => !usedKeys.has(k))
+    .sort(() => Math.random() - .5);
+
+  const subjQueue = [];
+  Object.entries(remaining).forEach(([name, cnt]) => {
+    for (let i = 0; i < cnt; i++) subjQueue.push(name);
+  });
+  subjQueue.sort(() => Math.random() - .5);
+
+  const toFill = Math.min(leftoverKeys.length, subjQueue.length);
+  for (let i = 0; i < toFill; i++) {
+    S.ttData[leftoverKeys[i]] = { subject: subjQueue[i] };
+    assigned++;
+  }
+
+  closeModal('modal-tt-random');
+
+  // 일괄 저장 — 기존 saveCellToStorage 패턴과 동일하게 처리
+  if (S.classId && S.school) {
+    const lsKey = `stt_${S.school.id}_${S.classId}`;
+    localStorage.setItem(lsKey, JSON.stringify(S.ttData));
+    if (typeof db !== 'undefined' && db) {
+      try {
+        const ref  = doc(db, 'schools', S.school.id, 'timetables', S.classId);
+        const payload = toFirestoreDoc({ ...S.ttData, _updatedAt: Date.now() });
+        await setDoc(ref, payload, { merge: true });
+      } catch(e) { console.warn('랜덤 배정 저장 오류:', e); }
+    }
+  }
+
+  renderGrid();
+  renderSubjectPalette();
+  toast(`🎲 랜덤 배정 완료 — ${assigned}개 교시 배정됨 ✔`, 'success');
+}
+window.runTtRandom = runTtRandom;
+
+/* 교담 배정된 슬롯인지 확인 (담임 시간표용) */
+function getSpecialtyAssignedForKey(key) {
+  if (!S.school || !S.classId) return null;
+  const [day, pStr] = key.split('-');
+  const grade  = getCurrentClassGrade();
+  const ptimes = getPeriodTimes(grade);
+  const pIdx   = parseInt(pStr) - 1;
+  if (pIdx < 0 || pIdx >= ptimes.length) return null;
+  const start   = ptimes[pIdx]?.start;
+  const timeKey = start ? `${day}-${start}` : null;
+  if (!timeKey) return null;
+
+  // 교담 시간표에서 이 학급에 배정된 교과목 확인
+  for (const [subject, sched] of Object.entries(S.school.specialtySchedule||{})) {
+    if (sched[key]?.classId === S.classId) return subject;
+  }
+  return null;
+}
+window.getSpecialtyAssignedForKey = getSpecialtyAssignedForKey;
 
 function openRandomAssignModal() {
   if (!S.school?.specialRooms?.length) { toast('특별실을 먼저 추가하세요.', 'error'); return; }
