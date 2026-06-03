@@ -2363,7 +2363,8 @@ const S = {
   ttData:      {},     // { "월-1": { subject, teacher, role, specialRoom, isSpecialRoom } }
   editingKey:  null,   // cell key being edited
   dragSrc:     null,   // { type:'palette'|'cell', subject?, key? }
-  unsub:       null,   // onSnapshot unsubscriber
+  unsub:       null,   // onSnapshot unsubscriber (timetable)
+  unsubSchool: null,   // onSnapshot unsubscriber (school — specialtySchedule 실시간 구독)
 };
 
 /* ===========================================================
@@ -5125,7 +5126,8 @@ function setSyncDot() {
 function changeClass(id) {
   S.classId = id;
   S.ttData  = {};
-  if (S.unsub) { S.unsub(); S.unsub=null; }
+  if (S.unsub)       { S.unsub();       S.unsub=null;       }
+  if (S.unsubSchool) { S.unsubSchool(); S.unsubSchool=null; }
   subscribeToClass();
 }
 window.changeClass = changeClass;
@@ -5133,8 +5135,23 @@ window.changeClass = changeClass;
 /* ===========================================================
    SUBSCRIBE / LOAD TIMETABLE
    =========================================================== */
-function subscribeToClass() {
+async function subscribeToClass() {
   if (!S.classId || !S.school) return;
+
+  // ── ② 진입 시 school 문서 fresh fetch (specialtySchedule 최신화) ──
+  if (db) {
+    try {
+      const schoolRef = doc(db, 'schools', S.school.id);
+      const schoolSnap = await getDoc(schoolRef);
+      if (schoolSnap.exists()) {
+        // 기존 S.school의 다른 필드는 유지하고 specialtySchedule만 갱신
+        const fresh = schoolSnap.data();
+        if (fresh.specialtySchedule !== undefined) {
+          S.school.specialtySchedule = fresh.specialtySchedule;
+        }
+      }
+    } catch(e) { console.warn('School fresh fetch error:', e); }
+  }
 
   // Load from localStorage first (fast)
   const lsKey = `stt_${S.school.id}_${S.classId}`;
@@ -5150,6 +5167,7 @@ function subscribeToClass() {
   // If Firebase configured, subscribe via onSnapshot
   if (db) {
     try {
+      // ── ttData 구독 (기존) ─────────────────────────────────────
       const ref = doc(db, 'schools', S.school.id, 'timetables', S.classId);
       S.unsub = onSnapshot(ref, snap => {
         if (snap.exists()) {
@@ -5164,6 +5182,22 @@ function subscribeToClass() {
           renderSubjectPalette();
           renderTracker();
         }
+      });
+
+      // ── ① school 문서 실시간 구독 (specialtySchedule 변경 감지) ──
+      const schoolRef2 = doc(db, 'schools', S.school.id);
+      S.unsubSchool = onSnapshot(schoolRef2, snap => {
+        if (!snap.exists()) return;
+        const fresh = snap.data();
+        // specialtySchedule만 비교해 변경 시에만 갱신 (불필요한 렌더 방지)
+        const prevJson = JSON.stringify(S.school.specialtySchedule || {});
+        const nextJson = JSON.stringify(fresh.specialtySchedule || {});
+        if (prevJson === nextJson) return; // 변경 없으면 skip
+        S.school.specialtySchedule = fresh.specialtySchedule;
+        // 시수현황 + 그리드 갱신 (교담 칸 표시 + 시수 재계산)
+        renderGrid();
+        renderSubjectPalette();
+        renderTracker();
       });
     } catch(e) { console.warn('Firestore subscribe error:',e); }
   }
@@ -5733,7 +5767,8 @@ function loadSession() {
 }
 function logout() {
   localStorage.removeItem('stt_session');
-  if (S.unsub) { S.unsub(); S.unsub=null; }
+  if (S.unsub)       { S.unsub();       S.unsub=null;       }
+  if (S.unsubSchool) { S.unsubSchool(); S.unsubSchool=null; }
   S.school=null; S.user=null; S.ttData={}; S.classId=null;
   goTo('screen-landing');
   toast('로그아웃되었습니다.', 'success');
