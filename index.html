@@ -2560,43 +2560,51 @@ function getSelectedSubjects() {
 
 function goToSpecialtyScreen() {
   if (!S.school || !S.user) return;
-  const ttInfo = S.user.ttInfo;
-  const isCollab = S.user.role === 'collaborative';
-  q('#sp-school-name').textContent = S.school.name;
-  q('#sp-user-chip').textContent   = `${isCollab ? '🤝' : '⭐'} ${S.user.name}`;
+  try {
+    const isCollab = S.user.role === 'collaborative';
 
-  // 협업 교사: 안내 문구 변경
-  const alert = q('#sp-alert');
-  if (alert) {
-    if (isCollab) {
-      alert.innerHTML = `🤝 <strong>${escHtml(S.user.name)}</strong> — 협업 수업 시간 배정<br>
-        <span style="font-size:.82rem">기존 수업이 있는 시간에만 배정할 수 있습니다. 담임교사 시간표에 협업 표시가 나타납니다.</span>`;
-    } else {
-      alert.innerHTML = `💡 위에서 교과목을 선택 후, 각 시간에 수업할 <strong>학년-반</strong>을 배정하세요. 담임교사 시간표에 <strong>교담(과목명)</strong>으로 자동 반영됩니다.`;
+    const nameEl = q('#sp-school-name');
+    if (nameEl) nameEl.textContent = S.school.name;
+    const chipEl = q('#sp-user-chip');
+    if (chipEl) chipEl.textContent = `${isCollab ? '🤝' : '⭐'} ${S.user.name}`;
+
+    // 협업 교사: 안내 문구 변경
+    const alert = q('#sp-alert');
+    if (alert) {
+      if (isCollab) {
+        alert.innerHTML = `🤝 <strong>${escHtml(S.user.name)}</strong> — 협업 수업 시간 배정<br>
+          <span style="font-size:.82rem">기존 수업이 있는 시간에만 배정할 수 있습니다. 담임교사 시간표에 협업 표시가 나타납니다.</span>`;
+      } else {
+        alert.innerHTML = `💡 위에서 교과목을 선택 후, 각 시간에 수업할 <strong>학년-반</strong>을 배정하세요. 담임교사 시간표에 <strong>교담(과목명)</strong>으로 자동 반영됩니다.`;
+      }
     }
+
+    if (isCollab) {
+      const tabStrip = q('#sp-tab-strip');
+      if (tabStrip) tabStrip.innerHTML = '';
+      spCurrentSubject = `__collab__${S.user.name}`;
+    } else {
+      spCurrentSubject = (S.user.subjects||[])[0] || null;
+      renderSpTabs();
+    }
+    renderSpecialtyGrid();
+
+    // 관리자 전용 이동 버튼 표시/숨김
+    const isAdmin = S.user?.role === 'admin' || S.user?.originalRole === 'admin';
+    ['sp-btn-setup','sp-btn-room','sp-btn-timetable','sp-btn-next-teacher'].forEach(id => {
+      const el = q(`#${id}`);
+      if (el) el.style.display = isAdmin ? 'flex' : 'none';
+    });
+
+    // 관리자: 다음 단계 배너 표시
+    const bannerEl = q('#sp-next-step-banner');
+    if (bannerEl) bannerEl.style.display = isAdmin ? 'flex' : 'none';
+
+  } catch(err) {
+    console.error('goToSpecialtyScreen 오류:', err);
   }
 
-  if (isCollab) {
-    // 협업 교사: 단일 그리드, 교과 탭 없음
-    q('#sp-tab-strip').innerHTML = '';
-    spCurrentSubject = `__collab__${S.user.name}`;
-  } else {
-    spCurrentSubject = (S.user.subjects||[])[0] || null;
-    renderSpTabs();
-  }
-  renderSpecialtyGrid();
-
-  // 관리자 전용 이동 버튼 표시/숨김 (원래 관리자이면 유지)
-  const isAdmin = S.user?.role === 'admin' || S.user?.originalRole === 'admin';
-  ['sp-btn-setup','sp-btn-room','sp-btn-timetable','sp-btn-next-teacher'].forEach(id => {
-    const el = q(`#${id}`);
-    if (el) el.style.display = isAdmin ? 'flex' : 'none';
-  });
-
-  // 관리자: 다음 단계 배너 표시
-  const bannerEl = q('#sp-next-step-banner');
-  if (bannerEl) bannerEl.style.display = isAdmin ? 'flex' : 'none';
-
+  // 에러가 있어도 화면 전환은 반드시 실행
   goTo('screen-specialty');
 }
 window.goToSpecialtyScreen = goToSpecialtyScreen;
@@ -5645,7 +5653,10 @@ function goFromRoomSchedule() {
       btn.className = 'btn btn-outline btn-block';
       btn.style.cssText = 'margin-bottom:.4rem;text-align:left;display:flex;align-items:center;gap:.5rem';
       btn.textContent = (t.type === 'specialty' ? '🎓 ' : '🤝 ') + t.label;
-      btn.addEventListener('click', () => goToSpecialtyAs(t.id, t.label, t.type));
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        goToSpecialtyAs(t.id, t.label, t.type);
+      });
       el.appendChild(btn);
     });
   }
@@ -5655,13 +5666,15 @@ window.goFromRoomSchedule = goFromRoomSchedule;
 
 function goToSpecialtyAs(teacherId, teacherLabel, type) {
   closeModal('modal-specialty-nav');
-  if (!S.school) return;
+  if (!S.school) { toast('학교 정보를 불러올 수 없습니다.', 'error'); return; }
+  if (!S.user)   { toast('로그인 정보를 확인해주세요.', 'error'); return; }
 
   // 원래 역할 보존 (관리자가 교담 화면으로 들어올 때 isAdmin 유지)
   const originalRole = S.user?.originalRole || S.user?.role;
 
   if (type === 'specialty') {
     const spInfo = (S.school.specialtyTeachers||[]).find(t => t.id === teacherId);
+    if (!spInfo) { toast(`교담 교사 정보를 찾을 수 없습니다. (id: ${teacherId})`, 'error'); return; }
     S.user = {
       ...S.user,
       name: teacherLabel,
@@ -5670,10 +5683,11 @@ function goToSpecialtyAs(teacherId, teacherLabel, type) {
       spId: teacherId,
       spInfo,
       ttId: null, ttInfo: null,
-      subjects: spInfo?.subjects || [],
+      subjects: spInfo.subjects || [],
     };
   } else {
     const ttInfo = (S.school.teacherTypes||[]).find(t => t.id === teacherId);
+    if (!ttInfo)  { toast(`협업 교사 정보를 찾을 수 없습니다. (id: ${teacherId})`, 'error'); return; }
     S.user = {
       ...S.user,
       name: teacherLabel,
