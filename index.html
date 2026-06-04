@@ -2518,7 +2518,26 @@ function rlRecord() {
 /* ===========================================================
    SCREEN NAVIGATION
    =========================================================== */
-function goTo(id) {
+
+// 히스토리에 포함하지 않는 화면 (superadmin은 이스터에그 전용)
+const HISTORY_SKIP_SCREENS = new Set(['screen-superadmin']);
+
+// 화면 ID → 복원 시 호출할 wrapper 함수명
+// wrapper가 없는 화면은 goTo 직접 렌더만 수행 (landing 등)
+const SCREEN_RESTORE_FN = {
+  'screen-admin-home':   () => goToAdminHome(),
+  'screen-setup':        () => goAdminSetup(),
+  'screen-room-schedule':() => { if(S.school) goTo('screen-room-schedule'); else goTo('screen-landing'); },
+  'screen-specialty':    () => goToSpecialtyScreen(),
+  'screen-timetable':    () => { initTimetable(); goTo('screen-timetable'); },
+  'screen-join':         () => goToJoin(),
+  'screen-manage':       () => goToManage(),
+  'screen-create':       () => goToCreate(),
+  'screen-landing':      () => _renderScreen('screen-landing'),
+};
+
+/** 실제 DOM 화면 전환만 수행 (히스토리 조작 없음) */
+function _renderScreen(id) {
   document.querySelectorAll('.screen').forEach(s => {
     s.classList.remove('active');
     s.style.display = 'none';
@@ -2528,7 +2547,46 @@ function goTo(id) {
   el.style.display = 'flex';
   requestAnimationFrame(() => el.classList.add('active'));
 }
+
+/** 화면 전환 + 히스토리 pushState */
+function goTo(id) {
+  _renderScreen(id);
+  if (!HISTORY_SKIP_SCREENS.has(id)) {
+    history.pushState({ screen: id }, '');
+  }
+}
 window.goTo = goTo;
+
+/** 뒤로가기(popstate) 처리 — 브라우저가 앱 밖으로 나가지 않도록 가로챔 */
+window.addEventListener('popstate', (e) => {
+  const screenId = e.state?.screen ?? 'screen-landing';
+
+  // 모달이 열려 있으면 먼저 닫고 히스토리 재복원
+  const openModal = document.querySelector('.modal-bg.open');
+  if (openModal) {
+    openModal.classList.remove('open');
+    // 모달을 닫은 것이므로 현재 화면 히스토리 항목 다시 쌓기
+    history.pushState({ screen: screenId }, '');
+    return;
+  }
+
+  // 로그인 상태가 필요한 화면인데 세션이 없으면 landing으로
+  const needsAuth = ['screen-admin-home','screen-setup','screen-room-schedule',
+                     'screen-specialty','screen-timetable'];
+  if (needsAuth.includes(screenId) && !S.school) {
+    _renderScreen('screen-landing');
+    history.replaceState({ screen: 'screen-landing' }, '');
+    return;
+  }
+
+  // wrapper 함수가 있으면 실행 (UI 초기화 포함), 없으면 단순 렌더
+  const restoreFn = SCREEN_RESTORE_FN[screenId];
+  if (restoreFn) {
+    restoreFn();
+  } else {
+    _renderScreen(screenId);
+  }
+});
 
 /* ===========================================================
    EASTER EGG → SUPER ADMIN
@@ -6246,7 +6304,9 @@ function logout() {
   const banner = document.getElementById('school-lock-banner');
   if (banner) banner.classList.remove('visible');
   document.body.style.paddingTop = '0';
-  goTo('screen-landing');
+  // 로그아웃 후 뒤로가기로 인증 화면이 복원되지 않도록 히스토리 전체 교체
+  history.replaceState({ screen: 'screen-landing' }, '');
+  _renderScreen('screen-landing');
   toast('로그아웃되었습니다.', 'success');
 }
 window.logout = logout;
@@ -8422,13 +8482,19 @@ window.adhGoSpecialty = adhGoSpecialty;
     updateLockUI();
     if (S.user?.role === 'specialty' || S.user?.role === 'collaborative') {
       goToSpecialtyScreen();
+      history.replaceState({ screen: 'screen-specialty' }, '');
     } else if (S.user?.role === 'admin') {
       initTimetable();
       goToAdminHome();
+      history.replaceState({ screen: 'screen-admin-home' }, '');
     } else {
       initTimetable();
       goTo('screen-timetable');
+      history.replaceState({ screen: 'screen-timetable' }, '');
     }
+  } else {
+    // 미로그인 — landing이 초기 화면임을 히스토리에 등록
+    history.replaceState({ screen: 'screen-landing' }, '');
   }
 })();
 </script>
