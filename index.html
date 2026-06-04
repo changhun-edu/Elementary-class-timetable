@@ -850,9 +850,16 @@ a{color:inherit;text-decoration:none}
 .rs-block{background:#fff;border-radius:var(--r-lg);border:1px solid var(--g200);box-shadow:var(--sh);overflow:hidden}
 .rs-block-hdr{
   padding:.62rem .9rem;font-size:.9rem;font-weight:900;color:#fff;
-  display:flex;align-items:center;justify-content:space-between;
+  display:flex;align-items:center;justify-content:space-between;gap:.5rem;
 }
 .rs-block-hdr .rs-sub{font-size:.72rem;opacity:.75;font-weight:600}
+.rs-block-hdr .rs-clear-btn{
+  margin-left:auto;padding:.2rem .55rem;font-size:.72rem;font-weight:700;
+  border:1.5px solid rgba(255,255,255,.55);border-radius:6px;
+  background:transparent;color:#fff;cursor:pointer;
+  transition:background .15s,border-color .15s;white-space:nowrap;flex-shrink:0;
+}
+.rs-block-hdr .rs-clear-btn:hover{background:rgba(255,255,255,.2);border-color:#fff}
 .rs-table{border-collapse:collapse;width:100%;table-layout:fixed}
 .rs-table th,.rs-table td{border:1px solid var(--g200)}
 .rs-table thead th{background:var(--g50);padding:.4rem .3rem;font-size:.72rem;font-weight:800;color:var(--g500);text-align:center}
@@ -6626,6 +6633,7 @@ function renderRoomSchedule() {
         <div class="rs-block-hdr" style="background:${hdrColor}">
           <span>🏛️ ${escHtml(room.name)}</span>
           <span class="rs-sub">${usedCount ? `${usedCount}학급 사용중` : '배정 없음'}</span>
+          ${usedCount ? `<button class="rs-clear-btn" onclick="confirmClearOneRoom('${room.id}','${escHtml(room.name)}')" title="${escHtml(room.name)} 배정 전체 삭제">🗑️ 초기화</button>` : ''}
         </div>
         <table class="rs-table">
           <thead>
@@ -7307,6 +7315,33 @@ function confirmClearRoomSchedule() {
   });
 }
 window.confirmClearRoomSchedule = confirmClearRoomSchedule;
+
+/* 특별실 1개 배정 초기화 */
+function confirmClearOneRoom(roomId, roomName) {
+  // 전교 마감 체크 (관리자 제외)
+  const isAdmin = S.user?.role === 'admin' || S.user?.originalRole === 'admin';
+  if (S.school?.locked && !isAdmin) {
+    toast('🔒 시간표가 마감되어 수정할 수 없습니다.', 'warn');
+    return;
+  }
+  if (!S.school?.roomSchedule?.[roomId] ||
+      !Object.keys(S.school.roomSchedule[roomId]).length) {
+    toast('배정된 시간이 없습니다.', '');
+    return;
+  }
+  openConfirm(
+    `🏛️ ${roomName} 배정 초기화`,
+    `<strong>${escHtml(roomName)}</strong>에 배정된 모든 시간이 삭제됩니다.<br>계속하시겠습니까?`,
+    async () => {
+      delete S.school.roomSchedule[roomId];
+      await saveSchool(S.school);
+      renderRoomSchedule();
+      toast(`${roomName} 배정이 초기화되었습니다.`, 'success');
+    },
+    '', '초기화', 'btn-danger'
+  );
+}
+window.confirmClearOneRoom = confirmClearOneRoom;
 
 async function saveRoomSchedule() {
   if (!S.school) return;
@@ -8176,10 +8211,54 @@ window.toggleSidebar = toggleSidebar;
    KEYBOARD SHORTCUTS
    =========================================================== */
 document.addEventListener('keydown', e => {
+  /* ── Escape: 열린 모달 / 사이드바 닫기 ── */
   if (e.key === 'Escape') {
     document.querySelectorAll('.modal-bg.open').forEach(m => m.classList.remove('open'));
     const sb = document.getElementById('tt-sidebar');
     if (sb) sb.classList.remove('mobile-open');
+  }
+
+  /* ── Delete / Backspace: 셀 모달이 열려 있을 때 배정 삭제 ──
+     조건:
+       1) Delete 또는 Backspace 키
+       2) 포커스가 input/textarea/contenteditable 이 아닐 것
+       3) 해당 모달의 삭제 버튼이 표시 중일 것 (배정된 셀에만 반응)
+  ─────────────────────────────────────────────────────────── */
+  if (e.key === 'Delete' || e.key === 'Backspace') {
+    const tag = document.activeElement?.tagName?.toLowerCase();
+    const isEditable = tag === 'input' || tag === 'textarea' ||
+                       document.activeElement?.isContentEditable;
+    if (isEditable) return;
+
+    // 담임 시간표 셀 모달
+    if (document.getElementById('modal-cell')?.classList.contains('open')) {
+      const clearBtn = document.getElementById('mcell-clear');
+      if (clearBtn && clearBtn.style.display !== 'none') {
+        e.preventDefault();
+        clearCell();
+      }
+      return;
+    }
+
+    // 교담·협력강사 시간표 셀 모달
+    if (document.getElementById('modal-sp-cell')?.classList.contains('open')) {
+      const clearBtn = document.getElementById('sp-clear-btn');
+      if (clearBtn && clearBtn.style.display !== 'none') {
+        e.preventDefault();
+        clearSpCell();
+      }
+      return;
+    }
+
+    // 특별실 배정 셀 모달
+    if (document.getElementById('modal-rs-cell')?.classList.contains('open')) {
+      const clearBtn = document.getElementById('mrs-clear');
+      if (clearBtn && clearBtn.style.display !== 'none') {
+        e.preventDefault();
+        clearRsCell();
+      }
+      return;
+    }
   }
 });
 
