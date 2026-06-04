@@ -242,6 +242,36 @@ a{color:inherit;text-decoration:none}
 .adh-divider{height:1px;background:var(--g100);margin:.4rem 0}
 .adh-footer{display:flex;justify-content:space-between;align-items:center;margin-top:1.1rem;padding-top:.85rem;border-top:1px solid var(--g100)}
 .adh-footer-info{font-size:.75rem;color:var(--g400)}
+
+/* ── 전교 잠금 배너 ── */
+#school-lock-banner{
+  position:fixed;top:0;left:0;right:0;z-index:200;
+  background:linear-gradient(90deg,#7f1d1d,#dc2626);
+  color:#fff;font-size:.83rem;font-weight:700;
+  padding:.5rem 1rem;display:none;
+  align-items:center;justify-content:center;gap:.65rem;text-align:center;
+  box-shadow:0 2px 8px rgba(0,0,0,.25);
+}
+#school-lock-banner.visible{display:flex}
+
+/* ── 위험 구역 카드 ── */
+.danger-zone-card{
+  border:2px solid #fca5a5;border-radius:var(--r-lg);
+  background:#fff5f5;padding:1.2rem 1.4rem;margin-top:1.2rem;
+}
+.danger-zone-title{
+  display:flex;align-items:center;gap:.5rem;
+  font-size:.88rem;font-weight:900;color:#991b1b;margin-bottom:.25rem;
+}
+.danger-zone-desc{font-size:.78rem;color:#b91c1c;margin-bottom:1rem;line-height:1.55}
+.danger-zone-divider{height:1px;background:#fecaca;margin:1rem 0}
+.lock-toggle-row{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.lock-toggle-info .lock-toggle-label{font-size:.88rem;font-weight:800;color:var(--g800);margin-bottom:.18rem}
+.lock-toggle-info .lock-toggle-sub{font-size:.75rem;color:var(--g500)}
+.delete-school-confirm{margin-top:.75rem;display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+.delete-school-confirm .form-input{flex:1;min-width:140px;border-color:#fca5a5}
+.delete-school-confirm .form-input:focus{border-color:#dc2626;box-shadow:0 0 0 3px rgba(220,38,38,.12)}
+
 /* ============================================================ */
 /* LANDING                                                      */
 /* ============================================================ */
@@ -885,9 +915,12 @@ a{color:inherit;text-decoration:none}
 </head>
 <body>
 
-<!-- ═══════════════════════════════════════════════════════ -->
-<!-- SCREEN: ADMIN HOME                                        -->
-<!-- ═══════════════════════════════════════════════════════ -->
+<!-- 전교 잠금 배너 (잠금 상태일 때 모든 화면 상단에 표시) -->
+<div id="school-lock-banner">
+  <span>🔒</span>
+  <span>전교 시간표 <strong>마감됨</strong> — 모든 수정이 잠겨 있습니다.</span>
+  <span id="lock-banner-admin-hint" style="opacity:.75;font-size:.75rem;font-weight:500"></span>
+</div>
 <div id="screen-admin-home" class="screen">
   <div class="adh-card">
     <!-- 헤더 -->
@@ -913,6 +946,12 @@ a{color:inherit;text-decoration:none}
         <div class="adh-stat-num" id="adh-stat-teachers">0</div>
         <div class="adh-stat-lbl">교담 교사</div>
       </div>
+    </div>
+
+    <!-- 잠금 상태 알림 -->
+    <div id="adh-lock-notice" style="display:none;margin-bottom:.85rem;padding:.6rem .9rem;background:#fee2e2;border:1.5px solid #fca5a5;border-radius:var(--r);display:none;align-items:center;justify-content:space-between;gap:.6rem;flex-wrap:wrap">
+      <span style="font-size:.82rem;font-weight:700;color:#991b1b">🔒 시간표가 마감되어 있습니다.</span>
+      <button class="btn btn-sm" style="background:#059669;color:#fff;border:none;font-size:.78rem" onclick="toggleSchoolLock()">🔓 마감 해제</button>
     </div>
 
     <!-- 메뉴 -->
@@ -1509,6 +1548,43 @@ a{color:inherit;text-decoration:none}
         <button class="btn btn-primary" onclick="changeTeacherPw()">✔ 교사 비밀번호 변경</button>
       </div>
 
+      <!-- ⚠️ 위험 구역 -->
+      <div class="danger-zone-card">
+        <div class="danger-zone-title">⚠️ 위험 구역</div>
+        <div class="danger-zone-desc">아래 작업은 되돌리기 어렵습니다. 신중하게 사용하세요.</div>
+
+        <!-- 전교 시간표 잠금 -->
+        <div class="lock-toggle-row">
+          <div class="lock-toggle-info">
+            <div class="lock-toggle-label">🔒 전교 시간표 마감</div>
+            <div class="lock-toggle-sub" id="dz-lock-sub">마감하면 모든 교사가 시간표를 수정할 수 없습니다.</div>
+          </div>
+          <button class="btn btn-sm" id="dz-lock-btn" onclick="toggleSchoolLock()" style="min-width:90px">
+            로딩중…
+          </button>
+        </div>
+
+        <div class="danger-zone-divider"></div>
+
+        <!-- 학교 삭제 -->
+        <div>
+          <div class="lock-toggle-label" style="font-size:.88rem;font-weight:800;color:#991b1b;margin-bottom:.3rem">🗑️ 학교 전체 삭제</div>
+          <div style="font-size:.78rem;color:#b91c1c;line-height:1.55;margin-bottom:.65rem">
+            학교와 <strong>모든 시간표·배정·설정 데이터</strong>가 영구 삭제됩니다.<br>
+            확인을 위해 아래에 학교 이름을 정확히 입력하세요.
+          </div>
+          <div class="delete-school-confirm">
+            <input type="text" id="delete-school-input" class="form-input"
+              placeholder="학교 이름 입력"
+              oninput="onDeleteSchoolInput()"
+              autocomplete="off">
+            <button class="btn btn-danger btn-sm" id="delete-school-btn"
+              onclick="confirmDeleteMySchool()" disabled style="min-width:72px">삭제</button>
+          </div>
+          <div id="delete-school-hint" style="font-size:.75rem;color:var(--g400);margin-top:.35rem"></div>
+        </div>
+      </div>
+
     </div>
 
   </div>
@@ -1643,7 +1719,7 @@ a{color:inherit;text-decoration:none}
       <button class="btn btn-ghost btn-sm" id="btn-clear-all" onclick="confirmClearAll()" style="display:none">🗑️ 초기화</button>
       <button class="btn btn-ghost btn-sm" id="btn-clear-tt" style="display:none">🗑️ 시간표 초기화</button>
       <button class="btn btn-ghost btn-sm" id="btn-tt-random" style="display:none">🎲 랜덤 배정</button>
-      <button class="btn btn-ghost btn-sm" onclick="exportAllToExcel()">📊 엑셀 저장</button>
+      <button class="btn btn-ghost btn-sm" onclick="exportAllToExcel()" title="색상·스타일이 적용된 엑셀 파일로 내보내기">📊 엑셀 내보내기</button>
       <button class="btn btn-ghost btn-sm" onclick="printTimetable()">🖨️ 인쇄</button>
       <button class="btn btn-ghost btn-sm" id="btn-admin-home" onclick="goToAdminHome()" style="display:none">🏠 관리자 홈</button>
       <button class="btn btn-ghost btn-sm" id="btn-admin-sp" onclick="goFromRoomSchedule()" style="display:none">⭐ 교담 시간표</button>
@@ -1933,8 +2009,8 @@ a{color:inherit;text-decoration:none}
 <!-- ═══════════════════════════════════════════════════════ -->
 <!-- SCRIPT                                                  -->
 <!-- ═══════════════════════════════════════════════════════ -->
-<!-- SheetJS: 브라우저에서 Excel 생성 -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- ExcelJS: 스타일·색상·병합 지원 Excel 생성 (MIT 무료) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 <script type="module">
 /* ===========================================================
    FIREBASE IMPORTS
@@ -2741,6 +2817,8 @@ function renderSpecialtyGrid() {
     : null;  // null = 전 학년
 
   // ── 담당 학년 교시만 필터링하여 서브행 생성 ──────────────
+  // 같은 교시번호라도 시간이 다른 학년 그룹은 별도 행으로 분리하고,
+  // allowedGradesForRow 를 저장해 셀 렌더링 시 해당 학년 학급만 표시한다.
   const spSubRows = [];
   getScheduleRows().forEach(slot => {
     const byPeriod = {};
@@ -2754,30 +2832,57 @@ function renderSpecialtyGrid() {
     Object.entries(byPeriod).sort((a,b)=>a[0]-b[0]).forEach(([p, gs]) => {
       const pNum    = parseInt(p);
       const isMulti = Object.keys(byPeriod).length > 1;
-      const label   = isMulti
+      // 전체 행 수 기준으로 같은 교시번호가 이미 다른 시간대로 등록됐는지 확인
+      const hasDupPeriod = spSubRows.some(r => r.periodNum === pNum);
+      // 중복 교시번호이거나 한 슬롯 안에 학년그룹이 여럿이면 학년 표시
+      const needGradeLabel = isMulti || hasDupPeriod;
+      const label   = needGradeLabel
         ? `<span style="font-size:.62rem;color:var(--g500)">(${compressGrades(gs).replace('학년','')}학년)</span><br>${pNum}교시`
         : `${pNum}교시`;
-      spSubRows.push({ periodNum: pNum, label: label + `<span class="period-time">${slot.start}</span>` });
+      spSubRows.push({
+        periodNum: pNum,
+        slotStart: slot.start,
+        allowedGradesForRow: new Set(gs),   // 이 행에 해당하는 학년 집합
+        label: label + `<span class="period-time">${slot.start}</span>`
+      });
     });
   });
 
-  q('#sp-tbody').innerHTML = spSubRows.map(({ periodNum, label }) => `
+  q('#sp-tbody').innerHTML = spSubRows.map(({ periodNum, slotStart, allowedGradesForRow, label }) => `
     <tr>
       <td class="period-cell" style="font-size:.68rem;line-height:1.3">${label}</td>
       ${DAYS.map(day => {
         const key   = `${day}-${periodNum}`;
-        const entry = schedule[key];
+        // 같은 교시번호 key에 여러 학년 그룹이 있을 수 있으므로,
+        // "|g학년그룹" 접미사 키를 먼저 확인하고, 없으면 plain key에서 학년 필터로 조회.
+        const qualifiedKey = `${key}|g${[...allowedGradesForRow].sort().join('')}`;
+        const entry = (() => {
+          // 1순위: 학년 그룹 접미사 키
+          const eq = schedule[qualifiedKey];
+          if (eq) return eq;
+          // 2순위: plain key (하위 호환 — 해당 학년에 속한 경우만)
+          const e = schedule[key];
+          if (!e) return null;
+          const c = classes.find(c => c.id === e.classId);
+          if (c?.grade && !allowedGradesForRow.has(c.grade)) return null;
+          return e;
+        })();
         const cls   = entry ? classes.find(c => c.id === entry.classId) : null;
         const g     = cls?.grade || parseInt(cls?.name?.[0]);
         const clrG  = (g >= 1 && g <= 6) ? gradeColors[g-1] : color;
         const otherSubj = (S.user?.subjects||[]).filter(s=>s!==subject)
-          .find(s=>getSpecialtySchedule(s)[key]);
+          .find(s => {
+            const e2 = getSpecialtySchedule(s)[key];
+            if (!e2) return false;
+            const c2 = classes.find(c=>c.id===e2.classId);
+            return c2?.grade && allowedGradesForRow.has(c2.grade);
+          });
         const otherCls = otherSubj
           ? classes.find(c=>c.id===getSpecialtySchedule(otherSubj)[key]?.classId)
           : null;
 
-        // 이 시간에 특별실 사용 중인 반 확인 (담당 학년만, 시간 기반 키)
-        const slot = getScheduleRows().find(r => r.gradeMap && Object.values(r.gradeMap).includes(periodNum));
+        // 이 시간에 특별실 사용 중인 반 확인 (이 행의 학년 그룹만, 시간 기반 키)
+        const slot = getScheduleRows().find(r => r.start === slotStart);
         const timeKey = slot ? `${day}-${slot.start}` : null;
         const roomsAtKey = [];
         if (timeKey) {
@@ -2785,7 +2890,8 @@ function renderSpecialtyGrid() {
             const re = sched[timeKey];
             if (re) {
               const rCls = classes.find(c=>c.id===re.classId);
-              if (rCls && (!assignedGrades || assignedGrades.has(rCls.grade))) {
+              // 이 행의 학년 그룹에 속하는 학급만 표시
+              if (rCls && allowedGradesForRow.has(rCls.grade)) {
                 const room = (S.school.specialRooms||[]).find(r=>r.id===rId);
                 if (room) roomsAtKey.push(room.name);
               }
@@ -2798,11 +2904,13 @@ function renderSpecialtyGrid() {
           return `<span style="position:absolute;bottom:4px;right:4px;font-size:.78rem;font-weight:800;color:${rc.text};background:${rc.bg};border:1.5px solid ${rc.border};border-radius:6px;padding:2px 6px;pointer-events:none;line-height:1.4;max-width:calc(100% - 8px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${rc.icon} ${label}</span>`;
         })() : '';
 
-        // 요일별 교시 수 초과 여부 (교담 시간표용)
+        // 요일별 교시 수 초과 여부 — 이 행의 학년 그룹 기준으로 판단
         const spDayBlocked = (() => {
-          if (!assignedGrades) return false;
-          return [...assignedGrades].every(g => !isDayPeriodAllowed(g, day, periodNum));
+          return [...allowedGradesForRow].every(g => !isDayPeriodAllowed(g, day, periodNum));
         })();
+
+        // 모달 오픈 시 어느 학년 그룹 행인지 전달 (같은 교시번호 중복 구별용)
+        const gradeHint = [...allowedGradesForRow].sort().join(',');
 
         let inner;
         if (spDayBlocked && !cls) {
@@ -2821,27 +2929,47 @@ function renderSpecialtyGrid() {
           ? `draggable="true" ondragstart="spOnDragStart(event,'${key}')" ondragend="spOnDragEnd(event)"`
           : '';
         return `<td class="sp-cell" style="position:relative" ${draggable}
-                    onclick="openSpModal('${key}')"
+                    data-grade-hint="${gradeHint}"
+                    onclick="openSpModal('${key}',this)"
                     ondragover="spOnDragOver(event,this)"
                     ondragleave="spOnDragLeave(event,this)"
-                    ondrop="spOnDrop(event,'${key}')">${inner}${roomBadge}</td>`;
+                    ondrop="spOnDrop(event,'${key}',this)">${inner}${roomBadge}</td>`;
       }).join('')}
     </tr>
   `).join('');
 }
 window.renderSpecialtyGrid = renderSpecialtyGrid;
 
-function openSpModal(key) {
+// spEditGradeHint: 현재 모달을 연 셀의 학년 그룹 (중복 교시번호 구별용)
+let spEditGradeHint = null;
+
+function openSpModal(key, cellEl) {
   spEditKey = key;
+  // 셀 엘리먼트에서 학년 힌트 읽기 (없으면 null)
+  spEditGradeHint = cellEl?.dataset?.gradeHint
+    ? new Set(cellEl.dataset.gradeHint.split(',').map(Number).filter(Boolean))
+    : null;
   const day    = key.split('-')[0];
   const period = key.split('-')[1];
   const subject  = spCurrentSubject;
   const isCollab = subject?.startsWith('__collab__');
   const schedule = getSpecialtySchedule(subject);
-  const current  = schedule[key];
+  // 같은 교시번호 key에 여러 학년 그룹이 있을 때 이 행의 학년에 속한 배정만 현재값으로 인식
+  const allEntries = schedule[key];
+  const current = (() => {
+    if (!allEntries) return null;
+    if (!spEditGradeHint) return allEntries;
+    const cls = (S.school?.classes||[]).find(c=>c.id===allEntries.classId);
+    if (cls?.grade && !spEditGradeHint.has(cls.grade)) return null;
+    return allEntries;
+  })();
   const classes  = S.school?.classes || [];
 
-  q('#sp-modal-title').textContent = `${day}요일 ${period}교시${isCollab ? ` — ${S.user.name}` : ` — ${subject}`}`;
+  // 교시 표시: 학년 힌트가 있고 중복 교시번호인 경우 학년 표시 추가
+  const gradeLabel = spEditGradeHint
+    ? ` (${[...spEditGradeHint].sort().join('·')}학년)`
+    : '';
+  q('#sp-modal-title').textContent = `${day}요일 ${period}교시${gradeLabel}${isCollab ? ` — ${S.user.name}` : ` — ${subject}`}`;
   q('#sp-modal-desc').textContent  = current
     ? `현재: ${current.className} 배정됨`
     : isCollab ? '협업할 학급을 선택하세요.' : '수업할 학급을 선택하세요.';
@@ -2893,6 +3021,7 @@ function openSpModal(key) {
 
   // ── 담당 학년 필터 ───────────────────────────────────────
   // spInfo.grades 우선, ttInfo.gradeFilter 차선
+  // 추가로 spEditGradeHint(셀 행의 학년 그룹)와 교집합하여 중복 교시번호 구별
   const spInfo   = S.user.spInfo;
   const ttInfo   = S.user.ttInfo;
   let allowedGradeSet = null;
@@ -2901,6 +3030,12 @@ function openSpModal(key) {
                    : ttInfo?.gradeFilter?.length ? ttInfo.gradeFilter
                    : null;
     if (gradeArr?.length) allowedGradeSet = new Set(gradeArr);
+  }
+  // 중복 교시번호 행 구별: 셀에 gradeHint가 있으면 해당 학년만 표시
+  if (spEditGradeHint) {
+    allowedGradeSet = allowedGradeSet
+      ? new Set([...allowedGradeSet].filter(g => spEditGradeHint.has(g)))
+      : new Set(spEditGradeHint);
   }
 
   // ── 중복 방지 ─────────────────────────────────────────────
@@ -3002,24 +3137,81 @@ window.onSpClassChange = onSpClassChange;
 
 async function saveSpCell() {
   if (!spEditKey) return;
+  // 전교 마감 체크 (관리자 제외)
+  if (S.school?.locked && S.user?.role !== 'admin') {
+    toast('🔒 시간표가 마감되어 수정할 수 없습니다.', 'warn'); return;
+  }
   const subject  = spCurrentSubject;
   const classId  = q('#sp-class-select').value;
   const schedule = getSpecialtySchedule(subject);
+
+  // 저장 key: 중복 교시번호 구별이 필요한 경우 "|g학년그룹" 접미사 사용
+  const saveKey = (spEditGradeHint && spEditGradeHint.size > 0)
+    ? `${spEditKey}|g${[...spEditGradeHint].sort().join('')}`
+    : spEditKey;
+
   // 기존 배정 학급 저장 (변경 전)
-  const prevEntry = schedule[spEditKey];
+  const prevEntry   = schedule[saveKey] || (!saveKey.includes('|g') ? null : schedule[spEditKey]);
   const prevClassId = prevEntry?.classId;
+
+  // ── 담임 ttData 충돌 확인 ──────────────────────────────
+  // 새로 배정하는 학급의 담임이 해당 교시에 이미 다른 과목을 입력했는지 체크
+  if (classId && classId !== prevClassId) {
+    const lsKey = `stt_${S.school.id}_${classId}`;
+    let existingTt = {};
+    try { existingTt = JSON.parse(localStorage.getItem(lsKey)||'{}'); } catch {}
+    const existingCell = existingTt[spEditKey];
+    if (existingCell?.subject && existingCell.subject !== subject) {
+      // 담임이 이 칸에 다른 과목을 입력해 놓은 상태 → 덮어쓰기 경고
+      const cls = (S.school.classes||[]).find(c=>c.id===classId);
+      const willOverwrite = await new Promise(resolve => {
+        openConfirm(
+          '⚠️ 담임 시간표 충돌',
+          `<strong>${escHtml(cls?.name||classId)}</strong> 담임이 이 교시(${spEditKey})에
+           이미 <strong>${escHtml(existingCell.subject)}</strong>을(를) 입력해 놓았습니다.<br>
+           교담 배정 시 해당 칸의 담임 입력 내용은 <strong>자동으로 삭제</strong>됩니다.<br>
+           <span style="font-size:.82rem;color:var(--g500)">계속 진행하시겠습니까?</span>`,
+          () => resolve(true),
+          '', '계속 배정', 'btn-primary'
+        );
+        // 취소 버튼에 resolve(false) 연결
+        const cancelBtn = document.querySelector('#modal-confirm .btn-ghost');
+        if (cancelBtn) {
+          const origOnClick = cancelBtn.onclick;
+          cancelBtn.onclick = (e) => { resolve(false); if(origOnClick) origOnClick(e); };
+        }
+      });
+      if (!willOverwrite) return;
+    }
+  }
+
   if (!classId) {
-    delete schedule[spEditKey];
+    delete schedule[saveKey];
+    if (saveKey !== spEditKey && schedule[spEditKey]) {
+      const oldCls = (S.school?.classes||[]).find(c=>c.id===schedule[spEditKey].classId);
+      if (oldCls?.grade && spEditGradeHint?.has(oldCls.grade)) delete schedule[spEditKey];
+    }
   } else {
     const cls = (S.school.classes||[]).find(c=>c.id===classId);
-    schedule[spEditKey] = { classId, className: cls?.name || classId };
+    schedule[saveKey] = { classId, className: cls?.name || classId };
+    if (saveKey !== spEditKey && schedule[spEditKey]) {
+      const oldCls = (S.school?.classes||[]).find(c=>c.id===schedule[spEditKey].classId);
+      if (oldCls?.grade && spEditGradeHint?.has(oldCls.grade)) delete schedule[spEditKey];
+    }
   }
   closeModal('modal-sp-cell');
   renderSpTabs(); renderSpecialtyGrid();
-  // 기존 배정이 있고 다른 학급으로 바뀌거나 삭제된 경우 담임 데이터 정리
+
+  // ── 담임 ttData 정리 ────────────────────────────────────
+  // ① 이전 학급: 해당 교시에서 같은 과목 입력 제거
   if (prevClassId && prevClassId !== classId) {
     await cleanDamimDataForRemovedSpSlots(subject, [{ key: spEditKey, classId: prevClassId }]);
   }
+  // ② 새 학급: 해당 교시에 어떤 과목이든 입력되어 있으면 제거 (교담 관할 슬롯이므로)
+  if (classId && classId !== prevClassId) {
+    await cleanDamimSlotForNewSpAssign(spEditKey, classId);
+  }
+
   toast(classId ? `${(S.school.classes||[]).find(c=>c.id===classId)?.name} 배정됨` : '배정 취소됨', classId?'success':'');
 }
 window.saveSpCell = saveSpCell;
@@ -3028,8 +3220,15 @@ async function clearSpCell() {
   if (!spEditKey) return;
   const subject  = spCurrentSubject;
   const schedule = getSpecialtySchedule(subject);
-  const prevEntry = schedule[spEditKey];
-  delete schedule[spEditKey];
+
+  const saveKey = (spEditGradeHint && spEditGradeHint.size > 0)
+    ? `${spEditKey}|g${[...spEditGradeHint].sort().join('')}`
+    : spEditKey;
+
+  const prevEntry = schedule[saveKey] || schedule[spEditKey];
+  delete schedule[saveKey];
+  if (saveKey !== spEditKey) delete schedule[spEditKey]; // 구형 plain key도 정리
+
   closeModal('modal-sp-cell'); renderSpTabs(); renderSpecialtyGrid(); toast('배정 취소됨');
   // 취소된 슬롯의 담임 데이터 정리
   if (prevEntry?.classId) {
@@ -3115,7 +3314,83 @@ async function cleanDamimDataForRemovedSpSlots(subject, removedEntries) {
   }
 }
 
-/* 교과목명 → 담당 교담 교사 레이블 반환 */
+/**
+ * 교담이 새로운 학급에 배정될 때,
+ * 해당 학급의 담임 ttData에서 그 교시 슬롯의 입력 내용을 제거한다.
+ * (교담 관할 슬롯에 담임이 직접 입력한 내용이 시수에 포함되는 것을 막기 위함)
+ */
+async function cleanDamimSlotForNewSpAssign(spKey, classId) {
+  if (!spKey || !classId || !S.school) return;
+  const lsKey = `stt_${S.school.id}_${classId}`;
+  let ttData = {};
+  try {
+    const stored = localStorage.getItem(lsKey);
+    if (stored) ttData = JSON.parse(stored);
+  } catch(e) {}
+
+  const cell = ttData[spKey];
+  if (!cell) return; // 담임이 아무것도 입력 안 했으면 skip
+
+  delete ttData[spKey];
+  localStorage.setItem(lsKey, JSON.stringify(ttData));
+
+  if (typeof db !== 'undefined' && db) {
+    try {
+      const ref = doc(db, 'schools', S.school.id, 'timetables', classId);
+      await setDoc(ref, toFirestoreDoc({ ...ttData, _updatedAt: Date.now() }), { merge: false });
+    } catch(e) { console.warn('신규 교담 배정 후 담임 슬롯 정리 오류:', e); }
+  }
+
+  // 현재 보고 있는 학급이면 화면 갱신
+  if (S.classId === classId) {
+    S.ttData = ttData;
+    renderGrid();
+    renderSubjectPalette();
+    renderTracker();
+  }
+}
+
+/**
+ * 교담 스케줄이 외부에서 변경됐을 때 (Firestore 실시간 구독),
+ * 현재 학급의 ttData에서 교담 관할 슬롯에 담임이 직접 입력한 내용을 모두 정리한다.
+ * → 이중 시수 카운팅 원천 차단
+ */
+async function syncDamimSlotsWithSpecialty() {
+  if (!S.classId || !S.school) return;
+
+  // 현재 교담 배정에서 이 학급이 배정된 모든 plain key 수집
+  const spKeys = new Set();
+  for (const sched of Object.values(S.school.specialtySchedule || {})) {
+    for (const [key, entry] of Object.entries(sched)) {
+      if (entry?.classId === S.classId) {
+        const plainKey = key.includes('|g') ? key.split('|g')[0] : key;
+        spKeys.add(plainKey);
+      }
+    }
+  }
+
+  // ttData에서 교담 관할 슬롯에 남아있는 담임 입력 제거
+  let changed = false;
+  for (const key of spKeys) {
+    if (S.ttData[key]) {
+      delete S.ttData[key];
+      changed = true;
+    }
+  }
+
+  if (!changed) return;
+
+  // 저장
+  const lsKey = `stt_${S.school.id}_${S.classId}`;
+  localStorage.setItem(lsKey, JSON.stringify(S.ttData));
+  if (typeof db !== 'undefined' && db) {
+    try {
+      const ref = doc(db, 'schools', S.school.id, 'timetables', S.classId);
+      await setDoc(ref, toFirestoreDoc({ ...S.ttData, _updatedAt: Date.now() }), { merge: false });
+    } catch(e) { console.warn('교담 동기화 후 담임 슬롯 정리 오류:', e); }
+  }
+}
+
 function getTeacherLabelForSubject(subject) {
   const teachers = S.school?.specialtyTeachers || [];
   const found = teachers.find(t => (t.subjects||[]).includes(subject));
@@ -3132,7 +3407,11 @@ function getSpecialtyAssignmentsForClass(classId) {
   const ss = S.school?.specialtySchedule || {};
   for (const [subject, schedule] of Object.entries(ss)) {
     for (const [key, entry] of Object.entries(schedule)) {
-      if (entry.classId === classId) result[key] = subject;
+      if (entry.classId === classId) {
+        // "|g학년그룹" 접미사 제거 → 담임 시간표의 plain "요일-교시" key로 변환
+        const plainKey = key.includes('|g') ? key.split('|g')[0] : key;
+        result[plainKey] = subject;
+      }
     }
   }
   return result;
@@ -3147,9 +3426,18 @@ let _spDrag = null; // { fromKey, classId, className }
 function spOnDragStart(event, fromKey) {
   const subject  = spCurrentSubject;
   const schedule = getSpecialtySchedule(subject);
-  const entry    = schedule[fromKey];
+  // fromKey는 plain "요일-교시" 형식 — qualified key에도 entry가 있을 수 있음
+  // data-grade-hint 속성에서 해당 셀의 학년 그룹을 읽어 qualified key 시도
+  const cellEl = event.currentTarget;
+  const gradeHint = cellEl?.dataset?.gradeHint
+    ? new Set(cellEl.dataset.gradeHint.split(',').map(Number).filter(Boolean))
+    : null;
+  const qualifiedKey = gradeHint && gradeHint.size > 0
+    ? `${fromKey}|g${[...gradeHint].sort().join('')}`
+    : fromKey;
+  const entry = schedule[qualifiedKey] || schedule[fromKey];
   if (!entry) return;
-  _spDrag = { fromKey, classId: entry.classId, className: entry.className };
+  _spDrag = { fromKey: qualifiedKey, classId: entry.classId, className: entry.className };
   event.dataTransfer.effectAllowed = 'move';
   event.currentTarget.style.opacity = '.5';
 }
@@ -3182,27 +3470,39 @@ function spOnDragLeave(event, cellEl) {
 }
 window.spOnDragLeave = spOnDragLeave;
 
-function spOnDrop(event, toKey) {
+function spOnDrop(event, toKey, cellEl) {
   event.preventDefault();
   if (!_spDrag) return;
   const { fromKey, classId, className } = _spDrag;
   if (fromKey === toKey) { _spDrag = null; return; }
   const subject  = spCurrentSubject;
   const schedule = getSpecialtySchedule(subject);
-  // 충돌 체크
-  if (schedule[toKey]) {
+
+  // 드롭 대상 셀의 학년 힌트로 qualified key 결정
+  const toGradeHint = cellEl?.dataset?.gradeHint
+    ? new Set(cellEl.dataset.gradeHint.split(',').map(Number).filter(Boolean))
+    : null;
+  const toQKey = (toGradeHint && toGradeHint.size > 0)
+    ? `${toKey}|g${[...toGradeHint].sort().join('')}`
+    : toKey;
+
+  // 충돌 체크 (qualified key와 plain key 모두 확인)
+  if (schedule[toQKey] || (toQKey !== toKey && schedule[toKey])) {
     toast('⚠ 이미 배정된 칸입니다.', 'warn');
     _spDrag = null; return;
   }
   const removedEntry = { key: fromKey, classId };
   delete schedule[fromKey];
-  schedule[toKey] = { classId, className };
+  schedule[toQKey] = { classId, className };
   _spDrag = null;
   renderSpTabs();
   renderSpecialtyGrid();
   saveSchool(S.school);
-  // fromKey 슬롯에서 담임이 직접 입력한 같은 과목 자동 삭제
+  // ① 이동 전 슬롯: 담임이 같은 과목 직접 입력한 것 정리
   cleanDamimDataForRemovedSpSlots(subject, [removedEntry]);
+  // ② 이동 후 슬롯: 담임이 어떤 과목이든 입력한 것 정리 (교담 관할 슬롯)
+  const plainToKey = toKey.includes('|g') ? toKey.split('|g')[0] : toKey;
+  cleanDamimSlotForNewSpAssign(plainToKey, classId);
   toast(`${className} → 이동 완료`, 'success');
 }
 window.spOnDrop = spOnDrop;
@@ -4730,6 +5030,8 @@ function goAdminSetup() {
   if (!S.school) return;
   q('#setup-school-label').textContent = S.school.name;
   initSetup();
+  // 위험 구역 UI 초기화 (잠금 상태, 삭제 입력란 리셋)
+  setTimeout(initDangerZone, 0);
   goTo('screen-setup');
 }
 window.goAdminSetup = goAdminSetup;
@@ -5186,15 +5488,17 @@ async function subscribeToClass() {
       });
 
       // ── ① school 문서 실시간 구독 (specialtySchedule 변경 감지) ──
-      // fresh fetch로 이미 최신화된 상태이므로 JSON 비교는 무의미
-      // → 항상 S.school을 최신 데이터로 갱신하고 renderTracker 호출
       const schoolRef2 = doc(db, 'schools', S.school.id);
-      S.unsubSchool = onSnapshot(schoolRef2, snap => {
+      S.unsubSchool = onSnapshot(schoolRef2, async snap => {
         if (!snap.exists()) return;
         const fresh = snap.data();
         if (fresh.specialtySchedule === undefined) return;
-        // 항상 최신 데이터로 갱신 (JSON 비교 제거 — fresh fetch 이후엔 같을 수 있음)
+        const prevSched = JSON.stringify(S.school.specialtySchedule||{});
         S.school.specialtySchedule = fresh.specialtySchedule;
+        // specialtySchedule이 실제로 변경됐을 때만 ttData 정리 수행
+        if (JSON.stringify(fresh.specialtySchedule) !== prevSched && S.classId) {
+          await syncDamimSlotsWithSpecialty();
+        }
         // 담임 시간표에서 교담 칸 + 시수현황 즉시 재계산
         renderGrid();
         renderSubjectPalette();
@@ -5374,13 +5678,13 @@ function getRoomAssignmentForKey(key) {
 
 function getCellLockState(cell, key, spSubject) {
   if (!S.user) return 'none';
+  // 전교 마감: 관리자 제외 모든 수정 차단
+  if (S.school?.locked && S.user.role !== 'admin') return 'full';
   if (S.user.role === 'admin') return 'none';
   // 교담 배정 칸: 담임은 수정 불가
   if (spSubject) return 'full';
   // 특별실 배정 칸: 잠금 없음 — 과목은 자유롭게 편집 가능 (특별실 배정은 독립 저장)
   if (cell && S.user.role === 'homeroom' && cell.role === 'specialty') return 'full';
-  // cell.isSpecialRoom 체크 제거 — 특별실 배정은 roomSchedule에서 별도 관리
-  // ttData에 저장된 isSpecialRoom 플래그로 잠금하지 않음
   return 'none';
 }
 
@@ -5436,17 +5740,35 @@ function renderSubjectPalette() {
 }
 
 function countSubj(name) {
-  // 담임 직접 입력 시수
-  const fromDamim = Object.values(S.ttData).filter(c => c && c.subject === name).length;
-  // 교담 배정 시수 (S.school.specialtySchedule에서 이 학급에 배정된 과목)
-  let fromSpec = 0;
+  // ── 교담이 배정된 key 집합 (이 학급 기준) ───────────────
+  // specialtySchedule의 어떤 교과든 이 학급이 배정된 key는 교담 관할 슬롯
+  const spKeys = new Set();
   if (S.classId && S.school?.specialtySchedule) {
-    for (const [subject, sched] of Object.entries(S.school.specialtySchedule)) {
-      if (subject === name) {
-        fromSpec += Object.values(sched).filter(e => e?.classId === S.classId).length;
+    for (const sched of Object.values(S.school.specialtySchedule)) {
+      for (const [key, entry] of Object.entries(sched)) {
+        if (entry?.classId === S.classId) {
+          // qualified key(|g 접미사)는 plain key로 변환
+          const plainKey = key.includes('|g') ? key.split('|g')[0] : key;
+          spKeys.add(plainKey);
+        }
       }
     }
   }
+
+  // ── 담임 직접 입력 시수: 교담 관할 슬롯은 제외 ──────────
+  const fromDamim = Object.entries(S.ttData)
+    .filter(([key, c]) => c && c.subject === name && !spKeys.has(key))
+    .length;
+
+  // ── 교담 배정 시수: specialtySchedule에서 이 학급·이 과목 ─
+  let fromSpec = 0;
+  if (S.classId && S.school?.specialtySchedule) {
+    const sched = S.school.specialtySchedule[name];
+    if (sched) {
+      fromSpec = Object.values(sched).filter(e => e?.classId === S.classId).length;
+    }
+  }
+
   return fromDamim + fromSpec;
 }
 
@@ -5475,12 +5797,31 @@ function renderTracker() {
   const subjects    = getSubjectsForCurrentClass().filter(s => !s.special);
   const specialSubj = getSubjectsForCurrentClass().filter(s => !!s.special);
   const total    = subjects.reduce((a,s)=>a+s.weeklyHours, 0);
-  // 담임 입력 + 교담 배정 합산 (special 과목 제외)
-  const specialNames = new Set(getSubjectsForCurrentClass().filter(s=>s.special).map(s=>s.name));
-  const usedDamim = Object.values(S.ttData).filter(c=>c?.subject && !specialNames.has(c.subject)).length;
-  let usedSpec = 0;
+
+  // ── 교담 관할 key 집합 (이 학급) ────────────────────────
+  const spKeys = new Set();
   if (S.classId && S.school?.specialtySchedule) {
     for (const sched of Object.values(S.school.specialtySchedule)) {
+      for (const [key, entry] of Object.entries(sched)) {
+        if (entry?.classId === S.classId) {
+          const plainKey = key.includes('|g') ? key.split('|g')[0] : key;
+          spKeys.add(plainKey);
+        }
+      }
+    }
+  }
+
+  // 담임 입력 시수: special 과목 제외 + 교담 관할 슬롯 제외
+  const specialNames = new Set(getSubjectsForCurrentClass().filter(s=>s.special).map(s=>s.name));
+  const usedDamim = Object.entries(S.ttData)
+    .filter(([key, c]) => c?.subject && !specialNames.has(c.subject) && !spKeys.has(key))
+    .length;
+
+  // 교담 배정 시수 (special 과목 아닌 것만)
+  let usedSpec = 0;
+  if (S.classId && S.school?.specialtySchedule) {
+    for (const [subj, sched] of Object.entries(S.school.specialtySchedule)) {
+      if (specialNames.has(subj)) continue;
       usedSpec += Object.values(sched).filter(e => e?.classId === S.classId).length;
     }
   }
@@ -6918,6 +7259,10 @@ window.openRsModal = openRsModal;
 
 async function saveRsCell() {
   if (!rsCurrent || !S.school) return;
+  // 전교 마감 체크 (관리자 제외)
+  if (S.school?.locked && S.user?.role !== 'admin') {
+    toast('🔒 시간표가 마감되어 수정할 수 없습니다.', 'warn'); return;
+  }
   const { roomId, key } = rsCurrent;
   const classId = q('#mrs-class').value;
 
@@ -6971,178 +7316,465 @@ async function clearRsCell() {
 window.clearRsCell = clearRsCell;
 
 /* ===========================================================
-   EXCEL EXPORT (SheetJS)
+   EXCEL EXPORT (ExcelJS — 스타일·색상·병합 완전 지원)
    =========================================================== */
 async function exportAllToExcel() {
   if (!S.school) { toast('학교 정보가 없습니다.', 'error'); return; }
-  if (!window.XLSX) { toast('SheetJS 로딩 중입니다. 잠시 후 다시 시도하세요.', 'warn'); return; }
+  if (!window.ExcelJS) { toast('ExcelJS 로딩 중입니다. 잠시 후 다시 시도하세요.', 'warn'); return; }
   toast('엑셀 파일 생성 중…', '');
 
-  const XLSX   = window.XLSX;
-  const wb     = XLSX.utils.book_new();
-  const school = S.school;
-  const days   = ['월','화','수','목','금'];
+  const school  = S.school;
+  const DAYS    = ['월','화','수','목','금'];
+  const wb      = new ExcelJS.Workbook();
+  wb.creator    = school.name;
+  wb.created    = new Date();
 
-  // ── 헬퍼 ──────────────────────────────────────────────────
-  function cellStyle(bg='FFFFFF', bold=false, center=false) {
-    return {
-      fill: { fgColor: { rgb: bg } },
-      font: { bold, name: 'Arial', sz: 10 },
-      alignment: { horizontal: center ? 'center' : 'left', vertical: 'center', wrapText: true },
-      border: {
-        top:{style:'thin',color:{rgb:'CCCCCC'}}, bottom:{style:'thin',color:{rgb:'CCCCCC'}},
-        left:{style:'thin',color:{rgb:'CCCCCC'}}, right:{style:'thin',color:{rgb:'CCCCCC'}},
-      }
-    };
+  // ── 색상 팔레트 ──────────────────────────────────────────
+  const C = {
+    // 헤더
+    HDR_TITLE_BG : '1E40AF', HDR_TITLE_FG : 'FFFFFF',  // 진파랑 (학교명/반명 타이틀)
+    HDR_DAY_BG   : '2563EB', HDR_DAY_FG   : 'FFFFFF',  // 파랑 (요일 헤더)
+    HDR_PERIOD_BG: 'EFF6FF', HDR_PERIOD_FG: '1E40AF',  // 연파랑 (교시 열)
+    // 셀 내용
+    SP_BG        : 'FEF9C3', SP_FG        : '854D0E',  // 연노랑 (교담)
+    ROOM_BG      : 'DBEAFE', ROOM_FG      : '1E40AF',  // 연청 (특별실 표시)
+    EMPTY_BG     : 'F9FAFB',                            // 빈칸 배경
+    WHITE        : 'FFFFFF',
+    BORDER       : 'CBD5E1',
+    // 학년별 색상 (배경/글자)
+    GRADE: [
+      { bg:'FEE2E2', fg:'991B1B' }, // 1학년 빨강
+      { bg:'FFEDD5', fg:'9A3412' }, // 2학년 주황
+      { bg:'FEF9C3', fg:'854D0E' }, // 3학년 노랑
+      { bg:'DCFCE7', fg:'166534' }, // 4학년 초록
+      { bg:'DBEAFE', fg:'1E40AF' }, // 5학년 파랑
+      { bg:'F3E8FF', fg:'6B21A8' }, // 6학년 보라
+    ],
+  };
+
+  // ── 공통 스타일 헬퍼 ────────────────────────────────────
+  function border(color = C.BORDER) {
+    const s = { style:'thin', color:{ argb:'FF'+color } };
+    return { top:s, bottom:s, left:s, right:s };
   }
-  const HDR_BG  = 'C6EFCE';   // 연녹색 헤더
-  const ROOM_BG = 'DDEEFF';   // 연청색 특별실
-  const SP_BG   = 'FFF2CC';   // 연노랑 교담
-  const COLLAB_BG = 'FCE4EC'; // 연분홍 협업
+  function fill(hex) {
+    return { type:'pattern', pattern:'solid', fgColor:{ argb:'FF'+hex } };
+  }
+  function font(hex, bold=false, size=10) {
+    return { name:'맑은 고딕', size, bold, color:{ argb:'FF'+hex } };
+  }
+  function align(h='center', v='middle', wrap=true) {
+    return { horizontal:h, vertical:v, wrapText:wrap };
+  }
 
-  // 학급 시간표 시트 생성
+  // 셀에 스타일+값 한번에 적용
+  function setCell(ws, row, col, value, bgHex, fgHex='333333', bold=false, size=10, hAlign='center') {
+    const cell = ws.getCell(row, col);
+    cell.value  = value ?? '';
+    cell.fill   = fill(bgHex);
+    cell.font   = font(fgHex, bold, size);
+    cell.border = border();
+    cell.alignment = align(hAlign, 'middle');
+    return cell;
+  }
+
+  // 과목 색상 → ExcelJS argb hex 변환 (교과별 고유 배경색)
+  function subjectColors(subjName, grade) {
+    const subjects = S.school?.subjectsByGrade?.[grade] || [];
+    const s = subjects.find(x=>x.name===subjName);
+    const hex = s?.color || '#6B7280';
+    // #RRGGBB → argb 변환 후 투명도 30% 적용 (연하게)
+    try {
+      const r = parseInt(hex.slice(1,3),16);
+      const g = parseInt(hex.slice(3,5),16);
+      const b = parseInt(hex.slice(5,7),16);
+      // 흰 배경에 30% 블렌딩 → 연한 파스텔
+      const blend = (c) => Math.round(c*0.28 + 255*0.72).toString(16).padStart(2,'0').toUpperCase();
+      const fgR = Math.round(r*0.7).toString(16).padStart(2,'0').toUpperCase();
+      const fgG = Math.round(g*0.7).toString(16).padStart(2,'0').toUpperCase();
+      const fgB = Math.round(b*0.7).toString(16).padStart(2,'0').toUpperCase();
+      return { bg: blend(r)+blend(g)+blend(b), fg: fgR+fgG+fgB };
+    } catch { return { bg: 'F3F4F6', fg: '374151' }; }
+  }
+
+  // ── 학급 시간표 시트 ────────────────────────────────────
   async function makeClassSheet(cls) {
-    const lsKey    = `stt_${school.id}_${cls.id}`;
-    let ttData = {};
-    try { ttData = JSON.parse(localStorage.getItem(lsKey) || '{}'); } catch {}
+    const lsKey  = `stt_${school.id}_${cls.id}`;
+    let ttData   = {};
+    try { ttData = JSON.parse(localStorage.getItem(lsKey)||'{}'); } catch {}
 
     const ptimes   = getPeriodTimesForExport(cls.grade);
-    const periods  = ptimes.map((_, i) => i + 1);
     const spAssign = getSpecialtyAssignmentsForClassData(ttData, cls.id);
+    const grade    = cls.grade || 0;
+    const gc       = grade >= 1 && grade <= 6 ? C.GRADE[grade-1] : { bg:'E5E7EB', fg:'374151' };
 
-    const rows = [];
-    // 헤더
-    const hdr = ['교시', '시간', ...days];
-    rows.push(hdr);
+    const ws = wb.addWorksheet(cls.name.replace(/[\\\/\*\?\:\[\]]/g,'').slice(0,31));
 
-    periods.forEach((p, i) => {
-      const t = ptimes[i] || { start:'', end:'' };
-      const row = [`${p}교시`, `${t.start}~${t.end}`];
-      days.forEach(day => {
-        const key  = `${day}-${p}`;
-        const sp   = spAssign[key];
-        const cell = ttData[key];
-        // 특별실 배정 확인
-        const roomA = getRoomAssignmentForKeyData(school, cls.id, key);
-        if (sp)    row.push(`교담(${sp})`);
-        else if (cell?.subject) row.push(cell.subject + (roomA ? `\n📍${roomA}` : ''));
-        else row.push('');
+    // 열 너비
+    ws.columns = [
+      { width:7  },  // A: 교시
+      { width:13 },  // B: 시간
+      ...DAYS.map(()=>({ width:14 })),
+    ];
+
+    // ① 타이틀 행 (병합)
+    ws.mergeCells(1, 1, 1, 7);
+    const titleCell = ws.getCell(1,1);
+    titleCell.value     = `${school.name}  ${cls.name} 주간 시간표`;
+    titleCell.fill      = fill(C.HDR_TITLE_BG);
+    titleCell.font      = font(C.HDR_TITLE_FG, true, 13);
+    titleCell.alignment = align('center','middle');
+    titleCell.border    = border();
+    ws.getRow(1).height = 28;
+
+    // ② 요일 헤더 행
+    setCell(ws, 2, 1, '교시',  C.HDR_DAY_BG, C.HDR_DAY_FG, true);
+    setCell(ws, 2, 2, '시간',  C.HDR_DAY_BG, C.HDR_DAY_FG, true);
+    DAYS.forEach((d,i) => setCell(ws, 2, 3+i, d, C.HDR_DAY_BG, C.HDR_DAY_FG, true, 11));
+    ws.getRow(2).height = 22;
+
+    // ③ 교시 행
+    ptimes.forEach((t, idx) => {
+      const p     = idx + 1;
+      const rowNo = idx + 3;
+      const row   = ws.getRow(rowNo);
+      row.height  = 36;
+
+      // 교시 번호
+      setCell(ws, rowNo, 1, `${p}교시`, C.HDR_PERIOD_BG, C.HDR_PERIOD_FG, true);
+      // 시간
+      setCell(ws, rowNo, 2, `${t.start||''}~${t.end||''}`, 'F8FAFC', '64748B', false, 9);
+
+      DAYS.forEach((day, di) => {
+        const key    = `${day}-${p}`;
+        const sp     = spAssign[key];
+        const cell   = ttData[key];
+        const roomA  = getRoomAssignmentForKeyData(school, cls.id, key);
+        const colNo  = 3 + di;
+
+        if (sp) {
+          // 교담 칸 — 연노랑
+          const xCell = ws.getCell(rowNo, colNo);
+          xCell.value     = { richText:[
+            { text:`교담\n`, font:{ name:'맑은 고딕', size:8, color:{ argb:'FF92400E' } } },
+            { text: sp,      font:{ name:'맑은 고딕', size:10, bold:true, color:{ argb:'FF78350F' } } },
+          ]};
+          xCell.fill      = fill(C.SP_BG);
+          xCell.border    = border();
+          xCell.alignment = align('center','middle');
+        } else if (cell?.subject) {
+          const sc = subjectColors(cell.subject, grade);
+          const xCell = ws.getCell(rowNo, colNo);
+          if (roomA) {
+            xCell.value = { richText:[
+              { text: cell.subject, font:{ name:'맑은 고딕', size:11, bold:true, color:{ argb:'FF'+sc.fg } } },
+              { text:`\n📍${roomA}`, font:{ name:'맑은 고딕', size:8,  color:{ argb:'FF'+C.HDR_TITLE_BG } } },
+            ]};
+          } else {
+            xCell.value = cell.subject;
+            xCell.font  = font(sc.fg, true, 11);
+          }
+          xCell.fill      = fill(sc.bg);
+          xCell.border    = border();
+          xCell.alignment = align('center','middle');
+        } else {
+          setCell(ws, rowNo, colNo, '', C.EMPTY_BG, 'D1D5DB');
+        }
       });
-      rows.push(row);
     });
 
-    const ws = XLSX.utils.aoa_to_sheet(rows);
-    // 열 너비
-    ws['!cols'] = [{ wch:8 },{ wch:13 }, ...days.map(()=>({ wch:10 }))];
-    return ws;
+    // 인쇄 설정
+    ws.pageSetup = { paperSize:9, orientation:'portrait', fitToPage:true, fitToWidth:1, fitToHeight:0 };
+    ws.pageSetup.margins = { left:0.5, right:0.5, top:0.75, bottom:0.75, header:0.3, footer:0.3 };
+    ws.headerFooter.oddHeader = `&C&"맑은 고딕,Bold"&12${school.name} — ${cls.name} 주간 시간표`;
   }
 
-  // 특별실 배정 시트
+  // ── 학년별 묶음 시트 (전교 요약) ────────────────────────
+  async function makeGradeSummarySheet(grade) {
+    const gradeClasses = (school.classes||[]).filter(c=>c.grade===grade);
+    if (!gradeClasses.length) return;
+
+    const ws     = wb.addWorksheet(`${grade}학년 전체`);
+    const ptimes = getPeriodTimesForExport(grade);
+    const gc     = C.GRADE[grade-1] || { bg:'E5E7EB', fg:'374151' };
+
+    // 학급당 열 수 = 5(요일) + 1(교시/시간 구분용) = 각 학급 5열, 첫 열 공통
+    const classColCount = 5;
+    const totalCols     = 2 + gradeClasses.length * classColCount; // 교시+시간+학급*5
+    ws.columns = [
+      { width:7  },
+      { width:13 },
+      ...Array(gradeClasses.length * classColCount).fill({ width:12 }),
+    ];
+
+    // ① 타이틀
+    ws.mergeCells(1, 1, 1, totalCols);
+    const titleCell    = ws.getCell(1,1);
+    titleCell.value    = `${school.name}  ${grade}학년 전체 시간표`;
+    titleCell.fill     = fill(C.HDR_TITLE_BG);
+    titleCell.font     = font(C.HDR_TITLE_FG, true, 13);
+    titleCell.alignment= align('center','middle');
+    titleCell.border   = border();
+    ws.getRow(1).height= 28;
+
+    // ② 학급명 헤더 (병합)
+    setCell(ws, 2, 1, '교시', gc.bg, gc.fg, true);
+    setCell(ws, 2, 2, '시간', gc.bg, gc.fg, true);
+    gradeClasses.forEach((cls, ci) => {
+      const startCol = 3 + ci * classColCount;
+      ws.mergeCells(2, startCol, 2, startCol + classColCount - 1);
+      const hCell     = ws.getCell(2, startCol);
+      hCell.value     = cls.name;
+      hCell.fill      = fill(gc.bg);
+      hCell.font      = font(gc.fg, true, 11);
+      hCell.border    = border();
+      hCell.alignment = align('center','middle');
+    });
+    ws.getRow(2).height = 22;
+
+    // ③ 요일 서브헤더
+    setCell(ws, 3, 1, '', C.HDR_PERIOD_BG, C.HDR_PERIOD_FG);
+    setCell(ws, 3, 2, '', C.HDR_PERIOD_BG, C.HDR_PERIOD_FG);
+    gradeClasses.forEach((cls, ci) => {
+      DAYS.forEach((d, di) => {
+        setCell(ws, 3, 3 + ci * classColCount + di, d, C.HDR_DAY_BG, C.HDR_DAY_FG, true, 10);
+      });
+    });
+    ws.getRow(3).height = 20;
+
+    // ④ 데이터 행
+    ptimes.forEach((t, idx) => {
+      const p      = idx + 1;
+      const rowNo  = idx + 4;
+      ws.getRow(rowNo).height = 34;
+
+      setCell(ws, rowNo, 1, `${p}교시`, C.HDR_PERIOD_BG, C.HDR_PERIOD_FG, true);
+      setCell(ws, rowNo, 2, `${t.start||''}~${t.end||''}`, 'F8FAFC', '64748B', false, 9);
+
+      gradeClasses.forEach((cls, ci) => {
+        const lsKey  = `stt_${school.id}_${cls.id}`;
+        let ttData   = {};
+        try { ttData = JSON.parse(localStorage.getItem(lsKey)||'{}'); } catch {}
+        const spAssign = getSpecialtyAssignmentsForClassData(ttData, cls.id);
+
+        DAYS.forEach((day, di) => {
+          const key   = `${day}-${p}`;
+          const sp    = spAssign[key];
+          const cell  = ttData[key];
+          const colNo = 3 + ci * classColCount + di;
+
+          if (sp) {
+            setCell(ws, rowNo, colNo, `교담(${sp})`, C.SP_BG, '854D0E', false, 9);
+          } else if (cell?.subject) {
+            const sc = subjectColors(cell.subject, grade);
+            setCell(ws, rowNo, colNo, cell.subject, sc.bg, sc.fg, true, 10);
+          } else {
+            setCell(ws, rowNo, colNo, '', C.EMPTY_BG, 'E5E7EB');
+          }
+        });
+      });
+    });
+
+    ws.pageSetup = { paperSize:9, orientation:'landscape', fitToPage:true, fitToWidth:1, fitToHeight:0 };
+  }
+
+  // ── 특별실 배정 시트 ────────────────────────────────────
   function makeRoomScheduleSheet() {
     const rooms   = school.specialRooms || [];
     const sched   = school.roomSchedule || {};
     const classes = school.classes || [];
     const slots   = getScheduleRowsForSchool(school);
-    const rows = [];
+    if (!rooms.length) return;
 
-    // 헤더 행: 특별실별 5열 (월~금) 그룹
-    const topHdr = [''];
-    rooms.forEach(r => { topHdr.push(r.name); days.forEach((_, i) => { if (i<4) topHdr.push(''); }); });
-    rows.push(topHdr);
+    const ws = wb.addWorksheet('특별실 배정');
+    const totalCols = 1 + rooms.length * DAYS.length;
 
-    const subHdr = ['교시/시간'];
-    rooms.forEach(() => days.forEach(d => subHdr.push(d)));
-    rows.push(subHdr);
+    ws.columns = [
+      { width:14 },
+      ...Array(rooms.length * DAYS.length).fill({ width:11 }),
+    ];
 
-    slots.forEach(slot => {
-      const row = [`${slot.label.replace(/\n/g,' ')}\n${slot.start}`];
-      rooms.forEach(room => {
+    // ① 타이틀
+    ws.mergeCells(1, 1, 1, totalCols);
+    const t    = ws.getCell(1,1);
+    t.value    = `${school.name}  특별실 배정표`;
+    t.fill     = fill(C.HDR_TITLE_BG);
+    t.font     = font(C.HDR_TITLE_FG, true, 13);
+    t.alignment= align('center','middle');
+    t.border   = border();
+    ws.getRow(1).height = 28;
+
+    // ② 특별실명 헤더 (병합)
+    setCell(ws, 2, 1, '교시/시간', C.HDR_PERIOD_BG, C.HDR_PERIOD_FG, true);
+    const roomColors = ['1E40AF','065F46','92400E','6B21A8','991B1B','0E7490'];
+    rooms.forEach((room, ri) => {
+      const startCol = 2 + ri * DAYS.length;
+      ws.mergeCells(2, startCol, 2, startCol + DAYS.length - 1);
+      const hCell     = ws.getCell(2, startCol);
+      hCell.value     = `🏛 ${room.name}`;
+      hCell.fill      = fill(roomColors[ri % roomColors.length]);
+      hCell.font      = font('FFFFFF', true, 11);
+      hCell.border    = border();
+      hCell.alignment = align('center','middle');
+    });
+    ws.getRow(2).height = 24;
+
+    // ③ 요일 서브헤더
+    setCell(ws, 3, 1, '', C.HDR_PERIOD_BG, C.HDR_PERIOD_FG);
+    rooms.forEach((room, ri) => {
+      DAYS.forEach((d, di) => {
+        setCell(ws, 3, 2 + ri * DAYS.length + di, d, C.HDR_DAY_BG, C.HDR_DAY_FG, true, 10);
+      });
+    });
+    ws.getRow(3).height = 20;
+
+    // ④ 데이터
+    slots.forEach((slot, si) => {
+      const rowNo = si + 4;
+      ws.getRow(rowNo).height = 32;
+      const lbl = slot.label.replace(/<[^>]+>/g,'').replace(/\n/g,' ').trim();
+      setCell(ws, rowNo, 1, `${lbl}\n${slot.start}`, C.HDR_PERIOD_BG, C.HDR_PERIOD_FG, false, 9, 'left');
+
+      rooms.forEach((room, ri) => {
         const rs = sched[room.id] || {};
-        days.forEach(day => {
-          const key   = `${day}-${slot.slotKey}`;
-          const entry = rs[key];
-          const cls   = entry ? classes.find(c=>c.id===entry.classId) : null;
-          row.push(cls ? cls.name : '');
+        DAYS.forEach((day, di) => {
+          const key   = `${day}-${slot.start}`;
+          const entry = rs[key] || Object.entries(rs).find(([k,v])=>stripGradeSuffix(k)===key)?.[1];
+          const cls   = entry ? classes.find(c=>c.id===entry?.classId) : null;
+          const colNo = 2 + ri * DAYS.length + di;
+          if (cls) {
+            const gc = cls.grade >= 1 && cls.grade <= 6 ? C.GRADE[cls.grade-1] : { bg:'E5E7EB', fg:'374151' };
+            setCell(ws, rowNo, colNo, cls.name, gc.bg, gc.fg, true, 10);
+          } else {
+            setCell(ws, rowNo, colNo, '', C.EMPTY_BG, 'E5E7EB');
+          }
         });
       });
-      rows.push(row);
     });
 
-    const ws = XLSX.utils.aoa_to_sheet(rows);
-    const colW = [{ wch:12 }];
-    rooms.forEach(() => days.forEach(() => colW.push({ wch:8 })));
-    ws['!cols'] = colW;
-    return ws;
+    ws.pageSetup = { paperSize:9, orientation:'landscape', fitToPage:true, fitToWidth:1, fitToHeight:0 };
   }
 
-  // 교과전담 시트
+  // ── 교담 시간표 시트 ────────────────────────────────────
   function makeSpecialtySheet() {
     const spSched  = school.specialtySchedule || {};
     const classes  = school.classes || [];
     const subjects = Object.keys(spSched);
-    if (!subjects.length) return null;
+    if (!subjects.length) return;
 
-    const slots = getScheduleRowsForSchool(school);
-    const rows  = [];
+    const slots    = getScheduleRowsForSchool(school);
+    const ws       = wb.addWorksheet('교담 시간표');
+    const totalCols= 1 + subjects.length * DAYS.length;
 
-    // 헤더: 교과별 5열 그룹
-    const topHdr = [''];
-    subjects.forEach(s => { topHdr.push(s); days.forEach((_,i) => { if(i<4) topHdr.push(''); }); });
-    rows.push(topHdr);
+    ws.columns = [
+      { width:14 },
+      ...Array(subjects.length * DAYS.length).fill({ width:12 }),
+    ];
 
-    const subHdr = ['교시/시간'];
-    subjects.forEach(() => days.forEach(d => subHdr.push(d)));
-    rows.push(subHdr);
+    // ① 타이틀
+    ws.mergeCells(1, 1, 1, totalCols);
+    const t    = ws.getCell(1,1);
+    t.value    = `${school.name}  교과전담 시간표`;
+    t.fill     = fill(C.HDR_TITLE_BG);
+    t.font     = font(C.HDR_TITLE_FG, true, 13);
+    t.alignment= align('center','middle');
+    t.border   = border();
+    ws.getRow(1).height = 28;
 
-    slots.forEach(slot => {
-      const row = [`${slot.label.replace(/\n/g,' ')}\n${slot.start}`];
-      subjects.forEach(subj => {
-        days.forEach(day => {
+    // ② 교과명 헤더 (병합)
+    setCell(ws, 2, 1, '교시/시간', C.HDR_PERIOD_BG, C.HDR_PERIOD_FG, true);
+    subjects.forEach((subj, si) => {
+      const startCol = 2 + si * DAYS.length;
+      ws.mergeCells(2, startCol, 2, startCol + DAYS.length - 1);
+      const sc        = subjectColors(subj, 3); // 대표 색상은 3학년 기준
+      const hCell     = ws.getCell(2, startCol);
+      hCell.value     = subj;
+      hCell.fill      = fill(sc.bg);
+      hCell.font      = font(sc.fg, true, 11);
+      hCell.border    = border();
+      hCell.alignment = align('center','middle');
+    });
+    ws.getRow(2).height = 24;
+
+    // ③ 요일 서브헤더
+    setCell(ws, 3, 1, '', C.HDR_PERIOD_BG, C.HDR_PERIOD_FG);
+    subjects.forEach((subj, si) => {
+      DAYS.forEach((d, di) => {
+        setCell(ws, 3, 2 + si * DAYS.length + di, d, C.HDR_DAY_BG, C.HDR_DAY_FG, true, 10);
+      });
+    });
+    ws.getRow(3).height = 20;
+
+    // ④ 데이터
+    slots.forEach((slot, si) => {
+      const rowNo = si + 4;
+      ws.getRow(rowNo).height = 32;
+      const lbl = slot.label.replace(/<[^>]+>/g,'').replace(/\n/g,' ').trim();
+      setCell(ws, rowNo, 1, `${lbl}\n${slot.start}`, C.HDR_PERIOD_BG, C.HDR_PERIOD_FG, false, 9, 'left');
+
+      subjects.forEach((subj, subi) => {
+        DAYS.forEach((day, di) => {
           const key   = `${day}-${slot.slotKey}`;
-          const entry = (spSched[subj] || {})[key];
+          // qualified key도 확인
+          const schedMap = spSched[subj] || {};
+          const entry = schedMap[key] || Object.entries(schedMap).find(([k])=>k.startsWith(key+'|')||k===key)?.[1];
           const cls   = entry ? classes.find(c=>c.id===entry.classId) : null;
-          row.push(cls ? cls.name : '');
+          const colNo = 2 + subi * DAYS.length + di;
+          if (cls) {
+            const gc = cls.grade >= 1 && cls.grade <= 6 ? C.GRADE[cls.grade-1] : { bg:'E5E7EB', fg:'374151' };
+            setCell(ws, rowNo, colNo, cls.name, gc.bg, gc.fg, true, 10);
+          } else {
+            setCell(ws, rowNo, colNo, '', C.EMPTY_BG, 'E5E7EB');
+          }
         });
       });
-      rows.push(row);
     });
 
-    const ws = XLSX.utils.aoa_to_sheet(rows);
-    const colW = [{ wch:12 }];
-    subjects.forEach(() => days.forEach(() => colW.push({ wch:8 })));
-    ws['!cols'] = colW;
-    return ws;
+    ws.pageSetup = { paperSize:9, orientation:'landscape', fitToPage:true, fitToWidth:1, fitToHeight:0 };
   }
 
-  // ── 시트 추가 ─────────────────────────────────────────────
-  // 1. 특별실 배정 시트
+  // ── 시트 생성 실행 ───────────────────────────────────────
   try {
-    const ws = makeRoomScheduleSheet();
-    XLSX.utils.book_append_sheet(wb, ws, '특별실 배정');
-  } catch(e) { console.warn('특별실 시트 오류:', e); }
+    // 1. 학급별 시간표 시트 (학년 순)
+    const classes = (school.classes||[]).slice().sort((a,b)=>(a.grade||9)-(b.grade||9)||(a.name>b.name?1:-1));
+    for (const cls of classes) {
+      try { await makeClassSheet(cls); } catch(e) { console.warn(`${cls.name} 시트 오류:`, e); }
+    }
 
-  // 2. 교과전담 시트
-  try {
-    const ws = makeSpecialtySheet();
-    if (ws) XLSX.utils.book_append_sheet(wb, ws, '교과전담 시간표');
-  } catch(e) { console.warn('교과전담 시트 오류:', e); }
+    // 2. 학년별 묶음 시트
+    for (let g=1; g<=6; g++) {
+      const gc = (school.classes||[]).filter(c=>c.grade===g);
+      if (gc.length > 1) {
+        try { await makeGradeSummarySheet(g); } catch(e) { console.warn(`${g}학년 묶음 오류:`, e); }
+      }
+    }
 
-  // 3. 학급별 시간표 시트
-  const classes = school.classes || [];
-  for (const cls of classes) {
-    try {
-      const ws = await makeClassSheet(cls);
-      const sheetName = cls.name.replace(/[\\\/\*\?\:\[\]]/g,'').slice(0,31);
-      XLSX.utils.book_append_sheet(wb, ws, sheetName || `반${cls.id}`);
-    } catch(e) { console.warn(`${cls.name} 시트 오류:`, e); }
+    // 3. 특별실 배정 시트
+    try { makeRoomScheduleSheet(); } catch(e) { console.warn('특별실 시트 오류:', e); }
+
+    // 4. 교담 시간표 시트
+    try { makeSpecialtySheet(); } catch(e) { console.warn('교담 시트 오류:', e); }
+
+  } catch(e) {
+    console.error('엑셀 생성 오류:', e);
+    toast('엑셀 생성 중 오류가 발생했습니다.', 'error'); return;
   }
 
-  if (!wb.SheetNames.length) { toast('내보낼 데이터가 없습니다.', 'warn'); return; }
+  if (!wb.worksheets.length) { toast('내보낼 데이터가 없습니다.', 'warn'); return; }
 
-  // 파일명: 학교명_날짜.xlsx
-  const date     = new Date().toLocaleDateString('ko-KR',{year:'2-digit',month:'2-digit',day:'2-digit'}).replace(/\. /g,'').replace('.','');
+  // ── 파일 다운로드 ────────────────────────────────────────
+  const date     = new Date().toLocaleDateString('ko-KR',{year:'2-digit',month:'2-digit',day:'2-digit'}).replace(/\. /g,'').replace(/\./g,'');
   const filename = `${school.name}_시간표_${date}.xlsx`;
-  XLSX.writeFile(wb, filename);
+
+  const buffer = await wb.xlsx.writeBuffer();
+  const blob   = new Blob([buffer], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const url    = URL.createObjectURL(blob);
+  const a      = document.createElement('a');
+  a.href       = url;
+  a.download   = filename;
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(url), 3000);
+
   toast(`"${filename}" 다운로드 완료 ✔`, 'success');
 }
 window.exportAllToExcel = exportAllToExcel;
@@ -7157,7 +7789,10 @@ function getSpecialtyAssignmentsForClassData(ttData, classId) {
   const ss = S.school?.specialtySchedule || {};
   for (const [subject, schedule] of Object.entries(ss)) {
     for (const [key, entry] of Object.entries(schedule)) {
-      if (entry.classId === classId) result[key] = subject;
+      if (entry.classId === classId) {
+        const plainKey = key.includes('|g') ? key.split('|g')[0] : key;
+        result[plainKey] = subject;
+      }
     }
   }
   return result;
@@ -7315,9 +7950,163 @@ function goToAdminHome() {
     dateEl.textContent = now.toLocaleDateString('ko-KR', { year:'numeric', month:'long', day:'numeric', weekday:'short' });
   }
 
+  // 잠금 알림 배너 표시
+  updateLockUI();
+
   goTo('screen-admin-home');
 }
 window.goToAdminHome = goToAdminHome;
+
+/* ===========================================================
+   전교 시간표 마감(잠금) 기능
+   =========================================================== */
+
+/** 전역 잠금 배너 + 관리자 홈 notice + 위험 구역 버튼 동기화 */
+function updateLockUI() {
+  if (!S.school) return;
+  const locked = !!S.school.locked;
+
+  // ① 최상단 전교 잠금 배너
+  const banner = document.getElementById('school-lock-banner');
+  if (banner) banner.classList.toggle('visible', locked);
+  // 배너 힌트: 관리자는 해제 안내, 일반 교사는 관리자 문의 안내
+  const hintEl = document.getElementById('lock-banner-admin-hint');
+  if (hintEl) {
+    if (locked) {
+      hintEl.textContent = S.user?.role === 'admin'
+        ? '(기초 설정 → 위험 구역에서 해제 가능)'
+        : '(수정이 필요하면 관리자에게 문의하세요)';
+    } else {
+      hintEl.textContent = '';
+    }
+  }
+
+  // ② 관리자 홈 알림
+  const notice = document.getElementById('adh-lock-notice');
+  if (notice) notice.style.display = locked ? 'flex' : 'none';
+
+  // ③ 위험 구역 버튼 텍스트
+  const dzBtn = document.getElementById('dz-lock-btn');
+  const dzSub = document.getElementById('dz-lock-sub');
+  if (dzBtn) {
+    if (locked) {
+      dzBtn.textContent = '🔓 마감 해제';
+      dzBtn.style.cssText = 'min-width:90px;background:#059669;color:#fff;border:none';
+    } else {
+      dzBtn.textContent = '🔒 전교 마감';
+      dzBtn.style.cssText = 'min-width:90px;background:#dc2626;color:#fff;border:none';
+    }
+  }
+  if (dzSub) {
+    dzSub.textContent = locked
+      ? '현재 마감 상태입니다. 모든 교사의 시간표 수정이 차단되어 있습니다.'
+      : '마감하면 모든 교사가 시간표를 수정할 수 없습니다.';
+  }
+
+  // ④ 배너에 의한 화면 top 여백 (배너 높이만큼 밀어내기)
+  document.body.style.paddingTop = locked ? '38px' : '0';
+}
+window.updateLockUI = updateLockUI;
+
+/** 잠금 토글 — 관리자 전용 */
+async function toggleSchoolLock() {
+  if (!S.school || S.user?.role !== 'admin') {
+    toast('관리자만 마감을 변경할 수 있습니다.', 'error'); return;
+  }
+  const willLock = !S.school.locked;
+
+  if (willLock) {
+    // 잠금 확인
+    openConfirm(
+      '🔒 전교 시간표 마감',
+      `<strong>전교 시간표를 마감</strong>합니다.<br>
+       마감하면 관리자를 제외한 모든 교사가 시간표를 <strong>수정할 수 없습니다.</strong><br>
+       <span style="font-size:.82rem;color:var(--g500)">해제는 기초 설정 → 위험 구역에서 가능합니다.</span>`,
+      async () => {
+        S.school.locked = true;
+        await saveSchool(S.school);
+        saveSession();
+        updateLockUI();
+        toast('🔒 전교 시간표가 마감되었습니다.', 'success');
+      },
+      '', '마감 확인', 'btn-danger'
+    );
+  } else {
+    // 해제 (확인 없이 즉시)
+    S.school.locked = false;
+    await saveSchool(S.school);
+    saveSession();
+    updateLockUI();
+    toast('🔓 시간표 마감이 해제되었습니다.', 'success');
+  }
+}
+window.toggleSchoolLock = toggleSchoolLock;
+
+/* ===========================================================
+   학교 전체 삭제 (관리자 전용)
+   =========================================================== */
+
+/** 학교 이름 입력란 실시간 검증 */
+function onDeleteSchoolInput() {
+  const input  = document.getElementById('delete-school-input');
+  const btn    = document.getElementById('delete-school-btn');
+  const hint   = document.getElementById('delete-school-hint');
+  if (!input || !btn || !S.school) return;
+  const val = input.value.trim();
+  const match = val === S.school.name;
+  btn.disabled = !match;
+  if (!val) {
+    hint.textContent = `학교 이름: "${S.school.name}"`;
+    hint.style.color = 'var(--g400)';
+  } else if (match) {
+    hint.textContent = '✔ 일치합니다. 삭제 버튼이 활성화되었습니다.';
+    hint.style.color = '#dc2626';
+  } else {
+    hint.textContent = '이름이 정확히 일치해야 합니다.';
+    hint.style.color = 'var(--g400)';
+  }
+}
+window.onDeleteSchoolInput = onDeleteSchoolInput;
+
+/** 학교 삭제 최종 확인 */
+function confirmDeleteMySchool() {
+  if (!S.school || S.user?.role !== 'admin') return;
+  const schoolName = S.school.name;
+  openConfirm(
+    `🗑️ "${schoolName}" 완전 삭제`,
+    `<strong style="color:#dc2626">${escHtml(schoolName)}</strong>의 모든 데이터가 영구 삭제됩니다.<br>
+     시간표, 특별실 배정, 교담 배정, 모든 설정이 복구 불가능하게 사라집니다.<br>
+     <span style="font-size:.82rem;color:var(--g500)">이 작업은 되돌릴 수 없습니다.</span>`,
+    async () => {
+      const id = S.school.id;
+      await removeSchool(id);
+      // 로컬 timetable 데이터도 정리
+      for (const cls of (S.school.classes || [])) {
+        localStorage.removeItem(`stt_${id}_${cls.id}`);
+      }
+      toast(`"${schoolName}" 삭제 완료`, 'success');
+      logout();
+    },
+    '', '완전 삭제', 'btn-danger'
+  );
+}
+window.confirmDeleteMySchool = confirmDeleteMySchool;
+
+/** 기초 설정 위험 구역 진입 시 UI 초기화 */
+function initDangerZone() {
+  // 삭제 입력란 초기화
+  const input = document.getElementById('delete-school-input');
+  const btn   = document.getElementById('delete-school-btn');
+  const hint  = document.getElementById('delete-school-hint');
+  if (input) input.value = '';
+  if (btn)   btn.disabled = true;
+  if (hint && S.school) {
+    hint.textContent = `학교 이름: "${S.school.name}"`;
+    hint.style.color = 'var(--g400)';
+  }
+  updateLockUI();
+}
+window.initDangerZone = initDangerZone;
 
 function adhGoTimetable() {
   initTimetable();
@@ -7343,6 +8132,8 @@ window.adhGoSpecialty = adhGoSpecialty;
    =========================================================== */
 (function init() {
   if (loadSession()) {
+    // 잠금 배너는 역할과 무관하게 항상 반영
+    updateLockUI();
     if (S.user?.role === 'specialty' || S.user?.role === 'collaborative') {
       goToSpecialtyScreen();
     } else if (S.user?.role === 'admin') {
