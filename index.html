@@ -6227,6 +6227,10 @@ function logout() {
   if (S.unsub)       { S.unsub();       S.unsub=null;       }
   if (S.unsubSchool) { S.unsubSchool(); S.unsubSchool=null; }
   S.school=null; S.user=null; S.ttData={}; S.classId=null;
+  // 배너·여백 초기화 (잠금 상태가 화면에 남지 않도록)
+  const banner = document.getElementById('school-lock-banner');
+  if (banner) banner.classList.remove('visible');
+  document.body.style.paddingTop = '0';
   goTo('screen-landing');
   toast('로그아웃되었습니다.', 'success');
 }
