@@ -1293,10 +1293,10 @@ a{color:inherit;text-decoration:none}
   </div>
   <div class="page-body">
     <div id="create-limit-alert" class="alert alert-danger" style="display:none">
-      🚫 오늘 하루 학교 생성 한도(30개)에 도달했습니다. 내일(24시간 후) 다시 시도해주세요.
+      🚫 오늘 하루 학교(그룹) 생성 한도(3개)에 도달했습니다. 내일(24시간 후) 다시 시도해주세요.
     </div>
     <div id="create-quota-info" class="alert alert-info">
-      📊 오늘 <strong id="quota-count">0</strong>개 생성됨 (이 기기에서 하루 최대 30개)
+      📊 오늘 <strong id="quota-count">0</strong>개 생성됨 (이 기기에서 하루 최대 3개)
     </div>
 
     <div class="card">
@@ -2497,7 +2497,7 @@ const S = {
    RATE LIMIT  (localStorage, 3 per 24 h per device)
    =========================================================== */
 const RL_KEY = 'stt_creation_log';
-const RL_MAX = 30;
+const RL_MAX = 3;
 const RL_WIN = 24 * 60 * 60 * 1000;
 
 function rlGetLog() {
@@ -3213,28 +3213,29 @@ async function saveSpCell() {
     try { existingTt = JSON.parse(localStorage.getItem(lsKey)||'{}'); } catch {}
     const existingCell = existingTt[spEditKey];
     if (existingCell?.subject && existingCell.subject !== subject) {
-      // 담임이 이 칸에 다른 과목을 입력해 놓은 상태 → 덮어쓰기 경고
       const cls = (S.school.classes||[]).find(c=>c.id===classId);
-      const willOverwrite = await new Promise(resolve => {
-        openConfirm(
-          '⚠️ 담임 시간표 충돌',
-          `<strong>${escHtml(cls?.name||classId)}</strong> 담임이 이 교시(${spEditKey})에
-           이미 <strong>${escHtml(existingCell.subject)}</strong>을(를) 입력해 놓았습니다.<br>
-           교담 배정 시 해당 칸의 담임 입력 내용은 <strong>자동으로 삭제</strong>됩니다.<br>
-           <span style="font-size:.82rem;color:var(--g500)">계속 진행하시겠습니까?</span>`,
-          () => resolve(true),
-          '', '계속 배정', 'btn-primary'
-        );
-        // 취소 버튼에 resolve(false) 연결
-        const cancelBtn = document.querySelector('#modal-confirm .btn-ghost');
-        if (cancelBtn) {
-          const origOnClick = cancelBtn.onclick;
-          cancelBtn.onclick = (e) => { resolve(false); if(origOnClick) origOnClick(e); };
-        }
-      });
-      if (!willOverwrite) return;
+      // openConfirm의 onCancel 콜백으로 안정적으로 처리
+      openConfirm(
+        '⚠️ 담임 시간표 충돌',
+        `<strong>${escHtml(cls?.name||classId)}</strong> 담임이 이 교시(${spEditKey})에
+         이미 <strong>${escHtml(existingCell.subject)}</strong>을(를) 입력해 놓았습니다.<br>
+         교담 배정 시 해당 칸의 담임 입력 내용은 <strong>자동으로 삭제</strong>됩니다.<br>
+         <span style="font-size:.82rem;color:var(--g500)">계속 진행하시겠습니까?</span>`,
+        () => _doSaveSpCell(subject, classId, saveKey, prevClassId), // OK → 저장 실행
+        '', '계속 배정', 'btn-primary',
+        () => {}  // Cancel → 아무것도 안 함
+      );
+      return; // 다이얼로그 응답 후 콜백에서 처리
     }
   }
+
+  await _doSaveSpCell(subject, classId, saveKey, prevClassId);
+}
+window.saveSpCell = saveSpCell;
+
+/** saveSpCell 실제 저장 처리 (충돌 확인 후 호출) */
+async function _doSaveSpCell(subject, classId, saveKey, prevClassId) {
+  const schedule = getSpecialtySchedule(subject);
 
   if (!classId) {
     delete schedule[saveKey];
@@ -3254,18 +3255,15 @@ async function saveSpCell() {
   renderSpTabs(); renderSpecialtyGrid();
 
   // ── 담임 ttData 정리 ────────────────────────────────────
-  // ① 이전 학급: 해당 교시에서 같은 과목 입력 제거
   if (prevClassId && prevClassId !== classId) {
     await cleanDamimDataForRemovedSpSlots(subject, [{ key: spEditKey, classId: prevClassId }]);
   }
-  // ② 새 학급: 해당 교시에 어떤 과목이든 입력되어 있으면 제거 (교담 관할 슬롯이므로)
   if (classId && classId !== prevClassId) {
     await cleanDamimSlotForNewSpAssign(spEditKey, classId);
   }
 
   toast(classId ? `${(S.school.classes||[]).find(c=>c.id===classId)?.name} 배정됨` : '배정 취소됨', classId?'success':'');
 }
-window.saveSpCell = saveSpCell;
 
 async function clearSpCell() {
   if (!spEditKey) return;
@@ -4014,7 +4012,7 @@ window.goToCreate = goToCreate;
    =========================================================== */
 async function createSchool() {
   const { canCreate } = rlCheck();
-  if (!canCreate) { toast('오늘 생성 한도(30개)에 도달했습니다.','error'); return; }
+  if (!canCreate) { toast('하루에 그룹을 3개 이상 만들 수 없습니다. 내일 다시 시도해 주세요.','error'); return; }
 
   // ── 이름·비밀번호 검증 ──────────────────────────────────────
   const name = (q('#create-name')?.value || '').trim();
@@ -5208,20 +5206,22 @@ async function selectSchool(id, el) {
   q('#join-subject-group').style.display = 'none';
   renderSubjectPicker();
 
-  // 교과 드롭다운 채우기 (전 학년 교과 합집합)
+  // 교과 드롭다운 채우기 (전 학년 교과 합집합) — 구형 드롭다운 요소가 있을 때만 처리
   const subjSel = q('#join-subject');
-  subjSel.innerHTML = '<option value="">-- 교과목 선택 --</option>';
-  const seen = new Set();
-  const sbg  = joinSchoolRef.subjectsByGrade || {};
-  [1,2,3,4,5,6].forEach(g => {
-    (sbg[g] || []).forEach(s => {
-      if (!seen.has(s.name)) {
-        seen.add(s.name);
-        const o = document.createElement('option'); o.value = s.name; o.textContent = s.name;
-        subjSel.appendChild(o);
-      }
+  if (subjSel) {
+    subjSel.innerHTML = '<option value="">-- 교과목 선택 --</option>';
+    const seen = new Set();
+    const sbg  = joinSchoolRef.subjectsByGrade || {};
+    [1,2,3,4,5,6].forEach(g => {
+      (sbg[g] || []).forEach(s => {
+        if (!seen.has(s.name)) {
+          seen.add(s.name);
+          const o = document.createElement('option'); o.value = s.name; o.textContent = s.name;
+          subjSel.appendChild(o);
+        }
+      });
     });
-  });
+  }
 }
 window.selectSchool = selectSchool;
 
@@ -6175,10 +6175,9 @@ document.querySelectorAll('.modal-bg').forEach(bg => {
   bg.addEventListener('click', e => { if(e.target===bg) bg.classList.remove('open'); });
 });
 
-function openConfirm(title, desc, onOk, extraHtml='', okLabel='삭제', okClass='btn-danger') {
+function openConfirm(title, desc, onOk, extraHtml='', okLabel='삭제', okClass='btn-danger', onCancel=null) {
   q('#mconf-title').textContent = title;
-  q('#mconf-desc').innerHTML    = desc; // innerHTML로 변경해 <strong> 등 태그 허용
-  // extra input area
+  q('#mconf-desc').innerHTML    = desc;
   let extra = q('#mconf-extra');
   if (!extra) {
     extra = document.createElement('div');
@@ -6190,6 +6189,11 @@ function openConfirm(title, desc, onOk, extraHtml='', okLabel='삭제', okClass=
   btn.textContent = okLabel;
   btn.className   = `btn ${okClass} btn-sm`;
   btn.onclick = () => { closeModal('modal-confirm'); onOk(); };
+  // 취소 버튼에 onCancel 콜백 연결
+  const cancelBtn = q('#mconf-cancel');
+  if (cancelBtn) {
+    cancelBtn.onclick = () => { closeModal('modal-confirm'); if (onCancel) onCancel(); };
+  }
   openModal('modal-confirm');
 }
 
@@ -7430,7 +7434,6 @@ async function exportAllToExcel() {
   toast('엑셀 파일 생성 중…', '');
 
   const school  = S.school;
-  const DAYS    = ['월','화','수','목','금'];
   const wb      = new ExcelJS.Workbook();
   wb.creator    = school.name;
   wb.created    = new Date();
