@@ -5040,6 +5040,7 @@ function goNextTab(currentTabId) {
 async function saveTabClasses() {
   if (!S.school) return;
   await saveSchool(S.school);
+  saveSession();  // ① 새로고침 후에도 최신 학급 구성이 stt_session에 반영되도록 즉시 저장
   const cnt = (S.school.classes||[]).length;
   const el  = q('#classes-save-status');
   if (el) el.textContent = `✔ 저장됨 (총 ${cnt}개 학급)`;
@@ -6223,6 +6224,16 @@ function loadSession() {
     if (!school || !user) return false;
     S.school = school;
     S.user   = user;
+    // ② JSON.stringify/parse 과정에서 gradeClasses의 숫자 키(1~6)가 문자열 키("1"~"6")로
+    //    변환되는 문제를 정규화: renderGradeGrid 등 숫자 키 접근이 정상 동작하도록 복원
+    if (S.school?.gradeClasses) {
+      const gc = {};
+      for (const k of Object.keys(S.school.gradeClasses)) {
+        const numKey = /^\d+$/.test(k) ? parseInt(k, 10) : k;
+        gc[numKey] = S.school.gradeClasses[k];
+      }
+      S.school.gradeClasses = gc;
+    }
     return true;
   } catch { return false; }
 }
