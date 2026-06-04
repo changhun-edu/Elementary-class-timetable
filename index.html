@@ -3189,7 +3189,7 @@ window.onSpClassChange = onSpClassChange;
 async function saveSpCell() {
   if (!spEditKey) return;
   // 전교 마감 체크 (관리자 제외)
-  if (S.school?.locked && S.user?.role !== 'admin') {
+  if (S.school?.locked && S.user?.role !== 'admin' && S.user?.originalRole !== 'admin') {
     toast('🔒 시간표가 마감되어 수정할 수 없습니다.', 'warn'); return;
   }
   const subject  = spCurrentSubject;
@@ -5775,9 +5775,10 @@ function getRoomAssignmentForKey(key) {
 
 function getCellLockState(cell, key, spSubject) {
   if (!S.user) return 'none';
+  const isAdmin = S.user.role === 'admin' || S.user.originalRole === 'admin';
   // 전교 마감: 관리자 제외 모든 수정 차단
-  if (S.school?.locked && S.user.role !== 'admin') return 'full';
-  if (S.user.role === 'admin') return 'none';
+  if (S.school?.locked && !isAdmin) return 'full';
+  if (isAdmin) return 'none';
   // 교담 배정 칸: 담임은 수정 불가
   if (spSubject) return 'full';
   // 특별실 배정 칸: 잠금 없음 — 과목은 자유롭게 편집 가능 (특별실 배정은 독립 저장)
@@ -7361,7 +7362,7 @@ window.openRsModal = openRsModal;
 async function saveRsCell() {
   if (!rsCurrent || !S.school) return;
   // 전교 마감 체크 (관리자 제외)
-  if (S.school?.locked && S.user?.role !== 'admin') {
+  if (S.school?.locked && S.user?.role !== 'admin' && S.user?.originalRole !== 'admin') {
     toast('🔒 시간표가 마감되어 수정할 수 없습니다.', 'warn'); return;
   }
   const { roomId, key } = rsCurrent;
@@ -8153,7 +8154,7 @@ function updateLockUI() {
   const hintEl = document.getElementById('lock-banner-admin-hint');
   if (hintEl) {
     if (locked) {
-      hintEl.textContent = S.user?.role === 'admin'
+      hintEl.textContent = (S.user?.role === 'admin' || S.user?.originalRole === 'admin')
         ? '(기초 설정 → 위험 구역에서 해제 가능)'
         : '(수정이 필요하면 관리자에게 문의하세요)';
     } else {
@@ -8218,7 +8219,8 @@ window.updateLockUI = updateLockUI;
 
 /** 잠금 토글 — 관리자 전용 */
 async function toggleSchoolLock() {
-  if (!S.school || S.user?.role !== 'admin') {
+  const isAdmin = S.user?.role === 'admin' || S.user?.originalRole === 'admin';
+  if (!S.school || !isAdmin) {
     toast('관리자만 마감을 변경할 수 있습니다.', 'error'); return;
   }
   const willLock = !S.school.locked;
@@ -8278,7 +8280,8 @@ window.onDeleteSchoolInput = onDeleteSchoolInput;
 
 /** 학교 삭제 최종 확인 */
 function confirmDeleteMySchool() {
-  if (!S.school || S.user?.role !== 'admin') return;
+  const isAdmin = S.user?.role === 'admin' || S.user?.originalRole === 'admin';
+  if (!S.school || !isAdmin) return;
   const schoolName = S.school.name;
   openConfirm(
     `🗑️ "${schoolName}" 완전 삭제`,
@@ -8304,7 +8307,8 @@ window.confirmDeleteMySchool = confirmDeleteMySchool;
    관리자 홈 — 학교 삭제 모달 (바로가기)
    =========================================================== */
 function openAdhDeleteSchool() {
-  if (!S.school || S.user?.role !== 'admin') return;
+  const isAdmin = S.user?.role === 'admin' || S.user?.originalRole === 'admin';
+  if (!S.school || !isAdmin) return;
   // 입력란 초기화
   const input = document.getElementById('adh-delete-input');
   const btn   = document.getElementById('adh-delete-confirm-btn');
@@ -8340,7 +8344,8 @@ function onAdhDeleteInput() {
 window.onAdhDeleteInput = onAdhDeleteInput;
 
 async function execAdhDeleteSchool() {
-  if (!S.school || S.user?.role !== 'admin') return;
+  const isAdmin = S.user?.role === 'admin' || S.user?.originalRole === 'admin';
+  if (!S.school || !isAdmin) return;
   const input = document.getElementById('adh-delete-input');
   if (!input || input.value.trim() !== S.school.name) return;
   closeModal('modal-adh-delete');
