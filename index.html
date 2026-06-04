@@ -3477,9 +3477,7 @@ let _spDrag = null; // { fromKey, classId, className }
 function spOnDragStart(event, fromKey) {
   const subject  = spCurrentSubject;
   const schedule = getSpecialtySchedule(subject);
-  // fromKey는 plain "요일-교시" 형식 — qualified key에도 entry가 있을 수 있음
-  // data-grade-hint 속성에서 해당 셀의 학년 그룹을 읽어 qualified key 시도
-  const cellEl = event.currentTarget;
+  const cellEl   = event.currentTarget;
   const gradeHint = cellEl?.dataset?.gradeHint
     ? new Set(cellEl.dataset.gradeHint.split(',').map(Number).filter(Boolean))
     : null;
@@ -3488,7 +3486,16 @@ function spOnDragStart(event, fromKey) {
     : fromKey;
   const entry = schedule[qualifiedKey] || schedule[fromKey];
   if (!entry) return;
-  _spDrag = { fromKey: qualifiedKey, classId: entry.classId, className: entry.className };
+
+  // 드래그하는 학급의 학년 정보도 저장 (드롭 시 학년 그룹 검증에 사용)
+  const cls = (S.school?.classes||[]).find(c=>c.id===entry.classId);
+  _spDrag = {
+    fromKey:       qualifiedKey,
+    classId:       entry.classId,
+    className:     entry.className,
+    classGrade:    cls?.grade || null,        // 드래그 학급의 학년
+    fromGradeHint: gradeHint,                 // 출발 행의 학년 그룹
+  };
   event.dataTransfer.effectAllowed = 'move';
   event.currentTarget.style.opacity = '.5';
 }
@@ -3509,7 +3516,6 @@ function spOnDragOver(event, cellEl) {
   const subject  = spCurrentSubject;
   const sched    = getSpecialtySchedule(subject);
 
-  // data-sp-key: plain "요일-교시" key
   const plainKey = cellEl.dataset?.spKey || '';
   const gradeHint = cellEl.dataset?.gradeHint
     ? new Set(cellEl.dataset.gradeHint.split(',').map(Number).filter(Boolean))
@@ -3518,15 +3524,22 @@ function spOnDragOver(event, cellEl) {
     ? `${plainKey}|g${[...gradeHint].sort().join('')}`
     : plainKey;
 
-  // 출발 셀과 같은 plain key면 충돌 없음
   const plainFrom = _spDrag.fromKey.includes('|g') ? _spDrag.fromKey.split('|g')[0] : _spDrag.fromKey;
   if (plainFrom === plainKey) {
     cellEl.classList.remove('sp-drag-over', 'sp-drag-bad');
     return;
   }
 
+  // ── 학년 그룹 불일치 검사 ──────────────────────────────
+  // 목적지 행의 gradeHint에 드래그 학급의 학년이 없으면 bad
+  const gradeConflict = gradeHint && gradeHint.size > 0
+    && _spDrag.classGrade
+    && !gradeHint.has(_spDrag.classGrade);
+
   const existing = sched[qKey] || (qKey !== plainKey ? sched[plainKey] : null);
-  const conflict = existing && existing.classId !== _spDrag.classId;
+  const entryConflict = existing && existing.classId !== _spDrag.classId;
+
+  const conflict = gradeConflict || entryConflict;
   cellEl.classList.toggle('sp-drag-over', !conflict);
   cellEl.classList.toggle('sp-drag-bad',   !!conflict);
 }
@@ -3557,6 +3570,16 @@ function spOnDrop(event, toKey, cellEl) {
   const toQKey = (toGradeHint && toGradeHint.size > 0)
     ? `${plainTo}|g${[...toGradeHint].sort().join('')}`
     : plainTo;
+
+  // ── 학년 그룹 불일치 검사 ──────────────────────────────
+  // 목적지 행의 gradeHint에 드래그 학급의 학년이 없으면 차단
+  if (toGradeHint && toGradeHint.size > 0
+      && _spDrag.classGrade
+      && !toGradeHint.has(_spDrag.classGrade)) {
+    const gradeList = [...toGradeHint].sort().join('·');
+    toast(`⚠ 이 행은 ${gradeList}학년 학급만 배정할 수 있습니다.`, 'warn');
+    _spDrag = null; return;
+  }
 
   // 충돌 체크 (qualified key와 plain key 모두 확인)
   if (schedule[toQKey] || (toQKey !== plainTo && schedule[plainTo])) {
@@ -6758,14 +6781,16 @@ async function runTtRandom() {
   // S.ttData: 담임이 직접 입력한 과목
   // spAssign:  교담이 배정한 과목 (S.school.specialtySchedule)
   const spAssign = getSpecialtyAssignmentsForClass(S.classId); // {key: subjectName}
+  // 교담 관할 key 집합 (plain key)
+  const spKeySet = new Set(Object.keys(spAssign));
 
   const remaining = {};
   subjects.forEach(s => {
-    // 담임 직접 입력 카운트
-    const usedByDamim = Object.values(S.ttData||{})
-      .filter(c => c?.subject === s.name).length;
-    // 교담 배정 카운트 (교담이 수업하는 과목도 시수 소진)
-    const usedBySpec  = Object.values(spAssign)
+    // 담임 직접 입력 카운트 — 교담 관할 슬롯 제외
+    const usedByDamim = Object.entries(S.ttData||{})
+      .filter(([k, c]) => c?.subject === s.name && !spKeySet.has(k)).length;
+    // 교담 배정 카운트
+    const usedBySpec = Object.values(spAssign)
       .filter(subj => subj === s.name).length;
     const used = usedByDamim + usedBySpec;
     const rem  = (s.weeklyHours||0) - used;
@@ -6784,10 +6809,10 @@ async function runTtRandom() {
       const p   = idx + 1;
       const key = `${day}-${p}`;
       if (!isDayPeriodAllowed(grade, day, p)) return;  // 요일별 제한
+      // 교담 관할 슬롯: spKeySet(plain key 기반) + getSpecialtyAssignedForKey(qualified key 포함) 둘 다 확인
+      if (spKeySet.has(key)) return;
       const spAssigned = getSpecialtyAssignedForKey(key);
       if (spAssigned) return;                          // 교담 고정 교시 skip
-      // 특별실 교시는 포함 (1순위 우선 배정 대상)
-      // 이미 입력된 과목도 포함 (특별실 우선 배정 시 덮어쓸 수 있음)
       const cell = S.ttData?.[key];
       const roomAssign = getRoomAssignmentForKey(key);
       // 이미 과목 입력된 칸 중 특별실도 없는 일반 칸은 skip (기존 유지)
@@ -6897,18 +6922,20 @@ window.runTtRandom = runTtRandom;
 /* 교담 배정된 슬롯인지 확인 (담임 시간표용) */
 function getSpecialtyAssignedForKey(key) {
   if (!S.school || !S.classId) return null;
-  const [day, pStr] = key.split('-');
-  const grade  = getCurrentClassGrade();
-  const ptimes = getPeriodTimes(grade);
-  const pIdx   = parseInt(pStr) - 1;
-  if (pIdx < 0 || pIdx >= ptimes.length) return null;
-  const start   = ptimes[pIdx]?.start;
-  const timeKey = start ? `${day}-${start}` : null;
-  if (!timeKey) return null;
 
-  // 교담 시간표에서 이 학급에 배정된 교과목 확인
-  for (const [subject, sched] of Object.entries(S.school.specialtySchedule||{})) {
-    if (sched[key]?.classId === S.classId) return subject;
+  // specialtySchedule key 형식:
+  //   plain:     "요일-교시번호"        (예: "월-5")
+  //   qualified: "요일-교시번호|g학년그룹" (예: "월-5|g36")
+  // plain key와 일치하는 모든 형식의 key를 탐색한다.
+  const plainKey = key.includes('|g') ? key.split('|g')[0] : key;
+
+  for (const [subject, sched] of Object.entries(S.school.specialtySchedule || {})) {
+    for (const [sk, entry] of Object.entries(sched)) {
+      if (!entry?.classId || entry.classId !== S.classId) continue;
+      // plain key 비교: qualified key도 prefix로 비교
+      const skPlain = sk.includes('|g') ? sk.split('|g')[0] : sk;
+      if (skPlain === plainKey) return subject;
+    }
   }
   return null;
 }
