@@ -993,6 +993,31 @@ a{color:inherit;text-decoration:none}
         </div>
         <span class="adh-btn-arrow">›</span>
       </button>
+
+      <div class="adh-divider"></div>
+
+      <!-- 시간표 마감 토글 -->
+      <button class="adh-btn" id="adh-lock-btn" onclick="toggleSchoolLock()"
+        style="border-color:#fca5a5;background:#fff5f5">
+        <div class="adh-btn-icon" id="adh-lock-icon"
+          style="background:#fee2e2;font-size:1.1rem">🔒</div>
+        <div class="adh-btn-text">
+          <div class="adh-btn-title" id="adh-lock-title" style="color:#991b1b">시간표 마감</div>
+          <div class="adh-btn-sub"  id="adh-lock-sub">마감하면 모든 교사의 수정이 차단됩니다.</div>
+        </div>
+        <span id="adh-lock-badge" class="badge badge-gray" style="font-size:.7rem;flex-shrink:0">해제됨</span>
+      </button>
+
+      <!-- 학교 삭제 -->
+      <button class="adh-btn" onclick="openAdhDeleteSchool()"
+        style="border-color:#fca5a5;background:#fff5f5">
+        <div class="adh-btn-icon" style="background:#fee2e2;font-size:1.1rem">🗑️</div>
+        <div class="adh-btn-text">
+          <div class="adh-btn-title" style="color:#991b1b">학교 삭제</div>
+          <div class="adh-btn-sub">모든 시간표·설정 데이터를 영구 삭제합니다.</div>
+        </div>
+        <span class="adh-btn-arrow" style="color:#fca5a5">›</span>
+      </button>
     </div>
 
     <!-- 푸터 -->
@@ -2003,6 +2028,31 @@ a{color:inherit;text-decoration:none}
   </div>
 </div>
 
+<!-- 관리자 홈 — 학교 삭제 모달 -->
+<div class="modal-bg" id="modal-adh-delete">
+  <div class="modal-box">
+    <div class="modal-title" style="color:#991b1b">🗑️ 학교 전체 삭제</div>
+    <div class="modal-desc" id="adh-delete-desc" style="margin-bottom:1rem"></div>
+    <div class="alert alert-danger" style="font-size:.82rem;margin-bottom:1rem">
+      ⚠️ 모든 시간표·특별실 배정·교담 배정·설정이 <strong>영구 삭제</strong>되며 복구할 수 없습니다.
+    </div>
+    <div class="form-group">
+      <label class="form-label">확인을 위해 학교 이름을 정확히 입력하세요</label>
+      <input type="text" id="adh-delete-input" class="form-input"
+        placeholder="학교 이름 입력"
+        oninput="onAdhDeleteInput()"
+        autocomplete="off"
+        style="border-color:#fca5a5">
+      <div id="adh-delete-hint" style="font-size:.75rem;color:var(--g400);margin-top:.35rem"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-adh-delete')">취소</button>
+      <button class="btn btn-danger btn-sm" id="adh-delete-confirm-btn"
+        onclick="execAdhDeleteSchool()" disabled>완전 삭제</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast container -->
 <div id="toast-wrap"></div>
 
@@ -2929,6 +2979,7 @@ function renderSpecialtyGrid() {
           ? `draggable="true" ondragstart="spOnDragStart(event,'${key}')" ondragend="spOnDragEnd(event)"`
           : '';
         return `<td class="sp-cell" style="position:relative" ${draggable}
+                    data-sp-key="${key}"
                     data-grade-hint="${gradeHint}"
                     onclick="openSpModal('${key}',this)"
                     ondragover="spOnDragOver(event,this)"
@@ -3455,13 +3506,29 @@ window.spOnDragEnd = spOnDragEnd;
 function spOnDragOver(event, cellEl) {
   if (!_spDrag) return;
   event.preventDefault();
-  // 이미 다른 반이 있으면 bad
-  const toKey   = cellEl.getAttribute('ondrop')?.match(/'([^']+)'\)/)?.[1];
-  const subject = spCurrentSubject;
-  const sched   = getSpecialtySchedule(subject);
-  const conflict = toKey && sched[toKey] && sched[toKey].classId !== _spDrag.classId;
+  const subject  = spCurrentSubject;
+  const sched    = getSpecialtySchedule(subject);
+
+  // data-sp-key: plain "요일-교시" key
+  const plainKey = cellEl.dataset?.spKey || '';
+  const gradeHint = cellEl.dataset?.gradeHint
+    ? new Set(cellEl.dataset.gradeHint.split(',').map(Number).filter(Boolean))
+    : null;
+  const qKey = (gradeHint && gradeHint.size > 0)
+    ? `${plainKey}|g${[...gradeHint].sort().join('')}`
+    : plainKey;
+
+  // 출발 셀과 같은 plain key면 충돌 없음
+  const plainFrom = _spDrag.fromKey.includes('|g') ? _spDrag.fromKey.split('|g')[0] : _spDrag.fromKey;
+  if (plainFrom === plainKey) {
+    cellEl.classList.remove('sp-drag-over', 'sp-drag-bad');
+    return;
+  }
+
+  const existing = sched[qKey] || (qKey !== plainKey ? sched[plainKey] : null);
+  const conflict = existing && existing.classId !== _spDrag.classId;
   cellEl.classList.toggle('sp-drag-over', !conflict);
-  cellEl.classList.toggle('sp-drag-bad',   conflict);
+  cellEl.classList.toggle('sp-drag-bad',   !!conflict);
 }
 window.spOnDragOver = spOnDragOver;
 
@@ -3474,7 +3541,12 @@ function spOnDrop(event, toKey, cellEl) {
   event.preventDefault();
   if (!_spDrag) return;
   const { fromKey, classId, className } = _spDrag;
-  if (fromKey === toKey) { _spDrag = null; return; }
+
+  // ── 같은 셀 드롭 방지: plain key 기준으로 비교 ──────────
+  const plainFrom = fromKey.includes('|g') ? fromKey.split('|g')[0] : fromKey;
+  const plainTo   = toKey.includes('|g')   ? toKey.split('|g')[0]   : toKey;
+  if (plainFrom === plainTo) { _spDrag = null; return; }
+
   const subject  = spCurrentSubject;
   const schedule = getSpecialtySchedule(subject);
 
@@ -3483,16 +3555,19 @@ function spOnDrop(event, toKey, cellEl) {
     ? new Set(cellEl.dataset.gradeHint.split(',').map(Number).filter(Boolean))
     : null;
   const toQKey = (toGradeHint && toGradeHint.size > 0)
-    ? `${toKey}|g${[...toGradeHint].sort().join('')}`
-    : toKey;
+    ? `${plainTo}|g${[...toGradeHint].sort().join('')}`
+    : plainTo;
 
   // 충돌 체크 (qualified key와 plain key 모두 확인)
-  if (schedule[toQKey] || (toQKey !== toKey && schedule[toKey])) {
+  if (schedule[toQKey] || (toQKey !== plainTo && schedule[plainTo])) {
     toast('⚠ 이미 배정된 칸입니다.', 'warn');
     _spDrag = null; return;
   }
-  const removedEntry = { key: fromKey, classId };
-  delete schedule[fromKey];
+
+  // 이동: fromKey(qualified 또는 plain) 삭제 → toQKey에 저장
+  const removedEntry = { key: plainFrom, classId };
+  delete schedule[fromKey];          // qualified key 삭제
+  if (fromKey !== plainFrom) delete schedule[plainFrom]; // plain key 혹시 남아있으면 정리
   schedule[toQKey] = { classId, className };
   _spDrag = null;
   renderSpTabs();
@@ -3501,8 +3576,7 @@ function spOnDrop(event, toKey, cellEl) {
   // ① 이동 전 슬롯: 담임이 같은 과목 직접 입력한 것 정리
   cleanDamimDataForRemovedSpSlots(subject, [removedEntry]);
   // ② 이동 후 슬롯: 담임이 어떤 과목이든 입력한 것 정리 (교담 관할 슬롯)
-  const plainToKey = toKey.includes('|g') ? toKey.split('|g')[0] : toKey;
-  cleanDamimSlotForNewSpAssign(plainToKey, classId);
+  cleanDamimSlotForNewSpAssign(plainTo, classId);
   toast(`${className} → 이동 완료`, 'success');
 }
 window.spOnDrop = spOnDrop;
@@ -7583,14 +7657,13 @@ async function exportAllToExcel() {
     const rooms   = school.specialRooms || [];
     const sched   = school.roomSchedule || {};
     const classes = school.classes || [];
-    const slots   = getScheduleRowsForSchool(school);
     if (!rooms.length) return;
 
     const ws = wb.addWorksheet('특별실 배정');
     const totalCols = 1 + rooms.length * DAYS.length;
 
     ws.columns = [
-      { width:14 },
+      { width:16 },
       ...Array(rooms.length * DAYS.length).fill({ width:11 }),
     ];
 
@@ -7628,20 +7701,58 @@ async function exportAllToExcel() {
     });
     ws.getRow(3).height = 20;
 
-    // ④ 데이터
-    slots.forEach((slot, si) => {
-      const rowNo = si + 4;
-      ws.getRow(rowNo).height = 32;
-      const lbl = slot.label.replace(/<[^>]+>/g,'').replace(/\n/g,' ').trim();
-      setCell(ws, rowNo, 1, `${lbl}\n${slot.start}`, C.HDR_PERIOD_BG, C.HDR_PERIOD_FG, false, 9, 'left');
+    // ④ 데이터 행 — 학년 그룹별로 분리
+    // getScheduleRows의 각 slot에서 gradeMap을 교시번호별로 나눠 별도 행 생성
+    const allSlots = getScheduleRowsForSchool(school);
+    const dataRows = []; // { periodNum, slotStart, gradeSet, label }
+    allSlots.forEach(slot => {
+      const byPeriod = {};
+      Object.entries(slot.gradeMap).forEach(([g, p]) => {
+        if (!byPeriod[p]) byPeriod[p] = [];
+        byPeriod[p].push(parseInt(g));
+      });
+      Object.entries(byPeriod).sort((a,b)=>Number(a[0])-Number(b[0])).forEach(([p, gs]) => {
+        const pNum = parseInt(p);
+        const isMulti = Object.keys(byPeriod).length > 1;
+        const gradePart = isMulti ? `(${gs.sort((a,b)=>a-b).join('·')}학년) ` : '';
+        dataRows.push({
+          periodNum: pNum,
+          slotStart: slot.start,
+          gradeSet: new Set(gs),
+          label: `${gradePart}${pNum}교시\n${slot.start}`,
+        });
+      });
+    });
 
-      rooms.forEach((room, ri) => {
+    dataRows.forEach((dr, ri) => {
+      const rowNo = ri + 4;
+      ws.getRow(rowNo).height = 32;
+      setCell(ws, rowNo, 1, dr.label, C.HDR_PERIOD_BG, C.HDR_PERIOD_FG, false, 9, 'left');
+
+      rooms.forEach((room, rIdx) => {
         const rs = sched[room.id] || {};
         DAYS.forEach((day, di) => {
-          const key   = `${day}-${slot.start}`;
-          const entry = rs[key] || Object.entries(rs).find(([k,v])=>stripGradeSuffix(k)===key)?.[1];
-          const cls   = entry ? classes.find(c=>c.id===entry?.classId) : null;
-          const colNo = 2 + ri * DAYS.length + di;
+          const colNo   = 2 + rIdx * DAYS.length + di;
+          // storageKey 형식: "요일-시간[|g학년그룹]"
+          const timeKey = `${day}-${dr.slotStart}`;
+          // gradeSet에 맞는 entry 찾기
+          let entry = null;
+          for (const [sk, v] of Object.entries(rs)) {
+            if (!v?.classId) continue;
+            const base = sk.includes('|g') ? sk.split('|g')[0] : sk;
+            if (base !== timeKey) continue;
+            // |g 접미사가 있으면 해당 학년 그룹 확인
+            if (sk.includes('|g')) {
+              const gStr = sk.split('|g')[1];
+              const gNums = gStr.split('').map(Number).filter(n=>n>0);
+              if (gNums.some(g => dr.gradeSet.has(g))) { entry = v; break; }
+            } else {
+              // plain key: 이 행의 학년 그룹에 속하는 학급인지 확인
+              const cls2 = classes.find(c=>c.id===v.classId);
+              if (!cls2?.grade || dr.gradeSet.has(cls2.grade)) { entry = v; break; }
+            }
+          }
+          const cls = entry ? classes.find(c=>c.id===entry.classId) : null;
           if (cls) {
             const gc = cls.grade >= 1 && cls.grade <= 6 ? C.GRADE[cls.grade-1] : { bg:'E5E7EB', fg:'374151' };
             setCell(ws, rowNo, colNo, cls.name, gc.bg, gc.fg, true, 10);
@@ -7662,12 +7773,11 @@ async function exportAllToExcel() {
     const subjects = Object.keys(spSched);
     if (!subjects.length) return;
 
-    const slots    = getScheduleRowsForSchool(school);
     const ws       = wb.addWorksheet('교담 시간표');
     const totalCols= 1 + subjects.length * DAYS.length;
 
     ws.columns = [
-      { width:14 },
+      { width:16 },
       ...Array(subjects.length * DAYS.length).fill({ width:12 }),
     ];
 
@@ -7686,7 +7796,7 @@ async function exportAllToExcel() {
     subjects.forEach((subj, si) => {
       const startCol = 2 + si * DAYS.length;
       ws.mergeCells(2, startCol, 2, startCol + DAYS.length - 1);
-      const sc        = subjectColors(subj, 3); // 대표 색상은 3학년 기준
+      const sc        = subjectColors(subj, 3);
       const hCell     = ws.getCell(2, startCol);
       hCell.value     = subj;
       hCell.fill      = fill(sc.bg);
@@ -7705,21 +7815,64 @@ async function exportAllToExcel() {
     });
     ws.getRow(3).height = 20;
 
-    // ④ 데이터
-    slots.forEach((slot, si) => {
-      const rowNo = si + 4;
+    // ④ 데이터 행 — 학년 그룹별로 분리 + 교시번호 기반 key로 조회
+    // specialtySchedule key = "요일-교시번호" (plain) 또는 "요일-교시번호|g학년그룹"
+    // → 각 학년 그룹 행의 periodNum으로 매칭
+    const allSlots = getScheduleRowsForSchool(school);
+    const dataRows = [];
+    allSlots.forEach(slot => {
+      const byPeriod = {};
+      Object.entries(slot.gradeMap).forEach(([g, p]) => {
+        if (!byPeriod[p]) byPeriod[p] = [];
+        byPeriod[p].push(parseInt(g));
+      });
+      Object.entries(byPeriod).sort((a,b)=>Number(a[0])-Number(b[0])).forEach(([p, gs]) => {
+        const pNum = parseInt(p);
+        const isMulti = Object.keys(byPeriod).length > 1;
+        const gradePart = isMulti ? `(${gs.sort((a,b)=>a-b).join('·')}학년) ` : '';
+        dataRows.push({
+          periodNum: pNum,
+          slotStart: slot.start,
+          gradeSet: new Set(gs),
+          label: `${gradePart}${pNum}교시\n${slot.start}`,
+        });
+      });
+    });
+
+    dataRows.forEach((dr, ri) => {
+      const rowNo = ri + 4;
       ws.getRow(rowNo).height = 32;
-      const lbl = slot.label.replace(/<[^>]+>/g,'').replace(/\n/g,' ').trim();
-      setCell(ws, rowNo, 1, `${lbl}\n${slot.start}`, C.HDR_PERIOD_BG, C.HDR_PERIOD_FG, false, 9, 'left');
+      setCell(ws, rowNo, 1, dr.label, C.HDR_PERIOD_BG, C.HDR_PERIOD_FG, false, 9, 'left');
 
       subjects.forEach((subj, subi) => {
+        const schedMap = spSched[subj] || {};
         DAYS.forEach((day, di) => {
-          const key   = `${day}-${slot.slotKey}`;
-          // qualified key도 확인
-          const schedMap = spSched[subj] || {};
-          const entry = schedMap[key] || Object.entries(schedMap).find(([k])=>k.startsWith(key+'|')||k===key)?.[1];
-          const cls   = entry ? classes.find(c=>c.id===entry.classId) : null;
-          const colNo = 2 + subi * DAYS.length + di;
+          const colNo  = 2 + subi * DAYS.length + di;
+          // specialtySchedule key = "요일-교시번호" 또는 "요일-교시번호|g학년그룹"
+          const plainKey = `${day}-${dr.periodNum}`;
+          const qKey     = `${plainKey}|g${[...dr.gradeSet].sort().join('')}`;
+
+          // qualified key 우선, 없으면 plain key에서 해당 학년 학급 확인
+          let entry = schedMap[qKey] || null;
+          if (!entry) {
+            const pe = schedMap[plainKey];
+            if (pe) {
+              const cls2 = classes.find(c=>c.id===pe.classId);
+              if (!cls2?.grade || dr.gradeSet.has(cls2.grade)) entry = pe;
+            }
+          }
+          // plain key에도 없으면 같은 교시번호의 다른 qualified key도 탐색
+          if (!entry) {
+            for (const [k, v] of Object.entries(schedMap)) {
+              if (!v?.classId) continue;
+              const base = k.includes('|g') ? k.split('|g')[0] : k;
+              if (base !== plainKey) continue;
+              const cls2 = classes.find(c=>c.id===v.classId);
+              if (cls2?.grade && dr.gradeSet.has(cls2.grade)) { entry = v; break; }
+            }
+          }
+
+          const cls = entry ? classes.find(c=>c.id===entry.classId) : null;
           if (cls) {
             const gc = cls.grade >= 1 && cls.grade <= 6 ? C.GRADE[cls.grade-1] : { bg:'E5E7EB', fg:'374151' };
             setCell(ws, rowNo, colNo, cls.name, gc.bg, gc.fg, true, 10);
@@ -8003,7 +8156,35 @@ function updateLockUI() {
       : '마감하면 모든 교사가 시간표를 수정할 수 없습니다.';
   }
 
-  // ④ 배너에 의한 화면 top 여백 (배너 높이만큼 밀어내기)
+  // ④ 관리자 홈 잠금 버튼 동기화
+  const adhLockBtn   = document.getElementById('adh-lock-btn');
+  const adhLockIcon  = document.getElementById('adh-lock-icon');
+  const adhLockTitle = document.getElementById('adh-lock-title');
+  const adhLockSub   = document.getElementById('adh-lock-sub');
+  const adhLockBadge = document.getElementById('adh-lock-badge');
+  if (adhLockBtn) {
+    if (locked) {
+      adhLockBtn.style.cssText   = 'border-color:#dc2626;background:#fef2f2';
+      adhLockIcon.textContent    = '🔓';
+      adhLockIcon.style.background = '#fee2e2';
+      adhLockTitle.textContent   = '마감 해제';
+      adhLockTitle.style.color   = '#991b1b';
+      adhLockSub.textContent     = '현재 마감 중 — 클릭하면 수정이 다시 가능해집니다.';
+      adhLockBadge.textContent   = '마감됨';
+      adhLockBadge.className     = 'badge badge-red';
+    } else {
+      adhLockBtn.style.cssText   = 'border-color:#fca5a5;background:#fff5f5';
+      adhLockIcon.textContent    = '🔒';
+      adhLockIcon.style.background = '#fee2e2';
+      adhLockTitle.textContent   = '시간표 마감';
+      adhLockTitle.style.color   = '#991b1b';
+      adhLockSub.textContent     = '마감하면 모든 교사의 수정이 차단됩니다.';
+      adhLockBadge.textContent   = '해제됨';
+      adhLockBadge.className     = 'badge badge-gray';
+    }
+  }
+
+  // ⑤ 배너에 의한 화면 top 여백 (배너 높이만큼 밀어내기)
   document.body.style.paddingTop = locked ? '38px' : '0';
 }
 window.updateLockUI = updateLockUI;
@@ -8091,6 +8272,61 @@ function confirmDeleteMySchool() {
   );
 }
 window.confirmDeleteMySchool = confirmDeleteMySchool;
+
+/* ===========================================================
+   관리자 홈 — 학교 삭제 모달 (바로가기)
+   =========================================================== */
+function openAdhDeleteSchool() {
+  if (!S.school || S.user?.role !== 'admin') return;
+  // 입력란 초기화
+  const input = document.getElementById('adh-delete-input');
+  const btn   = document.getElementById('adh-delete-confirm-btn');
+  const hint  = document.getElementById('adh-delete-hint');
+  const desc  = document.getElementById('adh-delete-desc');
+  if (input) input.value = '';
+  if (btn)   btn.disabled = true;
+  if (hint)  { hint.textContent = `학교 이름: "${S.school.name}"`; hint.style.color='var(--g400)'; }
+  if (desc)  desc.innerHTML = `<strong>${escHtml(S.school.name)}</strong>을(를) 삭제하려고 합니다.`;
+  openModal('modal-adh-delete');
+}
+window.openAdhDeleteSchool = openAdhDeleteSchool;
+
+function onAdhDeleteInput() {
+  const input = document.getElementById('adh-delete-input');
+  const btn   = document.getElementById('adh-delete-confirm-btn');
+  const hint  = document.getElementById('adh-delete-hint');
+  if (!input || !btn || !S.school) return;
+  const val   = input.value.trim();
+  const match = val === S.school.name;
+  btn.disabled = !match;
+  if (!val) {
+    hint.textContent = `학교 이름: "${S.school.name}"`;
+    hint.style.color = 'var(--g400)';
+  } else if (match) {
+    hint.textContent = '✔ 일치합니다. 삭제 버튼이 활성화되었습니다.';
+    hint.style.color = '#dc2626';
+  } else {
+    hint.textContent = '이름이 정확히 일치해야 합니다.';
+    hint.style.color = 'var(--g400)';
+  }
+}
+window.onAdhDeleteInput = onAdhDeleteInput;
+
+async function execAdhDeleteSchool() {
+  if (!S.school || S.user?.role !== 'admin') return;
+  const input = document.getElementById('adh-delete-input');
+  if (!input || input.value.trim() !== S.school.name) return;
+  closeModal('modal-adh-delete');
+  const id   = S.school.id;
+  const name = S.school.name;
+  await removeSchool(id);
+  for (const cls of (S.school.classes || [])) {
+    localStorage.removeItem(`stt_${id}_${cls.id}`);
+  }
+  toast(`"${name}" 삭제 완료`, 'success');
+  logout();
+}
+window.execAdhDeleteSchool = execAdhDeleteSchool;
 
 /** 기초 설정 위험 구역 진입 시 UI 초기화 */
 function initDangerZone() {
