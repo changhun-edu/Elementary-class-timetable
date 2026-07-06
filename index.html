@@ -2637,6 +2637,10 @@ async function saLogin() {
 }
 window.saLogin = saLogin;
 
+// 만료(1년 경과) 학교 중 일괄 삭제 대상으로 선택된 id 집합 (새로고침해도 선택 상태 유지)
+let saExpiredSel = new Set();
+let saSchoolsCache = [];
+
 async function loadAllSchools() {
   const list = document.getElementById('sa-list');
   list.innerHTML = '<div style="color:rgba(255,255,255,.3);text-align:center;padding:2rem"><div class="spinner" style="border-color:rgba(255,255,255,.15);border-top-color:var(--brand)"></div></div>';
@@ -2645,6 +2649,7 @@ async function loadAllSchools() {
     list.innerHTML = '<div class="sa-empty">🏫 등록된 학교가 없습니다.</div>';
     return;
   }
+  saSchoolsCache = schools;
 
   const now      = Date.now();
   const ONE_YEAR = 365 * 24 * 60 * 60 * 1000;
@@ -2652,11 +2657,23 @@ async function loadAllSchools() {
   // 생성일 오래된 순(삭제 우선순위)으로 정렬
   const sorted = [...schools].sort((a, b) => (a.createdAt||0) - (b.createdAt||0));
 
-  // 안내 문구
-  const expiredCount = sorted.filter(s => now - (s.createdAt||0) >= ONE_YEAR).length;
+  const expiredIds = sorted.filter(s => now - (s.createdAt||0) >= ONE_YEAR).map(s => s.id);
+  // 더 이상 존재하지 않거나 만료 대상이 아닌 id는 선택 목록에서 제거
+  saExpiredSel = new Set([...saExpiredSel].filter(id => expiredIds.includes(id)));
+  // 처음 보는 만료 학교는 기본 선택 상태로 추가
+  expiredIds.forEach(id => saExpiredSel.add(id));
+
+  const expiredCount = expiredIds.length;
   const warnHtml = expiredCount ? `
     <div style="background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);border-radius:var(--r);padding:.75rem 1rem;margin-bottom:1rem;font-size:.82rem;color:#fca5a5">
-      ⚠️ <strong>${expiredCount}개 학교</strong>가 생성한 지 1년이 지났습니다. 불필요한 데이터는 삭제해 주세요.
+      <div style="margin-bottom:.55rem">⚠️ <strong>${expiredCount}개 학교</strong>가 생성한 지 1년이 지났습니다. 삭제할 학교를 선택하세요 (기본 전체 선택됨).</div>
+      <div style="display:flex;gap:.4rem;flex-wrap:wrap">
+        <button class="btn btn-sm" onclick="saSelectAllExpired(true)"
+          style="color:#fca5a5;border:1px solid rgba(239,68,68,.3);background:transparent">전체 선택</button>
+        <button class="btn btn-sm" onclick="saSelectAllExpired(false)"
+          style="color:#94a3b8;border:1px solid rgba(255,255,255,.15);background:transparent">전체 해제</button>
+        <button class="btn btn-danger btn-sm" id="sa-bulk-del-btn" onclick="confirmBulkDeleteSelected()">🗑️ 선택 삭제 실행 (<span id="sa-bulk-del-count">${saExpiredSel.size}</span>)</button>
+      </div>
     </div>` : '';
 
   list.innerHTML = warnHtml + sorted.map(s => {
@@ -2673,15 +2690,24 @@ async function loadAllSchools() {
     const cardBorder = expired
       ? 'border:1px solid rgba(239,68,68,.4);'
       : warn11m ? 'border:1px solid rgba(251,191,36,.25);' : '';
+    const checkbox = expired
+      ? `<input type="checkbox" onchange="saToggleExpiredSel('${s.id}',this.checked)" ${saExpiredSel.has(s.id) ? 'checked' : ''}
+           style="width:18px;height:18px;margin-right:.7rem;flex-shrink:0;accent-color:#ef4444" title="일괄 삭제 대상으로 선택">`
+      : `<div style="width:18px;margin-right:.7rem;flex-shrink:0"></div>`;
 
     return `
-      <div class="sa-card" style="${cardBorder}">
+      <div class="sa-card" style="${cardBorder};display:flex;align-items:center">
+        ${checkbox}
         <div class="sa-icon">🏫</div>
         <div style="flex:1;min-width:0">
           <div class="sa-school-name">${escHtml(s.name)}</div>
           <div class="sa-meta">
             생성: ${dateStr} &nbsp;${ageBadge}&nbsp;
             · 학급 ${(s.classes||[]).length}개
+            · PW: <span onclick="saTogglePwVisible('${s.id}')" id="sa-pw-${s.id}"
+                data-pw="${escHtml(s.adminPassword||'')}"
+                style="cursor:pointer;font-family:monospace;filter:blur(3px);transition:filter .12s"
+                title="클릭하여 비밀번호 보기/숨기기">${escHtml(s.adminPassword || '-')}</span>
           </div>
           ${expired ? `<div style="font-size:.73rem;color:#fca5a5;margin-top:2px">📅 생성 1년 경과 — 삭제를 검토하세요</div>` : ''}
         </div>
@@ -2693,9 +2719,54 @@ async function loadAllSchools() {
 }
 window.loadAllSchools = loadAllSchools;
 
+// 비밀번호 표시/숨김 토글 (클릭 시 블러 on/off)
+function saTogglePwVisible(id) {
+  const el = q(`#sa-pw-${id}`);
+  if (!el) return;
+  el.style.filter = el.style.filter === 'none' ? 'blur(3px)' : 'none';
+}
+window.saTogglePwVisible = saTogglePwVisible;
+
+// 만료 학교 개별 선택 토글
+function saToggleExpiredSel(id, checked) {
+  if (checked) saExpiredSel.add(id); else saExpiredSel.delete(id);
+  const countEl = q('#sa-bulk-del-count');
+  if (countEl) countEl.textContent = saExpiredSel.size;
+}
+window.saToggleExpiredSel = saToggleExpiredSel;
+
+// 만료 학교 전체 선택/해제
+function saSelectAllExpired(selectAll) {
+  const now = Date.now(), ONE_YEAR = 365 * 24 * 60 * 60 * 1000;
+  const expiredIds = saSchoolsCache.filter(s => now - (s.createdAt||0) >= ONE_YEAR).map(s => s.id);
+  saExpiredSel = selectAll ? new Set(expiredIds) : new Set();
+  loadAllSchools();
+}
+window.saSelectAllExpired = saSelectAllExpired;
+
+// 선택된 만료 학교 일괄 삭제
+function confirmBulkDeleteSelected() {
+  const targets = saSchoolsCache.filter(s => saExpiredSel.has(s.id));
+  if (!targets.length) { toast('선택된 학교가 없습니다.', 'error'); return; }
+  const names = targets.map(s => escHtml(s.name)).join(', ');
+  openConfirm(
+    `선택 학교 일괄 삭제 (${targets.length}개)`,
+    `다음 학교와 모든 시간표 데이터가 영구 삭제됩니다:<br><strong>${names}</strong><br>계속하시겠습니까?`,
+    async () => {
+      for (const s of targets) { await removeSchool(s.id); }
+      saExpiredSel.clear();
+      toast(`${targets.length}개 학교 일괄 삭제 완료`, 'success');
+      loadAllSchools();
+    },
+    '', '일괄 삭제', 'btn-danger'
+  );
+}
+window.confirmBulkDeleteSelected = confirmBulkDeleteSelected;
+
 function confirmDeleteSchool(id, name) {
   openConfirm(`"${name}" 삭제`, `학교와 모든 시간표 데이터가 영구 삭제됩니다. 계속하시겠습니까?`, async () => {
     await removeSchool(id);
+    saExpiredSel.delete(id);
     toast(`${name} 삭제 완료`, 'success');
     loadAllSchools();
   });
@@ -2741,7 +2812,9 @@ function saResetSchoolPw(schoolId, schoolName) {
       await saveSchool(school);
       toast(`${schoolName} 비밀번호가 "${newPw}"(으)로 변경되었습니다.`, 'success');
     },
-    /* extraHtml */ `<input type="text" id="sa-reset-pw-input" class="form-input" placeholder="새 비밀번호 입력" style="margin-top:.75rem">`
+    /* extraHtml */ `<input type="text" id="sa-reset-pw-input" class="form-input" placeholder="새 비밀번호 입력" style="margin-top:.75rem">`,
+    /* okLabel */ '저장',
+    /* okClass */ 'btn-primary'
   );
 }
 window.saResetSchoolPw = saResetSchoolPw;
