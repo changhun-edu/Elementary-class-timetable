@@ -8637,13 +8637,12 @@ function _parseSpecialtySheetToSchedule(ws) {
     const p = parseInt(periodMatch[1]);
 
     teacherCols.forEach(({ startCol, label }) => {
-      // 교사 헤더에서 교과명 추출: "4과학,1생(송민지)" → ["과학","생"]
-      const subjMatches = label.matchAll(/[,\s]*(\d*)([\uAC00-\uD7A3]+)(?=[,\(]|$)/g);
-      const teacherSubjects = [];
-      for (const m of subjMatches) {
-        const subj = m[2];
-        if (subj && subj !== '교시' && subj !== '시간') teacherSubjects.push(subj);
-      }
+      // 교사 헤더에서 학년+교과 쌍 추출: "4과학,1생활(송민지)" → [{grade:4,subj:"과학"},{grade:1,subj:"생활"}]
+      // (이름) 괄호 부분을 제거한 뒤 탐욕적 한글 매칭으로 정확히 추출
+      const headerPart = label.replace(/\([^)]*\)\s*\*?$/, '').trim();
+      const gradeSubjPairs = [...headerPart.matchAll(/(\d+)?([가-힣]+)/g)]
+        .map(m => ({ grade: m[1] ? parseInt(m[1]) : null, subj: m[2] }))
+        .filter(({ subj }) => subj && subj !== '교시' && subj !== '시간' && subj !== '학년');
 
       days.forEach((day, di) => {
         const cell = ws[XLSX.utils.encode_cell({ r, c: startCol + di })];
@@ -8655,14 +8654,17 @@ function _parseSpecialtySheetToSchedule(ws) {
         const cls = classes.find(c => c.name === clsName);
         if (!cls) return;
 
-        // 어떤 교과인지 결정
-        // teacherSubjects 중 이 학급 학년에 해당하는 교과 우선
-        let subject = teacherSubjects[0] || '';
-        if (teacherSubjects.length > 1 && cls.grade) {
-          // 헤더에 학년 숫자가 있으면 그것으로 매칭 (예: "4과학" → 4학년 과학)
-          const gradeMatch = label.match(new RegExp(`${cls.grade}([\\uAC00-\\uD7A3]+)`));
-          if (gradeMatch) subject = gradeMatch[1];
+        // 어떤 교과인지 결정: 이 학급 학년과 일치하는 쌍 우선, 없으면 학년 미지정 쌍, 그래도 없으면 첫 번째
+        let subject = '';
+        if (cls.grade) {
+          const exact = gradeSubjPairs.find(p => p.grade === cls.grade);
+          if (exact) { subject = exact.subj; }
         }
+        if (!subject) {
+          const noGrade = gradeSubjPairs.find(p => p.grade == null);
+          if (noGrade) subject = noGrade.subj;
+        }
+        if (!subject && gradeSubjPairs.length) subject = gradeSubjPairs[0].subj;
         if (!subject) return;
 
         // specialtySchedule에 저장
@@ -8676,17 +8678,16 @@ function _parseSpecialtySheetToSchedule(ws) {
   }
 }
 
-/* ── 셀 텍스트 추출 헬퍼 (일반·richText 모두 처리) ─────── */
+/* ── 셀 텍스트 추출 헬퍼 (일반·richText 모두 처리) ─────────
+   SheetJS는 ExcelJS richText 셀을 읽을 때 cell.v에 이미 모든
+   run 텍스트를 이어붙여 저장한다. document.createElement 불필요.
+   cell.v: "수학
+📍수학실"  cell.t: 's'  → cell.v를 그대로 쓴다.
+   ────────────────────────────────────────────────────────── */
 function _cellText(cell) {
   if (!cell) return '';
   if (cell.t === 'z') return '';
-  // richText (ExcelJS 출력 셀)
-  if (cell.r) {
-    // SheetJS의 HTML representation에서 텍스트 추출
-    const div = document.createElement('div');
-    div.innerHTML = cell.h || '';
-    return div.textContent || cell.v || '';
-  }
+  // cell.v에 richText 합본 텍스트가 이미 들어 있음
   return String(cell.v ?? '');
 }
 
