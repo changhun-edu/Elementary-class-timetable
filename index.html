@@ -321,6 +321,22 @@ a{color:inherit;text-decoration:none}
 .adh-footer{display:flex;justify-content:space-between;align-items:center;margin-top:1rem;padding-top:.8rem;border-top:1px solid var(--g100)}
 .adh-footer-info{font-size:.75rem;color:var(--g400)}
 
+/* 주기 필터 세그먼트 컨트롤 */
+.week-seg{
+  display:flex;border:1.5px solid var(--g200);border-radius:var(--r-md);
+  overflow:hidden;background:var(--g50);
+}
+.week-seg-btn{
+  padding:.3rem .75rem;font-size:.8rem;font-weight:700;cursor:pointer;
+  border:none;background:transparent;transition:all var(--t);color:var(--g500);
+  line-height:1.4;
+}
+.week-seg-btn+.week-seg-btn{border-left:1.5px solid var(--g200)}
+.week-seg-btn.active{background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.1)}
+.week-seg-btn.active.wk-all{color:var(--g900)}
+.week-seg-btn.active.wk-a{color:#1e40af;background:#dbeafe}
+.week-seg-btn.active.wk-b{color:#9a3412;background:#ffedd5}
+
 /* ── 전교 잠금 배너 ── */
 #school-lock-banner{
   position:fixed;top:0;left:0;right:0;z-index:200;
@@ -1752,13 +1768,30 @@ a{color:inherit;text-decoration:none}
           격주 배정은 셀 클릭 → 배정 주기(A주/B주) 선택.
         </div>
       </div>
-      <div style="display:flex;gap:.5rem;flex-shrink:0">
-        <button class="btn btn-ghost btn-sm" onclick="setWeekFilter('all')" id="btn-week-all" style="font-weight:700">전체</button>
-        <button class="btn btn-ghost btn-sm" onclick="setWeekFilter('A')" id="btn-week-A" style="color:#1d4ed8;border-color:#3b82f6">A주</button>
-        <button class="btn btn-ghost btn-sm" onclick="setWeekFilter('B')" id="btn-week-B" style="color:#c2410c;border-color:#f97316">B주</button>
+      <div style="display:flex;gap:.5rem;flex-shrink:0;align-items:center">
+        <!-- 필터: 세그먼트 컨트롤 -->
+        <div class="week-seg">
+          <button class="week-seg-btn wk-all active" id="btn-week-all" onclick="setWeekFilter('all')">전체</button>
+          <button class="week-seg-btn wk-a" id="btn-week-A" onclick="setWeekFilter('A')">A주</button>
+          <button class="week-seg-btn wk-b" id="btn-week-B" onclick="setWeekFilter('B')">B주</button>
+        </div>
+
+        <!-- 구분선 -->
+        <span style="width:1px;height:18px;background:var(--g200);flex-shrink:0"></span>
+
+        <!-- 편집 액션 -->
         <button class="btn btn-ghost btn-sm" onclick="confirmClearRoomSchedule()">🗑️ 초기화</button>
-        <button class="btn btn-primary btn-sm" onclick="openRandomAssignModal()">🎲 랜덤 배정</button>
-        <button class="btn btn-ghost btn-sm" onclick="saveRoomSchedule()">💾 저장</button>
+        <button class="btn btn-ghost btn-sm" onclick="openRandomAssignModal()">🎲 랜덤 배정</button>
+
+        <!-- 구분선 -->
+        <span style="width:1px;height:18px;background:var(--g200);flex-shrink:0"></span>
+
+        <!-- 핵심 액션: 저장 강조 -->
+        <button class="btn btn-sm" onclick="saveRoomSchedule()"
+          style="background:var(--brand);color:#fff;border:none;font-weight:700;
+                 box-shadow:0 2px 8px rgba(37,99,235,.3);letter-spacing:-.01em;">
+          💾 저장
+        </button>
       </div>
     </div>
     <div id="rs-empty" class="empty-state" style="display:none">
@@ -7163,21 +7196,14 @@ function getCurrentWeekType() {
 
 function setWeekFilter(type) {
   _weekFilter = type;
-  // 모든 주기 버튼 초기화
+  // 세그먼트 컨트롤 active 상태 업데이트
   const btnAll = q('#btn-week-all');
   const btnA   = q('#btn-week-A');
   const btnB   = q('#btn-week-B');
-  if (btnAll) { btnAll.style.fontWeight='600'; btnAll.style.background=''; btnAll.style.color=''; btnAll.style.borderColor=''; btnAll.style.boxShadow=''; }
-  if (btnA)   { btnA.style.fontWeight='600';   btnA.style.background='';   btnA.style.color='#1d4ed8'; btnA.style.borderColor='#3b82f6'; btnA.style.boxShadow=''; }
-  if (btnB)   { btnB.style.fontWeight='600';   btnB.style.background='';   btnB.style.color='#c2410c'; btnB.style.borderColor='#f97316'; btnB.style.boxShadow=''; }
-  // 활성 버튼 강조
-  if (type === 'all' && btnAll) {
-    btnAll.style.fontWeight='900'; btnAll.style.background='var(--g200)'; btnAll.style.color='var(--g900)'; btnAll.style.boxShadow='inset 0 1px 3px rgba(0,0,0,.12)';
-  } else if (type === 'A' && btnA) {
-    btnA.style.fontWeight='900'; btnA.style.background='#dbeafe'; btnA.style.color='#1e40af'; btnA.style.borderColor='#2563eb'; btnA.style.boxShadow='inset 0 1px 3px rgba(37,99,235,.2)';
-  } else if (type === 'B' && btnB) {
-    btnB.style.fontWeight='900'; btnB.style.background='#ffedd5'; btnB.style.color='#9a3412'; btnB.style.borderColor='#ea580c'; btnB.style.boxShadow='inset 0 1px 3px rgba(234,88,12,.2)';
-  }
+  [btnAll, btnA, btnB].forEach(b => { if (b) b.classList.remove('active'); });
+  if (type === 'all' && btnAll) btnAll.classList.add('active');
+  if (type === 'A'   && btnA)   btnA.classList.add('active');
+  if (type === 'B'   && btnB)   btnB.classList.add('active');
   renderRoomSchedule();
 }
 window.setWeekFilter = setWeekFilter;
