@@ -8329,8 +8329,8 @@ async function exportAllToExcel() {
     const totalCols = 1 + rooms.length * DAYS.length;
 
     ws.columns = [
-      { width:16 },
-      ...Array(rooms.length * DAYS.length).fill({ width:11 }),
+      { width:18 },
+      ...Array(rooms.length * DAYS.length).fill({ width:13 }),
     ];
 
     // ① 타이틀
@@ -8421,7 +8421,12 @@ async function exportAllToExcel() {
           const cls = entry ? classes.find(c=>c.id===entry.classId) : null;
           if (cls) {
             const gc = cls.grade >= 1 && cls.grade <= 6 ? C.GRADE[cls.grade-1] : { bg:'E5E7EB', fg:'374151' };
-            setCell(ws, rowNo, colNo, cls.name, gc.bg, gc.fg, true, 10);
+            const cell = ws.getCell(rowNo, colNo);
+            cell.value     = cls.name;
+            cell.fill      = fill(gc.bg);
+            cell.font      = font(gc.fg, true, 11);
+            cell.border    = border();
+            cell.alignment = { horizontal:'center', vertical:'middle', wrapText:false };
           } else {
             setCell(ws, rowNo, colNo, '', C.EMPTY_BG, 'E5E7EB');
           }
@@ -8512,8 +8517,8 @@ async function exportAllToExcel() {
     const totalCols = 1 + teacherCols.length * DAYS.length;
 
     ws.columns = [
-      { width: 14 },
-      ...Array(teacherCols.length * DAYS.length).fill({ width: 11 }),
+      { width: 16 },
+      ...Array(teacherCols.length * DAYS.length).fill({ width: 13 }),
     ];
 
     // ── ② 타이틀 ────────────────────────────────────────────
@@ -8622,7 +8627,12 @@ async function exportAllToExcel() {
             const cls = classes.find(c=>c.id===found.entry.classId);
             const g   = cls?.grade;
             const gc  = (g >= 1 && g <= 6) ? C.GRADE[g-1] : { bg:'E5E7EB', fg:'374151' };
-            setCell(ws, rowNo, colNo, cls?.name || '', gc.bg, gc.fg, true, 10);
+            const cell = ws.getCell(rowNo, colNo);
+            cell.value     = cls?.name || '';
+            cell.fill      = fill(gc.bg);
+            cell.font      = font(gc.fg, true, 11);
+            cell.border    = border();
+            cell.alignment = { horizontal:'center', vertical:'middle', wrapText:false };
           } else {
             setCell(ws, rowNo, colNo, '', C.EMPTY_BG, 'E5E7EB');
           }
