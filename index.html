@@ -8391,9 +8391,17 @@ async function exportAllToExcel() {
     });
 
     dataRows.forEach((dr, ri) => {
-      const rowNo = ri + 4;
-      ws.getRow(rowNo).height = 32;
-      setCell(ws, rowNo, 1, dr.label, C.HDR_PERIOD_BG, C.HDR_PERIOD_FG, false, 9, 'left');
+      const rowNo   = ri + 4;
+      const lineCount = (dr.label.match(/\n/g)||[]).length + 1;
+      ws.getRow(rowNo).height = lineCount >= 3 ? 52 : lineCount === 2 ? 40 : 32;
+
+      // 교시/시간 셀: 굵게·가운데·줄바꿈 허용
+      const pCell = ws.getCell(rowNo, 1);
+      pCell.value     = dr.label;
+      pCell.fill      = fill(C.HDR_PERIOD_BG);
+      pCell.font      = font(C.HDR_PERIOD_FG, true, 10);
+      pCell.border    = border();
+      pCell.alignment = { horizontal:'center', vertical:'middle', wrapText:true };
 
       rooms.forEach((room, rIdx) => {
         const rs = sched[room.id] || {};
@@ -8615,9 +8623,17 @@ async function exportAllToExcel() {
     }
 
     dataRows.forEach((dr, ri) => {
-      const rowNo = ri + 4;
-      ws.getRow(rowNo).height = 32;
-      setCell(ws, rowNo, 1, dr.label, C.HDR_PERIOD_BG, C.HDR_PERIOD_FG, false, 9, 'left');
+      const rowNo   = ri + 4;
+      const lineCount = (dr.label.match(/\n/g)||[]).length + 1;
+      ws.getRow(rowNo).height = lineCount >= 3 ? 52 : lineCount === 2 ? 40 : 32;
+
+      // 교시/시간 셀: 굵게·가운데·줄바꿈 허용
+      const pCell = ws.getCell(rowNo, 1);
+      pCell.value     = dr.label;
+      pCell.fill      = fill(C.HDR_PERIOD_BG);
+      pCell.font      = font(C.HDR_PERIOD_FG, true, 10);
+      pCell.border    = border();
+      pCell.alignment = { horizontal:'center', vertical:'middle', wrapText:true };
 
       teacherCols.forEach((tc, ti) => {
         DAYS.forEach((day, di) => {
