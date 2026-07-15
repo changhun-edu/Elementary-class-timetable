@@ -794,6 +794,26 @@ a{color:inherit;text-decoration:none}
 .sp-pick-btn:hover{opacity:.85}
 .sp-pick-btn.sel{box-shadow:0 1px 4px rgba(0,0,0,.15)}
 
+/* 학년별 교과 배정 그리드 */
+.sp-asgn-row{
+  display:flex;align-items:flex-start;gap:.55rem;
+  padding:.45rem .55rem;border-radius:var(--r);background:#fff;
+  border:1px solid var(--g200);
+}
+.sp-asgn-grade{
+  flex-shrink:0;width:52px;font-size:.78rem;font-weight:800;
+  padding:.25rem .4rem;border-radius:var(--r-sm);border:1.5px solid;
+  text-align:center;line-height:1.3;margin-top:1px;
+}
+.sp-asgn-chips{display:flex;flex-wrap:wrap;gap:.3rem;flex:1}
+.sp-asgn-chip{
+  padding:.22rem .58rem;border-radius:10px;font-size:.76rem;font-weight:700;
+  border:1.5px solid;background:transparent;cursor:pointer;
+  transition:all var(--t);line-height:1.3;
+}
+.sp-asgn-chip:hover{opacity:.8;transform:scale(1.04)}
+.sp-asgn-chip.sel{box-shadow:0 1px 5px rgba(0,0,0,.15)}
+
 /* Tab save bar */
 .tab-save-bar{
   display:flex;align-items:center;justify-content:space-between;
@@ -2536,7 +2556,7 @@ const HISTORY_SKIP_SCREENS = new Set(['screen-superadmin']);
 const SCREEN_RESTORE_FN = {
   'screen-admin-home':   () => goToAdminHome(),
   'screen-setup':        () => goAdminSetup(),
-  'screen-room-schedule':() => { if(S.school) goTo('screen-room-schedule'); else goTo('screen-landing'); },
+  'screen-room-schedule':() => { if(S.school) goToRoomSchedule(); else goTo('screen-landing'); },
   'screen-specialty':    () => goToSpecialtyScreen(),
   'screen-timetable':    () => { initTimetable(); goTo('screen-timetable'); },
   'screen-join':         () => goToJoin(),
@@ -2880,6 +2900,13 @@ function goToSpecialtyScreen() {
   if (!S.school || !S.user) return;
   const isCollab = S.user.role === 'collaborative';
   const isAdmin  = S.user?.role === 'admin' || S.user?.originalRole === 'admin';
+
+  // spInfo.assignments → subjects/grades 동기화 (새로고침 후 세션 복원 시에도 동작)
+  if (S.user.spInfo?.assignments?.length) {
+    S.user.spInfo.subjects = [...new Set(S.user.spInfo.assignments.map(a => a.subject).filter(Boolean))];
+    S.user.spInfo.grades   = [...new Set(S.user.spInfo.assignments.map(a => a.grade).filter(Boolean))];
+    if (!S.user.subjects?.length) S.user.subjects = S.user.spInfo.subjects;
+  }
 
   // ── 기본 UI 업데이트 ────────────────────────────────────
   const nameEl = q('#sp-school-name');
@@ -3583,9 +3610,17 @@ async function syncDamimSlotsWithSpecialty() {
   }
 }
 
-function getTeacherLabelForSubject(subject) {
+function getTeacherLabelForSubject(subject, grade) {
   const teachers = S.school?.specialtyTeachers || [];
-  const found = teachers.find(t => (t.subjects||[]).includes(subject));
+  const found = teachers.find(t => {
+    if (t.assignments?.length) {
+      return t.assignments.some(a =>
+        a.subject === subject && (grade == null || a.grade === grade)
+      );
+    }
+    // 구형 하위 호환
+    return (t.subjects||[]).includes(subject);
+  });
   if (found) return found.label;
   // teacherTypes(협업 강사)도 확인
   const types = S.school?.teacherTypes || [];
@@ -4669,22 +4704,39 @@ function renderSpecialtyTeacherList() {
   if (!listEl) return;
 
   listEl.innerHTML = teachers.length ? teachers.map((t, ti) => {
-    const gradeChips = (t.grades||[]).map(g =>
-      `<span class="tt-filter-chip" style="background:${hexAlpha(gradeColors[g-1],.15)};color:${gradeColors[g-1]}">${g}학년</span>`
-    ).join('');
-    const subjChips = (t.subjects||[]).map(s => {
-      const color = allSubjs.find(x=>x.name===s)?.color || '#6366f1';
-      return `<span class="tt-filter-chip" style="background:${hexAlpha(color,.15)};color:${color}">${escHtml(s)}</span>`;
-    }).join('');
+    // assignments 기반 표시 (없으면 구형 grades+subjects에서 합성)
+    const asgns = t.assignments && t.assignments.length
+      ? t.assignments
+      : (t.grades||[]).flatMap(g => (t.subjects||[]).map(s => ({ grade: g, subject: s })));
+
+    let pairsHtml;
+    if (asgns.length) {
+      const byGrade = {};
+      asgns.forEach(a => {
+        const key = a.grade || '전체';
+        if (!byGrade[key]) byGrade[key] = [];
+        byGrade[key].push(a.subject);
+      });
+      pairsHtml = Object.entries(byGrade).map(([g, subjs]) => {
+        const gNum   = parseInt(g);
+        const gColor = (!isNaN(gNum) && gNum >= 1 && gNum <= 6) ? gradeColors[gNum-1] : '#6b7280';
+        const gLabel = (!isNaN(gNum) && gNum >= 1 && gNum <= 6) ? `${gNum}학년` : '전 학년';
+        const subjTags = subjs.map(s => {
+          const color = allSubjs.find(x=>x.name===s)?.color || '#6366f1';
+          return `<span class="tt-filter-chip" style="background:${hexAlpha(color,.15)};color:${color}">${escHtml(s)}</span>`;
+        }).join('');
+        return `<span class="tt-filter-chip" style="background:${hexAlpha(gColor,.12)};color:${gColor};font-weight:700">${gLabel}</span>${subjTags}`;
+      }).join('<span style="color:var(--g300);margin:0 3px">·</span>');
+    } else {
+      pairsHtml = '<span class="tt-filter-chip" style="background:var(--g100);color:var(--g500)">배정 없음</span>';
+    }
+
     return `
       <div class="tt-type-card">
         <div class="tt-type-icon" style="background:#dcfce7">🎓</div>
         <div class="tt-type-info">
           <div class="tt-type-name">${escHtml(t.label)}</div>
-          <div class="tt-type-meta">
-            ${gradeChips || '<span class="tt-filter-chip" style="background:var(--g100);color:var(--g500)">전 학년</span>'}
-            ${subjChips  || '<span class="tt-filter-chip" style="background:var(--g100);color:var(--g500)">전 교과</span>'}
-          </div>
+          <div class="tt-type-meta" style="flex-wrap:wrap;row-gap:.3rem">${pairsHtml}</div>
         </div>
         <button class="btn-icon" style="color:var(--brand)" onclick="editSpecialtyTeacher(${ti})" title="수정">✏️</button>
         <button class="btn-icon red" onclick="removeSpecialtyTeacher(${ti})" title="삭제">🗑️</button>
@@ -4720,87 +4772,123 @@ function editSpecialtyTeacher(idx) {
   _editingSpIdx = idx;
   const t = S.school.specialtyTeachers[idx];
   if (!t) return;
-  const allSubjs = getAllSubjectList();
   const gradeColors = ['#ef4444','#f97316','#ca8a04','#16a34a','#2563eb','#7c3aed'];
 
-  // 기존 인라인 에디터 제거
   q('#sp-inline-editor')?.remove();
 
-  const gradeHtml = [1,2,3,4,5,6].map(g => {
-    const sel = (t.grades||[]).includes(g);
-    const col = gradeColors[g-1];
-    return `<button class="sp-pick-btn ${sel?'sel':''}" data-type="grade" data-val="${g}"
-               style="${sel?`background:${col};color:#fff;border-color:${col}`:`border-color:${hexAlpha(col,.4)};color:${col}`}"
-               onclick="toggleSpPick(this,'grade',${g})">${g}학년</button>`;
-  }).join('');
+  // assignments 정규화: 구형 데이터(grades+subjects 분리) → 신형(assignments 배열) 자동 변환
+  if (!t.assignments) {
+    const grades   = t.grades   || [];
+    const subjects = t.subjects || [];
+    if (grades.length && subjects.length) {
+      t.assignments = grades.flatMap(g => subjects.map(s => ({ grade: g, subject: s })));
+    } else if (subjects.length) {
+      t.assignments = subjects.map(s => ({ grade: null, subject: s }));
+    } else {
+      t.assignments = [];
+    }
+  }
 
-  const subjHtml = allSubjs.map(s => {
-    const sel = (t.subjects||[]).includes(s.name);
-    return `<button class="sp-pick-btn ${sel?'sel':''}" data-type="subj" data-val="${escHtml(s.name)}" data-color="${s.color}"
-               style="${sel?`background:${s.color};color:#fff;border-color:${s.color}`:`border-color:${hexAlpha(s.color,.4)};color:${s.color}`}"
-               onclick="toggleSpPick(this,'subj','${escHtml(s.name)}')">${escHtml(s.name)}</button>`;
-  }).join('');
+  // 학년별 교과 매핑 그리드 렌더
+  function renderAssignmentGrid() {
+    const sbg = S.school.subjectsByGrade || {};
+    return [1,2,3,4,5,6].map(g => {
+      const col   = gradeColors[g-1];
+      const subjs = sbg[g] || [];
+      const chips = subjs.map(s => {
+        const sel = t.assignments.some(a => a.grade === g && a.subject === s.name);
+        return `<button
+          class="sp-asgn-chip ${sel ? 'sel' : ''}"
+          data-grade="${g}" data-subj="${escHtml(s.name)}" data-color="${s.color}"
+          style="border-color:${sel ? s.color : hexAlpha(s.color,.35)};
+                 background:${sel ? s.color : 'transparent'};
+                 color:${sel ? '#fff' : s.color};"
+          onclick="toggleSpAssign(this,${g},'${escHtml(s.name)}','${s.color}')">
+          ${escHtml(s.name)}
+        </button>`;
+      }).join('');
+      return `
+        <div class="sp-asgn-row" data-grade="${g}">
+          <div class="sp-asgn-grade" style="color:${col};border-color:${hexAlpha(col,.3)};background:${hexAlpha(col,.07)}">
+            ${g}학년
+          </div>
+          <div class="sp-asgn-chips">${chips || '<span style="font-size:.75rem;color:var(--g400)">교과 없음</span>'}</div>
+        </div>`;
+    }).join('');
+  }
 
   const editor = document.createElement('div');
   editor.id = 'sp-inline-editor';
   editor.className = 'sp-editor';
   editor.innerHTML = `
     <div class="sp-editor-title">✏️ ${escHtml(t.label)} 설정</div>
-    <div class="form-group" style="margin-bottom:.65rem">
+    <div class="form-group" style="margin-bottom:.75rem">
       <label class="form-label" style="font-size:.78rem">이름</label>
       <input type="text" id="sp-label-input" class="form-input" value="${escHtml(t.label)}" style="max-width:180px">
     </div>
-    <div class="form-group" style="margin-bottom:.65rem">
-      <label class="form-label" style="font-size:.78rem">담당 학년 <span class="text-muted text-sm">(미선택=전 학년)</span></label>
-      <div class="sp-pick-wrap">${gradeHtml}</div>
+    <div class="form-group" style="margin-bottom:.75rem">
+      <label class="form-label" style="font-size:.78rem;margin-bottom:.5rem">
+        학년별 담당 교과
+        <span class="text-muted" style="font-size:.72rem;font-weight:400"> — 해당 학년 행에서 교과를 클릭해 선택하세요</span>
+      </label>
+      <div id="sp-asgn-grid" style="display:flex;flex-direction:column;gap:.35rem">
+        ${renderAssignmentGrid()}
+      </div>
     </div>
-    <div class="form-group" style="margin-bottom:.65rem">
-      <label class="form-label" style="font-size:.78rem">담당 교과 <span class="text-muted text-sm">(미선택=전 교과)</span></label>
-      <div class="sp-pick-wrap">${subjHtml}</div>
-    </div>
-    <div style="display:flex;gap:.5rem">
+    <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
       <button class="btn btn-primary btn-sm" onclick="saveSpEdit()">✔ 저장</button>
       <button class="btn btn-ghost btn-sm" onclick="cancelSpEdit()">취소</button>
+      <span id="sp-asgn-summary" style="font-size:.75rem;color:var(--g500);margin-left:.3rem"></span>
     </div>`;
 
-  // 해당 카드 아래에 삽입
   const listEl = q('#specialty-teacher-list');
   listEl.insertAdjacentElement('afterend', editor);
+  _spUpdateSummary(t);
 }
 window.editSpecialtyTeacher = editSpecialtyTeacher;
 
-function toggleSpPick(el, type, val) {
-  el.classList.toggle('sel');
-  const isSel = el.classList.contains('sel');
-  if (type === 'grade') {
-    const g = parseInt(val);
-    const colors = ['#ef4444','#f97316','#ca8a04','#16a34a','#2563eb','#7c3aed'];
-    const c = colors[g-1];
-    el.style.background  = isSel ? c : '';
-    el.style.color       = isSel ? '#fff' : c;
-    el.style.borderColor = isSel ? c : hexAlpha(c, .4);
-  } else {
-    // 교과: data-color 속성에서 색상 읽기
-    const c = el.dataset.color || '#6366f1';
-    el.style.background  = isSel ? c : '';
-    el.style.color       = isSel ? '#fff' : c;
-    el.style.borderColor = isSel ? c : hexAlpha(c, .4);
-  }
+function _spUpdateSummary(t) {
+  const el = q('#sp-asgn-summary');
+  if (!el) return;
+  const cnt = (t.assignments||[]).length;
+  el.textContent = cnt ? `${cnt}개 배정됨` : '아직 선택 없음';
 }
-window.toggleSpPick = toggleSpPick;
+
+function toggleSpAssign(btn, grade, subject, color) {
+  const t = S.school.specialtyTeachers[_editingSpIdx];
+  if (!t) return;
+  const idx = (t.assignments||[]).findIndex(a => a.grade === grade && a.subject === subject);
+  const isSel = idx >= 0;
+  if (isSel) {
+    t.assignments.splice(idx, 1);
+    btn.classList.remove('sel');
+    btn.style.background  = 'transparent';
+    btn.style.color       = color;
+    btn.style.borderColor = hexAlpha(color, .35);
+  } else {
+    if (!t.assignments) t.assignments = [];
+    t.assignments.push({ grade, subject });
+    btn.classList.add('sel');
+    btn.style.background  = color;
+    btn.style.color       = '#fff';
+    btn.style.borderColor = color;
+  }
+  _spUpdateSummary(t);
+}
+window.toggleSpAssign = toggleSpAssign;
 
 function saveSpEdit() {
   if (_editingSpIdx < 0 || !S.school) return;
-  const t      = S.school.specialtyTeachers[_editingSpIdx];
-  const label  = q('#sp-label-input')?.value.trim();
+  const t     = S.school.specialtyTeachers[_editingSpIdx];
+  const label = q('#sp-label-input')?.value.trim();
   if (label) t.label = label;
-  t.grades   = [...document.querySelectorAll('#sp-inline-editor .sp-pick-btn.sel[data-type="grade"]')]
-                .map(el => parseInt(el.dataset.val));
-  t.subjects = [...document.querySelectorAll('#sp-inline-editor .sp-pick-btn.sel[data-type="subj"]')]
-                .map(el => el.dataset.val);
+  // 하위 호환: grades/subjects를 assignments에서 파생해 동기화
+  t.grades   = [...new Set((t.assignments||[]).map(a => a.grade).filter(Boolean))];
+  t.subjects = [...new Set((t.assignments||[]).map(a => a.subject).filter(Boolean))];
   q('#sp-inline-editor')?.remove();
   _editingSpIdx = -1;
   renderTeacherTab();
+  saveSchool(S.school);
   toast(`${t.label} 저장됨 ✔`, 'success');
 }
 window.saveSpEdit = saveSpEdit;
@@ -5801,7 +5889,7 @@ function renderGrid() {
 
         if (spSubject) {
           const color      = getSubjColor(spSubject);
-          const teacherLbl = getTeacherLabelForSubject(spSubject);
+          const teacherLbl = getTeacherLabelForSubject(spSubject, getCurrentClassGrade());
           const collabs    = collabMap[key] || [];
           // 교담 상단 바 (보라)
           const topBar = `<div class="sp-top-bar" style="background:#7c3aed;color:#fff">⭐ ${escHtml(teacherLbl||'교담')}</div>`;
@@ -6359,9 +6447,19 @@ function toast(msg, type='') {
 function saveSession() {
   // 현재 보이는 화면 ID를 함께 저장 — 새로고침 후 원래 화면으로 복원하기 위함
   const currentScreen = document.querySelector('.screen.active')?.id || null;
+
+  // school은 stt_schools의 최신값으로 항상 동기화
+  // (saveRsCell 등이 stt_schools를 먼저 갱신하므로 세션에 오래된 스냅샷이 남는 버그 방지)
+  let schoolToSave = S.school;
+  try {
+    const schools = JSON.parse(localStorage.getItem('stt_schools') || '[]');
+    const latest  = schools.find(s => s.id === S.school?.id);
+    if (latest) schoolToSave = latest;
+  } catch {}
+
   localStorage.setItem('stt_session', JSON.stringify({
-    school: S.school,
-    user:   S.user,
+    school:     schoolToSave,
+    user:       S.user,
     lastScreen: currentScreen,
   }));
 }
