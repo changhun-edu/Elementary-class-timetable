@@ -1003,28 +1003,6 @@ a{color:inherit;text-decoration:none}
 
       <div class="adh-divider"></div>
 
-      <!-- JSON 백업 내보내기 -->
-      <button class="adh-btn gray" onclick="exportBackupJSON()">
-        <div class="adh-btn-icon" style="background:#e0f2fe">💾</div>
-        <div class="adh-btn-text">
-          <div class="adh-btn-title">백업 내보내기 (JSON)</div>
-          <div class="adh-btn-sub">모든 설정·시간표를 JSON 파일로 저장 — 학기 시작 전 권장</div>
-        </div>
-        <span class="adh-btn-arrow">›</span>
-      </button>
-
-      <!-- JSON / 엑셀 불러오기 -->
-      <button class="adh-btn gray" onclick="openImportModal()">
-        <div class="adh-btn-icon" style="background:#fef9c3">📂</div>
-        <div class="adh-btn-text">
-          <div class="adh-btn-title">백업 불러오기</div>
-          <div class="adh-btn-sub">JSON 백업 또는 엑셀 파일에서 시간표 복원</div>
-        </div>
-        <span class="adh-btn-arrow">›</span>
-      </button>
-
-      <div class="adh-divider"></div>
-
       <!-- 시간표 마감 토글 -->
       <button class="adh-btn" id="adh-lock-btn" onclick="toggleSchoolLock()"
         style="border-color:#fca5a5;background:#fff5f5">
@@ -2084,92 +2062,12 @@ a{color:inherit;text-decoration:none}
   </div>
 </div>
 
-
-<!-- ═══════════════════════════════════════════════════════ -->
-<!-- MODAL: 백업 불러오기 (JSON / 엑셀)                       -->
-<!-- ═══════════════════════════════════════════════════════ -->
-<div class="modal-bg" id="modal-import">
-  <div class="modal-box" style="max-width:480px">
-    <div class="modal-title">📂 백업 불러오기</div>
-
-    <!-- 탭 -->
-    <div class="tabs" style="margin-bottom:1rem" id="import-tabs">
-      <button class="tab-btn active" onclick="switchImportTab('json',this)">💾 JSON 백업</button>
-      <button class="tab-btn" onclick="switchImportTab('excel',this)">📊 엑셀 파일</button>
-    </div>
-
-    <!-- JSON 탭 -->
-    <div id="import-tab-json" style="display:block">
-      <div class="alert alert-info" style="font-size:.82rem;margin-bottom:.85rem">
-        💡 이전에 <strong>백업 내보내기</strong>로 저장한 <code>.json</code> 파일을 선택하면 모든 설정과 시간표가 복원됩니다.
-      </div>
-      <div class="form-group">
-        <label class="form-label">JSON 백업 파일 선택</label>
-        <input type="file" id="import-json-file" accept=".json"
-          class="form-input" style="padding:.45rem"
-          onchange="onImportJsonFileChange(this)">
-      </div>
-      <div id="import-json-preview" style="display:none;margin-bottom:.85rem;padding:.75rem;background:var(--g50);border-radius:var(--r);border:1px solid var(--g200);font-size:.82rem"></div>
-
-      <!-- 2학기 옵션 -->
-      <div id="import-json-options" style="display:none">
-        <div class="form-label" style="margin-bottom:.5rem">복원 범위</div>
-        <label style="display:flex;align-items:flex-start;gap:.55rem;margin-bottom:.5rem;cursor:pointer">
-          <input type="radio" name="import-scope" value="full" checked style="margin-top:3px">
-          <span style="font-size:.85rem"><strong>전체 복원</strong> — 설정 + 시간표 모두 그대로 불러오기</span>
-        </label>
-        <label style="display:flex;align-items:flex-start;gap:.55rem;cursor:pointer">
-          <input type="radio" name="import-scope" value="new-semester" style="margin-top:3px">
-          <span style="font-size:.85rem"><strong>새 학기 시작</strong> — 설정·교담·특별실 배정은 유지, 담임 시간표만 초기화</span>
-        </label>
-      </div>
-    </div>
-
-    <!-- 엑셀 탭 -->
-    <div id="import-tab-excel" style="display:none">
-      <div class="alert alert-warn" style="font-size:.82rem;margin-bottom:.85rem">
-        ⚠️ 이 사이트에서 <strong>엑셀 내보내기</strong>한 파일만 정확히 읽힙니다. 수기로 수정한 파일은 일부 셀이 누락될 수 있습니다.
-      </div>
-      <div class="form-group">
-        <label class="form-label">엑셀 파일 선택 (.xlsx)</label>
-        <input type="file" id="import-excel-file" accept=".xlsx"
-          class="form-input" style="padding:.45rem"
-          onchange="onImportExcelFileChange(this)">
-      </div>
-      <div id="import-excel-preview" style="display:none;margin-bottom:.85rem;padding:.75rem;background:var(--g50);border-radius:var(--r);border:1px solid var(--g200);font-size:.82rem"></div>
-
-      <div id="import-excel-options" style="display:none">
-        <div class="form-label" style="margin-bottom:.5rem">불러올 데이터</div>
-        <label style="display:flex;align-items:center;gap:.5rem;margin-bottom:.4rem;cursor:pointer">
-          <input type="checkbox" id="xl-opt-timetable" checked>
-          <span style="font-size:.85rem">담임 시간표 (학급별 시트)</span>
-        </label>
-        <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer">
-          <input type="checkbox" id="xl-opt-specialty">
-          <span style="font-size:.85rem">교담 배정 (교담 시간표 시트)</span>
-        </label>
-        <div class="alert alert-info" style="font-size:.78rem;margin-top:.65rem;padding:.55rem .75rem">
-          💡 학급 이름이 현재 설정과 일치하는 시트만 불러옵니다.
-        </div>
-      </div>
-    </div>
-
-    <div class="modal-actions" style="margin-top:1rem">
-      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-import')">취소</button>
-      <button class="btn btn-primary btn-sm" id="import-confirm-btn"
-        onclick="execImport()" disabled>불러오기</button>
-    </div>
-  </div>
-</div>
-
 <!-- Toast container -->
 <div id="toast-wrap"></div>
 
 <!-- ═══════════════════════════════════════════════════════ -->
 <!-- SCRIPT                                                  -->
 <!-- ═══════════════════════════════════════════════════════ -->
-<!-- SheetJS: 엑셀 파일 읽기 (import용) -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <!-- ExcelJS: 스타일·색상·병합 지원 Excel 생성 (MIT 무료) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 <script type="module">
@@ -2665,6 +2563,9 @@ function goTo(id) {
   if (!HISTORY_SKIP_SCREENS.has(id)) {
     history.pushState({ screen: id }, '');
   }
+  // 세션에 현재 화면 기록 — 새로고침 후 이 화면으로 복원됨
+  // 로그인 상태일 때만 저장 (미로그인 상태에서 landing 기록 방지)
+  if (S.school && S.user) saveSession();
 }
 window.goTo = goTo;
 
@@ -6456,7 +6357,13 @@ function toast(msg, type='') {
    SESSION
    =========================================================== */
 function saveSession() {
-  localStorage.setItem('stt_session', JSON.stringify({ school:S.school, user:S.user }));
+  // 현재 보이는 화면 ID를 함께 저장 — 새로고침 후 원래 화면으로 복원하기 위함
+  const currentScreen = document.querySelector('.screen.active')?.id || null;
+  localStorage.setItem('stt_session', JSON.stringify({
+    school: S.school,
+    user:   S.user,
+    lastScreen: currentScreen,
+  }));
 }
 function loadSession() {
   try {
@@ -8250,448 +8157,6 @@ async function exportAllToExcel() {
 }
 window.exportAllToExcel = exportAllToExcel;
 
-/* ===========================================================
-   JSON 백업 내보내기
-   =========================================================== */
-async function exportBackupJSON() {
-  if (!S.school) { toast('학교 정보가 없습니다.', 'error'); return; }
-  const school = S.school;
-
-  // 모든 학급의 ttData 수집
-  const timetables = {};
-  for (const cls of (school.classes || [])) {
-    const key = `stt_${school.id}_${cls.id}`;
-    try {
-      const raw = localStorage.getItem(key);
-      if (raw) timetables[cls.id] = JSON.parse(raw);
-    } catch {}
-  }
-
-  const backup = {
-    _version   : 2,
-    _exportedAt: new Date().toISOString(),
-    _appName   : '초등 반별 시간표',
-    school,
-    timetables,
-  };
-
-  const json = JSON.stringify(backup, null, 2);
-  const blob = new Blob([json], { type: 'application/json' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  const date = new Date().toLocaleDateString('ko-KR',{year:'2-digit',month:'2-digit',day:'2-digit'})
-                         .replace(/\. /g,'').replace(/\./g,'');
-  a.href     = url;
-  a.download = `${school.name}_시간표백업_${date}.json`;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 3000);
-  toast('💾 JSON 백업 파일이 저장되었습니다.', 'success');
-}
-window.exportBackupJSON = exportBackupJSON;
-
-/* ===========================================================
-   불러오기 모달 제어
-   =========================================================== */
-let _importJsonData  = null;  // 파싱된 JSON 백업 객체
-let _importExcelData = null;  // 파싱된 엑셀 시트맵 { 시트명: [[셀,...], ...] }
-let _importTab       = 'json';
-
-function openImportModal() {
-  _importJsonData  = null;
-  _importExcelData = null;
-  _importTab       = 'json';
-
-  // 파일 입력 초기화
-  const jf = q('#import-json-file');
-  const xf = q('#import-excel-file');
-  if (jf) jf.value = '';
-  if (xf) xf.value = '';
-
-  // 프리뷰·옵션 숨기기
-  ['import-json-preview','import-json-options',
-   'import-excel-preview','import-excel-options'].forEach(id => {
-    const el = q('#'+id); if (el) el.style.display = 'none';
-  });
-
-  // 탭 초기화
-  q('#import-tab-json').style.display  = 'block';
-  q('#import-tab-excel').style.display = 'none';
-  document.querySelectorAll('#import-tabs .tab-btn').forEach((b,i) => {
-    b.classList.toggle('active', i===0);
-  });
-
-  // 확인 버튼 비활성화
-  const btn = q('#import-confirm-btn');
-  if (btn) btn.disabled = true;
-
-  openModal('modal-import');
-}
-window.openImportModal = openImportModal;
-
-function switchImportTab(tab, btn) {
-  _importTab = tab;
-  q('#import-tab-json').style.display  = tab === 'json'  ? 'block' : 'none';
-  q('#import-tab-excel').style.display = tab === 'excel' ? 'block' : 'none';
-  document.querySelectorAll('#import-tabs .tab-btn').forEach(b => b.classList.remove('active'));
-  if (btn) btn.classList.add('active');
-  // 확인 버튼 상태 갱신
-  const btn2 = q('#import-confirm-btn');
-  if (btn2) btn2.disabled = (tab === 'json' ? !_importJsonData : !_importExcelData);
-}
-window.switchImportTab = switchImportTab;
-
-/* ── JSON 파일 선택 시 ──────────────────────────────────── */
-function onImportJsonFileChange(input) {
-  const file = input.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    try {
-      const parsed = JSON.parse(e.target.result);
-      // 최소 검증
-      if (!parsed.school || !parsed.school.name) throw new Error('올바른 백업 파일이 아닙니다.');
-      _importJsonData = parsed;
-
-      // 프리뷰 표시
-      const school    = parsed.school;
-      const clsCnt    = (school.classes||[]).length;
-      const ttCnt     = Object.keys(parsed.timetables||{}).length;
-      const exported  = parsed._exportedAt
-        ? new Date(parsed._exportedAt).toLocaleDateString('ko-KR')
-        : '알 수 없음';
-      const previewEl = q('#import-json-preview');
-      previewEl.innerHTML = `
-        <div style="font-weight:700;margin-bottom:.35rem">📋 백업 파일 정보</div>
-        <div>학교명: <strong>${escHtml(school.name)}</strong></div>
-        <div>학급 수: ${clsCnt}개 / 시간표 데이터: ${ttCnt}개 학급</div>
-        <div>백업 일시: ${exported}</div>`;
-      previewEl.style.display = 'block';
-      q('#import-json-options').style.display = 'block';
-      q('#import-confirm-btn').disabled = false;
-    } catch(err) {
-      _importJsonData = null;
-      q('#import-json-preview').innerHTML =
-        `<span style="color:var(--danger)">⚠ ${escHtml(err.message)}</span>`;
-      q('#import-json-preview').style.display = 'block';
-      q('#import-confirm-btn').disabled = true;
-    }
-  };
-  reader.readAsText(file);
-}
-window.onImportJsonFileChange = onImportJsonFileChange;
-
-/* ── 엑셀 파일 선택 시 ──────────────────────────────────── */
-function onImportExcelFileChange(input) {
-  const file = input.files[0];
-  if (!file) return;
-  if (!window.XLSX) {
-    toast('엑셀 파서 로딩 중입니다. 잠시 후 다시 시도하세요.', 'warn');
-    return;
-  }
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    try {
-      const wb    = XLSX.read(e.target.result, { type: 'array', cellStyles: true });
-      const names = wb.SheetNames;
-
-      // 학급 시트 매핑: 현재 학교 학급명과 교차
-      if (!S.school) throw new Error('먼저 학교에 접속해야 합니다.');
-      const classNames = new Set((S.school.classes||[]).map(c => c.name));
-      const matched    = names.filter(n => classNames.has(n));
-      const hasSpecialty = names.includes('교담 시간표');
-
-      _importExcelData = { wb, matched, hasSpecialty };
-
-      const previewEl = q('#import-excel-preview');
-      previewEl.innerHTML = `
-        <div style="font-weight:700;margin-bottom:.35rem">📋 파일 정보</div>
-        <div>전체 시트: ${names.length}개</div>
-        <div>매칭된 학급 시트: <strong>${matched.length}개</strong>
-          ${matched.length ? '(' + matched.slice(0,5).map(escHtml).join(', ') + (matched.length>5?'…':'') + ')' : '— 학급 이름이 일치하는 시트가 없습니다.'}
-        </div>
-        <div>교담 시간표 시트: ${hasSpecialty ? '✔ 있음' : '없음'}</div>`;
-      previewEl.style.display = 'block';
-
-      if (!matched.length && !hasSpecialty) {
-        previewEl.innerHTML += `<div style="color:var(--danger);margin-top:.35rem">
-          ⚠ 불러올 수 있는 시트가 없습니다. 이 사이트에서 내보낸 엑셀 파일인지 확인하세요.</div>`;
-        q('#import-confirm-btn').disabled = true;
-        return;
-      }
-
-      q('#import-excel-options').style.display = 'block';
-      q('#import-confirm-btn').disabled = false;
-    } catch(err) {
-      _importExcelData = null;
-      q('#import-excel-preview').innerHTML =
-        `<span style="color:var(--danger)">⚠ ${escHtml(err.message)}</span>`;
-      q('#import-excel-preview').style.display = 'block';
-      q('#import-confirm-btn').disabled = true;
-    }
-  };
-  reader.readAsArrayBuffer(file);
-}
-window.onImportExcelFileChange = onImportExcelFileChange;
-
-/* ── 실제 불러오기 실행 ─────────────────────────────────── */
-async function execImport() {
-  if (_importTab === 'json') {
-    await execImportJSON();
-  } else {
-    await execImportExcel();
-  }
-}
-window.execImport = execImport;
-
-/* ── JSON 복원 ──────────────────────────────────────────── */
-async function execImportJSON() {
-  if (!_importJsonData) return;
-  const scope = document.querySelector('input[name="import-scope"]:checked')?.value || 'full';
-  const backup = _importJsonData;
-
-  closeModal('modal-import');
-  toast('백업 복원 중…', '');
-
-  try {
-    const newSchool = JSON.parse(JSON.stringify(backup.school)); // 깊은 복사
-
-    if (scope === 'new-semester') {
-      // 담임 시간표만 초기화 (school 메타·교담·특별실 배정은 유지)
-      // localStorage의 기존 ttData 키는 삭제 후 빈 상태로 시작
-      (newSchool.classes||[]).forEach(cls => {
-        const key = `stt_${newSchool.id}_${cls.id}`;
-        localStorage.removeItem(key);
-      });
-      toast('✔ 설정 복원 완료 — 담임 시간표는 초기화되었습니다.', 'success');
-    } else {
-      // 전체 복원: ttData도 localStorage에 복원
-      const timetables = backup.timetables || {};
-      (newSchool.classes||[]).forEach(cls => {
-        const key = `stt_${newSchool.id}_${cls.id}`;
-        if (timetables[cls.id]) {
-          localStorage.setItem(key, JSON.stringify(timetables[cls.id]));
-        }
-      });
-      toast('✔ 전체 복원 완료', 'success');
-    }
-
-    // 학교 데이터 저장 및 세션 업데이트
-    await saveSchool(newSchool);
-    S.school = newSchool;
-    S.user   = S.user || { name: '관리자', role: 'admin', className: '', classId: null };
-    saveSession();
-    initTimetable();
-    goToAdminHome();
-  } catch(err) {
-    console.error('JSON 복원 오류:', err);
-    toast('복원 중 오류가 발생했습니다: ' + err.message, 'error');
-  }
-}
-
-/* ── 엑셀 불러오기 ──────────────────────────────────────── */
-async function execImportExcel() {
-  if (!_importExcelData || !S.school) return;
-  const { wb, matched, hasSpecialty } = _importExcelData;
-  const doTimetable  = q('#xl-opt-timetable')?.checked  ?? true;
-  const doSpecialty  = q('#xl-opt-specialty')?.checked  ?? false;
-
-  closeModal('modal-import');
-  toast('엑셀 불러오는 중…', '');
-
-  let importedCount = 0;
-  const errors      = [];
-
-  try {
-    // ── 담임 시간표 시트 파싱 ──────────────────────────────
-    if (doTimetable && matched.length) {
-      const classes = S.school.classes || [];
-      for (const sheetName of matched) {
-        const cls = classes.find(c => c.name === sheetName);
-        if (!cls) continue;
-        try {
-          const ws  = wb.Sheets[sheetName];
-          const ttData = _parseClassSheetToTtData(ws, cls);
-          if (Object.keys(ttData).length) {
-            const lsKey = `stt_${S.school.id}_${cls.id}`;
-            localStorage.setItem(lsKey, JSON.stringify(ttData));
-            // Firestore 동기화
-            if (typeof db !== 'undefined' && db) {
-              try {
-                const ref = doc(db, 'schools', S.school.id, 'timetables', cls.id);
-                await setDoc(ref, toFirestoreDoc({ ...ttData, _updatedAt: Date.now() }));
-              } catch(fe) { console.warn('Firestore sync:', fe); }
-            }
-            importedCount++;
-          }
-        } catch(e) {
-          errors.push(`${sheetName}: ${e.message}`);
-          console.warn('시트 파싱 오류:', sheetName, e);
-        }
-      }
-    }
-
-    // ── 교담 시간표 시트 파싱 ──────────────────────────────
-    if (doSpecialty && hasSpecialty) {
-      try {
-        const ws = wb.Sheets['교담 시간표'];
-        _parseSpecialtySheetToSchedule(ws);
-        await saveSchool(S.school);
-      } catch(e) {
-        errors.push(`교담 시간표: ${e.message}`);
-        console.warn('교담 시트 파싱 오류:', e);
-      }
-    }
-
-    saveSession();
-    initTimetable();
-    goToAdminHome();
-
-    if (errors.length) {
-      toast(`⚠ 일부 시트 오류 (${errors.length}개). 나머지 ${importedCount}개 학급은 불러왔습니다.`, 'warn');
-    } else {
-      toast(`✔ ${importedCount}개 학급 시간표를 불러왔습니다.`, 'success');
-    }
-  } catch(err) {
-    console.error('엑셀 불러오기 오류:', err);
-    toast('불러오기 중 오류가 발생했습니다: ' + err.message, 'error');
-  }
-}
-
-/* ── 학급 시트 → ttData 파싱 ─────────────────────────────
-   시트 구조 (makeClassSheet 기준):
-   행1: 타이틀 (병합)
-   행2: 교시 | 시간 | 월 | 화 | 수 | 목 | 금
-   행3~: 1교시 | 08:40~09:20 | 교과명 | ...
-   ────────────────────────────────────────────────────── */
-function _parseClassSheetToTtData(ws) {
-  const range = XLSX.utils.decode_range(ws['!ref'] || 'A1:G10');
-  const ttData = {};
-  const days   = ['월','화','수','목','금'];
-
-  // 행2에서 요일 열 인덱스 파악 (C~G = 2~6, 0-indexed)
-  // 행3부터 데이터: col0=교시, col1=시간, col2~6=요일별 교과
-  for (let r = 2; r <= range.e.r; r++) {  // 0-indexed, 행3 = r=2
-    // 교시 번호 추출 (A열: "1교시", "2교시", ...)
-    const periodCell = ws[XLSX.utils.encode_cell({ r, c: 0 })];
-    if (!periodCell) continue;
-    const periodText = _cellText(periodCell);
-    const periodMatch = periodText.match(/(\d+)교시/);
-    if (!periodMatch) continue;
-    const p = parseInt(periodMatch[1]);
-
-    // 요일별 교과 읽기 (C~G = c:2~6)
-    days.forEach((day, di) => {
-      const cell = ws[XLSX.utils.encode_cell({ r, c: 2 + di })];
-      if (!cell) return;
-      const text = _cellText(cell).trim();
-      if (!text) return;
-
-      // 교담 칸 ("교담\n과학" 또는 "교담(과학)") → 스킵 (교담은 별도 시트에서 관리)
-      if (text.startsWith('교담')) return;
-
-      // 특별실 있는 칸: "과학\n📍과학실" → 과목명만 추출
-      const subjName = text.split('\n')[0].trim();
-      if (!subjName) return;
-
-      ttData[`${day}-${p}`] = { subject: subjName };
-    });
-  }
-  return ttData;
-}
-
-/* ── 교담 시간표 시트 → specialtySchedule 파싱 ──────────
-   시트 구조 (makeSpecialtySheet 기준):
-   행1: 타이틀
-   행2: 교시/시간 | [교사A 헤더, 5열 병합] | [교사B 헤더, ...]
-   행3: (빈) | 월 | 화 | 수 | 목 | 금 | 월 | ...
-   행4~: 교시라벨 | 학급명 | ...
-   ────────────────────────────────────────────────────── */
-function _parseSpecialtySheetToSchedule(ws) {
-  if (!S.school) return;
-  const range  = XLSX.utils.decode_range(ws['!ref'] || 'A1:A1');
-  const days   = ['월','화','수','목','금'];
-  const classes = S.school.classes || [];
-
-  // 행2: 교사 헤더 읽기 (병합 셀 포함)
-  // 교사 이름은 "4과학,1생(송민지)" 형식 — 파싱해서 교과명 추출
-  // 열 구조: col0=교시, col1~: 교사별 5열씩
-  const teacherCols = [];  // [{ startCol, label }]
-  for (let c = 1; c <= range.e.c; c++) {
-    const cell = ws[XLSX.utils.encode_cell({ r: 1, c })];
-    if (!cell) continue;
-    const text = _cellText(cell).trim();
-    if (!text) continue;
-    // 교사 헤더가 있으면 5열씩 담당
-    teacherCols.push({ startCol: c, label: text });
-    c += days.length - 1; // 다음 교사 헤더로 점프
-  }
-
-  // 행4~: 데이터
-  for (let r = 3; r <= range.e.r; r++) {
-    // 교시 라벨 (A열): "1교시\n08:40" 또는 "(1·2학년)\n1교시\n..." 형식
-    const labelCell = ws[XLSX.utils.encode_cell({ r, c: 0 })];
-    if (!labelCell) continue;
-    const labelText = _cellText(labelCell);
-    const periodMatch = labelText.match(/(\d+)교시/);
-    if (!periodMatch) continue;
-    const p = parseInt(periodMatch[1]);
-
-    teacherCols.forEach(({ startCol, label }) => {
-      // 교사 헤더에서 학년+교과 쌍 추출: "4과학,1생활(송민지)" → [{grade:4,subj:"과학"},{grade:1,subj:"생활"}]
-      // (이름) 괄호 부분을 제거한 뒤 탐욕적 한글 매칭으로 정확히 추출
-      const headerPart = label.replace(/\([^)]*\)\s*\*?$/, '').trim();
-      const gradeSubjPairs = [...headerPart.matchAll(/(\d+)?([가-힣]+)/g)]
-        .map(m => ({ grade: m[1] ? parseInt(m[1]) : null, subj: m[2] }))
-        .filter(({ subj }) => subj && subj !== '교시' && subj !== '시간' && subj !== '학년');
-
-      days.forEach((day, di) => {
-        const cell = ws[XLSX.utils.encode_cell({ r, c: startCol + di })];
-        if (!cell) return;
-        const clsName = _cellText(cell).trim();
-        if (!clsName) return;
-
-        // 학급 이름으로 학급 찾기
-        const cls = classes.find(c => c.name === clsName);
-        if (!cls) return;
-
-        // 어떤 교과인지 결정: 이 학급 학년과 일치하는 쌍 우선, 없으면 학년 미지정 쌍, 그래도 없으면 첫 번째
-        let subject = '';
-        if (cls.grade) {
-          const exact = gradeSubjPairs.find(p => p.grade === cls.grade);
-          if (exact) { subject = exact.subj; }
-        }
-        if (!subject) {
-          const noGrade = gradeSubjPairs.find(p => p.grade == null);
-          if (noGrade) subject = noGrade.subj;
-        }
-        if (!subject && gradeSubjPairs.length) subject = gradeSubjPairs[0].subj;
-        if (!subject) return;
-
-        // specialtySchedule에 저장
-        if (!S.school.specialtySchedule) S.school.specialtySchedule = {};
-        if (!S.school.specialtySchedule[subject]) S.school.specialtySchedule[subject] = {};
-        S.school.specialtySchedule[subject][`${day}-${p}`] = {
-          classId: cls.id, className: cls.name
-        };
-      });
-    });
-  }
-}
-
-/* ── 셀 텍스트 추출 헬퍼 (일반·richText 모두 처리) ─────────
-   SheetJS는 ExcelJS richText 셀을 읽을 때 cell.v에 이미 모든
-   run 텍스트를 이어붙여 저장한다. document.createElement 불필요.
-   cell.v: "수학
-📍수학실"  cell.t: 's'  → cell.v를 그대로 쓴다.
-   ────────────────────────────────────────────────────────── */
-function _cellText(cell) {
-  if (!cell) return '';
-  if (cell.t === 'z') return '';
-  // cell.v에 richText 합본 텍스트가 이미 들어 있음
-  return String(cell.v ?? '');
-}
-
-
 /* 엑셀용 보조 함수들 (S 상태 없이 데이터만 사용) */
 function getPeriodTimesForExport(grade) {
   return getPeriodTimes(grade);
@@ -9175,18 +8640,46 @@ window.adhGoSpecialty = adhGoSpecialty;
    INIT
    =========================================================== */
 (function init() {
+  // loadSession()은 S.school, S.user 복원 후 true 반환
+  // lastScreen은 JSON에서 직접 읽어야 함 (loadSession 반환값에 없음)
+  let lastScreen = null;
+  try {
+    const raw = localStorage.getItem('stt_session');
+    if (raw) lastScreen = JSON.parse(raw).lastScreen || null;
+  } catch {}
+
   if (loadSession()) {
     // 잠금 배너는 역할과 무관하게 항상 반영
     updateLockUI();
+
+    // 교담/협업 교사는 항상 전담 화면으로
     if (S.user?.role === 'specialty' || S.user?.role === 'collaborative') {
       goToSpecialtyScreen();
       history.replaceState({ screen: 'screen-specialty' }, '');
-    } else if (S.user?.role === 'admin') {
-      initTimetable();
+      return;
+    }
+
+    // 관리자·담임: lastScreen 기반 복원
+    // 복원 가능한 화면 목록 (역할별 허용)
+    const adminScreens   = ['screen-admin-home','screen-setup',
+                            'screen-room-schedule','screen-specialty','screen-timetable'];
+    const homeroomScreens = ['screen-timetable'];
+
+    const isAdmin   = S.user?.role === 'admin';
+    const allowed   = isAdmin ? adminScreens : homeroomScreens;
+    const restoreId = allowed.includes(lastScreen) ? lastScreen : null;
+
+    if (isAdmin) initTimetable();
+    else         initTimetable();
+
+    if (restoreId && SCREEN_RESTORE_FN[restoreId]) {
+      // 저장된 화면으로 복원
+      SCREEN_RESTORE_FN[restoreId]();
+      history.replaceState({ screen: restoreId }, '');
+    } else if (isAdmin) {
       goToAdminHome();
       history.replaceState({ screen: 'screen-admin-home' }, '');
     } else {
-      initTimetable();
       goTo('screen-timetable');
       history.replaceState({ screen: 'screen-timetable' }, '');
     }
