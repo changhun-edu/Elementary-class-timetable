@@ -1449,12 +1449,9 @@ a{color:inherit;text-decoration:none}
     <button class="btn btn-ghost btn-sm" onclick="logout()">로그아웃</button>
   </div>
   <div class="page-body-wide">
-    <div class="alert alert-success">
-      <strong>기초 설정 순서:</strong>
-      <span style="color:var(--g700)">① 학급 구성 → ② 교시 시간 → ③ 교담 교사 → ④ 특별실 배정 → ⑤ 교과목(시수) 확인 → ⑥ 교사용 비밀번호 생성</span>
-    </div>
-    <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:var(--r);padding:.55rem .85rem;margin-bottom:.75rem;font-size:.8rem;color:#92400e">
-      📅 생성한 지 <strong>1년이 지난 학교(그룹)는 삭제될 수 있습니다.</strong> 데이터를 정기적으로 백업(엑셀 저장)해 두세요.
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:.75rem;flex-wrap:wrap;background:#fffbeb;border:1px solid #fcd34d;border-radius:var(--r);padding:.55rem .85rem;margin-bottom:.75rem;font-size:.8rem;color:#92400e">
+      <span>📅 생성한 지 <strong>1년이 지난 학교(그룹)는 삭제될 수 있습니다.</strong> 데이터를 정기적으로 백업해 두세요.</span>
+      <button class="btn btn-sm" style="background:#d97706;color:#fff;border:none;white-space:nowrap;font-size:.78rem" onclick="exportBackupJSON()">💾 지금 백업하기</button>
     </div>
 
     <div class="tabs">
@@ -1621,26 +1618,31 @@ a{color:inherit;text-decoration:none}
     <!-- TAB: Password (비밀번호 변경) -->
     <div id="tab-password" class="tab-panel">
 
-      <!-- 기초 설정 흐름 안내 배너 — 안내 텍스트만, 버튼은 하단으로 -->
-      <div id="pw-setup-banner" class="alert alert-success" style="margin-bottom:1rem">
-        <strong>⑥ 마지막 단계 — 교사용 비밀번호 생성</strong><br>
-        <span style="font-size:.82rem">교직원에게 공유할 비밀번호를 설정하세요. 아래에서 비밀번호를 변경한 후 하단 버튼으로 다음 단계로 이동하세요.</span>
+      <!-- 마지막 단계 안내 — 1줄 경량화 -->
+      <div id="pw-setup-banner" style="font-size:.82rem;color:#065f46;background:var(--success-bg);border:1px solid #a7f3d0;border-radius:var(--r);padding:.5rem .85rem;margin-bottom:1rem">
+        ⑥ <strong>마지막 단계</strong> — 교직원에게 공유할 비밀번호를 설정한 후 하단 버튼으로 이동하세요.
       </div>
 
-      <!-- ① 교사 비밀번호 (핵심 — 위로) -->
-      <div class="card" style="margin-bottom:1rem;border:2px solid #fbbf24">
-        <div class="card-title">👩‍🏫 교사 비밀번호</div>
-        <div class="alert alert-warn" style="font-size:.88rem;align-items:center;margin-bottom:1rem">
-          <span style="font-size:1.3rem;line-height:1">📢</span>
-          <div><strong style="font-size:.95rem">교직원에게는 이 비밀번호만 공유하세요.</strong><br>관리자 비밀번호는 절대 공유하지 마세요.</div>
+      <!-- ① 교사 비밀번호 — 카드 헤더 배경으로 강조 -->
+      <div class="card" style="margin-bottom:1rem">
+        <div style="background:#fef9c3;border-radius:var(--r-md) var(--r-md) 0 0;margin:-1.15rem -1.15rem 1rem;padding:.7rem 1.15rem;border-bottom:1.5px solid #fde68a;display:flex;align-items:center;gap:.55rem">
+          <span style="font-size:1.1rem">📢</span>
+          <div style="font-size:.85rem;color:#92400e">
+            <strong>교직원에게는 이 비밀번호만 공유하세요.</strong>
+            <span style="font-weight:400"> 관리자 비밀번호는 절대 공유하지 마세요.</span>
+          </div>
         </div>
-        <div class="form-hint" style="margin-bottom:1rem">
-          담임·교과전담·협업 교사가 접속할 때 사용하는 비밀번호입니다. 관리자 비밀번호와 별도로 관리할 수 있습니다.
+        <div class="card-title" style="margin-bottom:.35rem">👩‍🏫 교사 비밀번호</div>
+        <div class="form-hint" style="margin-bottom:.85rem">
+          담임·교과전담·협업 교사가 접속할 때 사용하는 비밀번호입니다.
         </div>
-        <div class="alert alert-info" style="margin-bottom:1rem" id="teacher-pw-current-display">
-          현재 교사 비밀번호: <strong id="teacher-pw-mask">••••</strong>
-          <button class="btn btn-ghost btn-sm" style="margin-left:.5rem;font-size:.75rem" onclick="toggleTeacherPwShow()">표시</button>
+        <!-- 현재 비밀번호 인라인 표시 -->
+        <div style="font-size:.82rem;color:var(--g600);margin-bottom:.85rem;display:flex;align-items:center;gap:.5rem">
+          <span>현재 비밀번호:</span>
+          <strong id="teacher-pw-mask" style="letter-spacing:.1em">••••</strong>
+          <button class="btn btn-ghost btn-sm" style="font-size:.72rem;padding:.15rem .5rem" onclick="toggleTeacherPwShow()">표시</button>
         </div>
+        <div id="teacher-pw-current-display" style="display:none"></div>
         <div class="form-group">
           <label class="form-label">새 교사 비밀번호</label>
           <input type="password" id="tpw-new1" class="form-input" placeholder="새 교사 비밀번호 (4자 이상)">
@@ -1782,12 +1784,31 @@ a{color:inherit;text-decoration:none}
       <span class="tt-user-chip" id="sp-user-chip" style="background:var(--brand-50);color:var(--brand)">⭐ 교과전담교사</span>
     </div>
     <div class="tt-header-right">
-      <!-- 관리자 전용 이동 버튼 -->
+      <!-- 내비게이션 그룹 (관리자 전용) -->
       <button class="btn btn-ghost btn-sm" id="sp-btn-setup" style="display:none" onclick="goAdminSetup()">⚙️ 기초설정</button>
       <button class="btn btn-ghost btn-sm" id="sp-btn-room" style="display:none" onclick="goToRoomSchedule()">🏛️ 특별실</button>
-      <button class="btn btn-ghost btn-sm" id="sp-btn-next-teacher" style="display:none" onclick="goFromRoomSchedule()">👩‍🏫 다른 교담</button>
+
+      <!-- 구분선 (관리자 버튼이 있을 때만 의미 있음) -->
+      <span class="sp-nav-divider" style="width:1px;height:18px;background:var(--g200);flex-shrink:0"></span>
+
+      <!-- 편집 도구 그룹 -->
+      <button class="btn btn-ghost btn-sm" id="sp-btn-next-teacher" style="display:none" onclick="goFromRoomSchedule()">👩‍🏫 교담 전환</button>
       <button class="btn btn-ghost btn-sm" id="sp-btn-random" onclick="openSpRandomModal()">🎲 랜덤 배정</button>
-      <button class="btn btn-ghost btn-sm" onclick="saveSpecialtySchedule()">💾 저장</button>
+
+      <!-- 구분선 -->
+      <span style="width:1px;height:18px;background:var(--g200);flex-shrink:0"></span>
+
+      <!-- 핵심 액션: 저장 강조 -->
+      <button class="btn btn-sm" onclick="saveSpecialtySchedule()"
+        style="background:var(--brand);color:#fff;border:none;font-weight:700;
+               box-shadow:0 2px 8px rgba(37,99,235,.3);letter-spacing:-.01em;">
+        💾 저장
+      </button>
+
+      <!-- 구분선 -->
+      <span style="width:1px;height:18px;background:var(--g200);flex-shrink:0"></span>
+
+      <!-- 계정 -->
       <button class="btn btn-ghost btn-sm" onclick="logout()">로그아웃</button>
     </div>
   </div>
@@ -1854,20 +1875,44 @@ a{color:inherit;text-decoration:none}
       <span id="tt-user-chip" class="tt-user-chip">사용자</span>
     </div>
     <div class="tt-header-right">
-      <span id="sync-indicator" title="저장 방식"><span class="sync-dot" id="sync-dot"></span><span id="sync-label" class="text-sm text-muted">로컬</span></span>
+      <!-- 상태 인디케이터 -->
+      <span id="sync-indicator" title="저장 방식" style="margin-right:.25rem">
+        <span class="sync-dot" id="sync-dot"></span>
+        <span id="sync-label" class="text-sm text-muted">로컬</span>
+      </span>
+
+      <!-- 구분선 -->
+      <span style="width:1px;height:18px;background:var(--g200);flex-shrink:0"></span>
+
+      <!-- 편집 도구 그룹 -->
       <button class="btn btn-ghost btn-sm" id="btn-room-schedule" onclick="goToRoomSchedule()" style="display:none">🏛️ 특별실 배정</button>
       <button class="btn btn-ghost btn-sm" id="btn-clear-all" onclick="confirmClearAll()" style="display:none">🗑️ 초기화</button>
       <button class="btn btn-ghost btn-sm" id="btn-clear-tt" style="display:none">🗑️ 시간표 초기화</button>
       <button class="btn btn-ghost btn-sm" id="btn-tt-random" style="display:none">🎲 랜덤 배정</button>
+
+      <!-- 구분선 -->
+      <span style="width:1px;height:18px;background:var(--g200);flex-shrink:0"></span>
+
+      <!-- 출력 그룹 -->
       <button class="btn btn-sm" onclick="exportAllToExcel()" title="색상·스타일이 적용된 엑셀 파일로 내보내기"
         style="background:#16a34a;color:#fff;border:none;font-weight:700;
                box-shadow:0 2px 8px rgba(22,163,74,.35);letter-spacing:-.01em;">
         📊 엑셀 내보내기
       </button>
       <button class="btn btn-ghost btn-sm" onclick="printTimetable()">🖨️ 인쇄</button>
+
+      <!-- 구분선 -->
+      <span style="width:1px;height:18px;background:var(--g200);flex-shrink:0"></span>
+
+      <!-- 내비게이션 그룹 -->
       <button class="btn btn-ghost btn-sm" id="btn-admin-home" onclick="goToAdminHome()" style="display:none">🏠 관리자 홈</button>
       <button class="btn btn-ghost btn-sm" id="btn-admin-sp" onclick="goFromRoomSchedule()" style="display:none">⭐ 교담 시간표</button>
       <button class="btn btn-ghost btn-sm" id="btn-admin-setup" onclick="goAdminSetup()" style="display:none">⚙️ 설정</button>
+
+      <!-- 구분선 -->
+      <span style="width:1px;height:18px;background:var(--g200);flex-shrink:0"></span>
+
+      <!-- 계정 -->
       <button class="btn btn-ghost btn-sm" onclick="logout()">로그아웃</button>
     </div>
   </div>
@@ -4211,7 +4256,8 @@ window.changeSchoolPw = changeSchoolPw;
 /* 교사 비밀번호 표시 토글 */
 function toggleTeacherPwShow() {
   const maskEl = q('#teacher-pw-mask');
-  const btn    = q('#teacher-pw-current-display button');
+  // 새 인라인 구조에서는 mask 옆 버튼을 형제로 탐색
+  const btn = maskEl?.parentElement?.querySelector('button');
   if (!maskEl || !S.school) return;
   const pw = S.school.teacherPassword || S.school.adminPassword;
   if (maskEl.textContent.includes('•')) {
