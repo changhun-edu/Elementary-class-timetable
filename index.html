@@ -4917,13 +4917,40 @@ function renderTeacherTab() {
 
   listEl.innerHTML = types.length ? types.map((t, i) => {
     const isBuiltin = !!t.builtin;
-    const gradeChips = (t.gradeFilter||[]).map(g =>
-      `<span class="tt-filter-chip" style="background:${hexAlpha(gradeColors[g-1],.15)};color:${gradeColors[g-1]}">${g}학년</span>`
-    ).join('');
-    const subjChips = (t.subjectFilter||[]).map(s => {
-      const color = allSubjs.find(x=>x.name===s)?.color || '#6366f1';
-      return `<span class="tt-filter-chip" style="background:${hexAlpha(color,.15)};color:${color}">${escHtml(s)}</span>`;
-    }).join('');
+
+    // assignments 기반 표시 (없으면 구형 gradeFilter+subjectFilter에서 합성)
+    let pairsHtml;
+    if (!isBuiltin) {
+      const asgns = t.assignments?.length
+        ? t.assignments
+        : (t.gradeFilter||[]).flatMap(g => (t.subjectFilter||[]).map(s => ({ grade: g, subject: s })));
+
+      if (asgns.length) {
+        const byGrade = {};
+        asgns.forEach(a => {
+          const key = a.grade || '전체';
+          if (!byGrade[key]) byGrade[key] = [];
+          byGrade[key].push(a.subject);
+        });
+        pairsHtml = Object.entries(byGrade).map(([g, subjs]) => {
+          const gNum   = parseInt(g);
+          const gColor = (!isNaN(gNum) && gNum >= 1 && gNum <= 6) ? gradeColors[gNum-1] : '#6b7280';
+          const gLabel = (!isNaN(gNum) && gNum >= 1 && gNum <= 6) ? `${gNum}학년` : '전 학년';
+          const subjTags = subjs.map(s => {
+            const color = allSubjs.find(x=>x.name===s)?.color || '#6366f1';
+            return `<span class="tt-filter-chip" style="background:${hexAlpha(color,.15)};color:${color}">${escHtml(s)}</span>`;
+          }).join('');
+          return `<span class="tt-filter-chip" style="background:${hexAlpha(gColor,.12)};color:${gColor};font-weight:700">${gLabel}</span>${subjTags}`;
+        }).join('<span style="color:var(--g300);margin:0 3px">·</span>');
+      } else {
+        pairsHtml = '<span class="tt-filter-chip" style="background:var(--g100);color:var(--g500)">배정 없음</span>';
+      }
+    } else {
+      pairsHtml = `
+        <span class="tt-filter-chip" style="background:var(--g100);color:var(--g500)">전 학년</span>
+        <span class="tt-filter-chip" style="background:var(--g100);color:var(--g500)">전 교과</span>`;
+    }
+
     const delBtn = isBuiltin
       ? `<span class="text-muted text-sm" style="font-size:.7rem;white-space:nowrap">기본</span>`
       : `<div style="display:flex;gap:.3rem">
@@ -4935,10 +4962,7 @@ function renderTeacherTab() {
         <div class="tt-type-icon" style="background:#fef3c7">🤝</div>
         <div class="tt-type-info">
           <div class="tt-type-name">${escHtml(t.name)}</div>
-          <div class="tt-type-meta">
-            ${gradeChips || '<span class="tt-filter-chip" style="background:var(--g100);color:var(--g500)">전 학년</span>'}
-            ${subjChips  || '<span class="tt-filter-chip" style="background:var(--g100);color:var(--g500)">전 교과</span>'}
-          </div>
+          <div class="tt-type-meta" style="flex-wrap:wrap;row-gap:.3rem">${pairsHtml}</div>
           ${t.note ? `<div style="font-size:.72rem;color:var(--g400);margin-top:2px">${escHtml(t.note)}</div>` : ''}
         </div>
         ${delBtn}
@@ -4970,66 +4994,124 @@ function editCollabTeacher(idx) {
   _editingTtIdx = idx;
   const t = S.school.teacherTypes[idx];
   if (!t) return;
-  const allSubjs    = getAllSubjectList();
   const gradeColors = ['#ef4444','#f97316','#ca8a04','#16a34a','#2563eb','#7c3aed'];
 
   q('#tt-inline-editor')?.remove();
 
-  const gradeHtml = [1,2,3,4,5,6].map(g => {
-    const sel = (t.gradeFilter||[]).includes(g);
-    const col = gradeColors[g-1];
-    return `<button class="sp-pick-btn ${sel?'sel':''}" data-type="grade" data-val="${g}"
-               style="${sel?`background:${col};color:#fff;border-color:${col}`:`border-color:${hexAlpha(col,.4)};color:${col}`}"
-               onclick="toggleSpPick(this,'grade',${g})">${g}학년</button>`;
-  }).join('');
+  // assignments 정규화: 구형(gradeFilter+subjectFilter) → 신형(assignments 배열)
+  if (!t.assignments) {
+    const grades   = t.gradeFilter   || [];
+    const subjects = t.subjectFilter || [];
+    if (grades.length && subjects.length) {
+      t.assignments = grades.flatMap(g => subjects.map(s => ({ grade: g, subject: s })));
+    } else if (subjects.length) {
+      t.assignments = subjects.map(s => ({ grade: null, subject: s }));
+    } else {
+      t.assignments = [];
+    }
+  }
 
-  const subjHtml = allSubjs.map(s => {
-    const sel = (t.subjectFilter||[]).includes(s.name);
-    return `<button class="sp-pick-btn ${sel?'sel':''}" data-type="subj" data-val="${escHtml(s.name)}" data-color="${s.color}"
-               style="${sel?`background:${s.color};color:#fff;border-color:${s.color}`:`border-color:${hexAlpha(s.color,.4)};color:${s.color}`}"
-               onclick="toggleSpPick(this,'subj','${escHtml(s.name)}')">${escHtml(s.name)}</button>`;
-  }).join('');
+  // 학년별 교과 매핑 그리드 렌더
+  function renderTtAssignmentGrid() {
+    const sbg = S.school.subjectsByGrade || {};
+    return [1,2,3,4,5,6].map(g => {
+      const col   = gradeColors[g-1];
+      const subjs = sbg[g] || [];
+      const chips = subjs.map(s => {
+        const sel = t.assignments.some(a => a.grade === g && a.subject === s.name);
+        return `<button
+          class="sp-asgn-chip ${sel ? 'sel' : ''}"
+          data-grade="${g}" data-subj="${escHtml(s.name)}" data-color="${s.color}"
+          style="border-color:${sel ? s.color : hexAlpha(s.color,.35)};
+                 background:${sel ? s.color : 'transparent'};
+                 color:${sel ? '#fff' : s.color};"
+          onclick="toggleTtAssign(this,${g},'${escHtml(s.name)}','${s.color}')">
+          ${escHtml(s.name)}
+        </button>`;
+      }).join('');
+      return `
+        <div class="sp-asgn-row" data-grade="${g}">
+          <div class="sp-asgn-grade" style="color:${col};border-color:${hexAlpha(col,.3)};background:${hexAlpha(col,.07)}">
+            ${g}학년
+          </div>
+          <div class="sp-asgn-chips">${chips || '<span style="font-size:.75rem;color:var(--g400)">교과 없음</span>'}</div>
+        </div>`;
+    }).join('');
+  }
 
   const editor = document.createElement('div');
   editor.id = 'tt-inline-editor';
   editor.className = 'sp-editor';
   editor.innerHTML = `
     <div class="sp-editor-title">✏️ ${escHtml(t.name)} 설정</div>
-    <div class="form-group" style="margin-bottom:.65rem">
+    <div class="form-group" style="margin-bottom:.75rem">
       <label class="form-label" style="font-size:.78rem">이름</label>
       <input type="text" id="tt-label-input" class="form-input" value="${escHtml(t.name)}" style="max-width:200px">
     </div>
-    <div class="form-group" style="margin-bottom:.65rem">
-      <label class="form-label" style="font-size:.78rem">담당 학년 <span class="text-muted text-sm">(미선택=전 학년)</span></label>
-      <div class="sp-pick-wrap">${gradeHtml}</div>
+    <div class="form-group" style="margin-bottom:.75rem">
+      <label class="form-label" style="font-size:.78rem;margin-bottom:.5rem">
+        학년별 담당 교과
+        <span class="text-muted" style="font-size:.72rem;font-weight:400"> — 해당 학년 행에서 교과를 클릭해 선택하세요</span>
+      </label>
+      <div id="tt-asgn-grid" style="display:flex;flex-direction:column;gap:.35rem">
+        ${renderTtAssignmentGrid()}
+      </div>
     </div>
-    <div class="form-group" style="margin-bottom:.65rem">
-      <label class="form-label" style="font-size:.78rem">담당 교과 <span class="text-muted text-sm">(미선택=전 교과)</span></label>
-      <div class="sp-pick-wrap">${subjHtml}</div>
-    </div>
-    <div style="display:flex;gap:.5rem">
+    <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">
       <button class="btn btn-primary btn-sm" onclick="saveTtEdit()">✔ 저장</button>
       <button class="btn btn-ghost btn-sm" onclick="cancelTtEdit()">취소</button>
+      <span id="tt-asgn-summary" style="font-size:.75rem;color:var(--g500);margin-left:.3rem"></span>
     </div>`;
 
   const listEl = q('#teacher-type-list');
   listEl.insertAdjacentElement('afterend', editor);
+  _ttUpdateSummary(t);
 }
 window.editCollabTeacher = editCollabTeacher;
+
+function _ttUpdateSummary(t) {
+  const el = q('#tt-asgn-summary');
+  if (!el) return;
+  const cnt = (t.assignments||[]).length;
+  el.textContent = cnt ? `${cnt}개 배정됨` : '아직 선택 없음';
+}
+
+function toggleTtAssign(btn, grade, subject, color) {
+  const t = S.school.teacherTypes[_editingTtIdx];
+  if (!t) return;
+  const idx = (t.assignments||[]).findIndex(a => a.grade === grade && a.subject === subject);
+  const isSel = idx >= 0;
+  if (isSel) {
+    t.assignments.splice(idx, 1);
+    btn.classList.remove('sel');
+    btn.style.background  = 'transparent';
+    btn.style.color       = color;
+    btn.style.borderColor = hexAlpha(color, .35);
+  } else {
+    if (!t.assignments) t.assignments = [];
+    t.assignments.push({ grade, subject });
+    btn.classList.add('sel');
+    btn.style.background  = color;
+    btn.style.color       = '#fff';
+    btn.style.borderColor = color;
+  }
+  _ttUpdateSummary(t);
+}
+window.toggleTtAssign = toggleTtAssign;
 
 function saveTtEdit() {
   if (_editingTtIdx < 0 || !S.school) return;
   const t     = S.school.teacherTypes[_editingTtIdx];
   const label = q('#tt-label-input')?.value.trim();
   if (label) t.name = label;
-  t.gradeFilter   = [...document.querySelectorAll('#tt-inline-editor .sp-pick-btn.sel[data-type="grade"]')]
-                      .map(el => parseInt(el.dataset.val));
-  t.subjectFilter = [...document.querySelectorAll('#tt-inline-editor .sp-pick-btn.sel[data-type="subj"]')]
-                      .map(el => el.dataset.val);
+  // 하위 호환: gradeFilter/subjectFilter를 assignments에서 파생해 동기화
+  t.gradeFilter   = [...new Set((t.assignments||[]).map(a => a.grade).filter(Boolean))];
+  t.subjectFilter = [...new Set((t.assignments||[]).map(a => a.subject).filter(Boolean))];
   t.note = '협업 수업' + (t.subjectFilter?.length ? ` · ${t.subjectFilter.join(',')} 교과` : '');
   q('#tt-inline-editor')?.remove();
   _editingTtIdx = -1;
   renderTeacherTab();
+  saveSchool(S.school);
   toast(`${t.name} 저장됨 ✔`, 'success');
 }
 window.saveTtEdit = saveTtEdit;
