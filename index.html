@@ -7903,7 +7903,7 @@ async function exportAllToExcel() {
     // ① 타이틀 행 (병합)
     ws.mergeCells(1, 1, 1, 7);
     const titleCell = ws.getCell(1,1);
-    titleCell.value     = `${school.name}  ${cls.name} 주간 시간표`;
+    titleCell.value     = `${school.name}  ${cls.name} 시간표`;
     titleCell.fill      = fill(C.HDR_TITLE_BG);
     titleCell.font      = font(C.HDR_TITLE_FG, true, 13);
     titleCell.alignment = align('center','middle');
@@ -7969,7 +7969,7 @@ async function exportAllToExcel() {
     // 인쇄 설정
     ws.pageSetup = { paperSize:9, orientation:'portrait', fitToPage:true, fitToWidth:1, fitToHeight:0 };
     ws.pageSetup.margins = { left:0.5, right:0.5, top:0.75, bottom:0.75, header:0.3, footer:0.3 };
-    ws.headerFooter.oddHeader = `&C&"맑은 고딕,Bold"&12${school.name} — ${cls.name} 주간 시간표`;
+    ws.headerFooter.oddHeader = `&C&"맑은 고딕,Bold"&12${school.name} — ${cls.name} 시간표`;
   }
 
   // ── 학년별 묶음 시트 (전교 요약) ────────────────────────
