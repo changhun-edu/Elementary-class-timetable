@@ -4296,6 +4296,15 @@ async function createSchool() {
   const { canCreate } = rlCheck();
   if (!canCreate) { toast('하루에 그룹을 3개 이상 만들 수 없습니다. 내일 다시 시도해 주세요.','error'); return; }
 
+  // ── 누적 보유 개수 제한: 한 기기에 4개 이상 생성 불가 ──────
+  try {
+    const all = await fetchSchools();
+    if (all.length >= 4) {
+      toast('한 기기에서 그룹을 4개 이상 만들 수 없습니다. 기존 그룹을 삭제한 후 다시 시도해 주세요.', 'error');
+      return;
+    }
+  } catch(e) { /* 네트워크 오류 시 통과 허용 */ }
+
   // ── 이름·비밀번호 검증 ──────────────────────────────────────
   const name = (q('#create-name')?.value || '').trim();
   const pw   = (q('#create-pw')?.value   || '').trim();
