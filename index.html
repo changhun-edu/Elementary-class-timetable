@@ -1773,7 +1773,11 @@ a{color:inherit;text-decoration:none}
       <button class="btn btn-ghost btn-sm" id="btn-clear-all" onclick="confirmClearAll()" style="display:none">🗑️ 초기화</button>
       <button class="btn btn-ghost btn-sm" id="btn-clear-tt" style="display:none">🗑️ 시간표 초기화</button>
       <button class="btn btn-ghost btn-sm" id="btn-tt-random" style="display:none">🎲 랜덤 배정</button>
-      <button class="btn btn-ghost btn-sm" onclick="exportAllToExcel()" title="색상·스타일이 적용된 엑셀 파일로 내보내기">📊 엑셀 내보내기</button>
+      <button class="btn btn-sm" onclick="exportAllToExcel()" title="색상·스타일이 적용된 엑셀 파일로 내보내기"
+        style="background:#16a34a;color:#fff;border:none;font-weight:700;
+               box-shadow:0 2px 8px rgba(22,163,74,.35);letter-spacing:-.01em;">
+        📊 엑셀 내보내기
+      </button>
       <button class="btn btn-ghost btn-sm" onclick="printTimetable()">🖨️ 인쇄</button>
       <button class="btn btn-ghost btn-sm" id="btn-admin-home" onclick="goToAdminHome()" style="display:none">🏠 관리자 홈</button>
       <button class="btn btn-ghost btn-sm" id="btn-admin-sp" onclick="goFromRoomSchedule()" style="display:none">⭐ 교담 시간표</button>
@@ -8089,58 +8093,124 @@ async function exportAllToExcel() {
     ws.pageSetup = { paperSize:9, orientation:'landscape', fitToPage:true, fitToWidth:1, fitToHeight:0 };
   }
 
-  // ── 교담 시간표 시트 ────────────────────────────────────
+  // ── 교담 시간표 시트 (교사 기준) ────────────────────────
   function makeSpecialtySheet() {
     const spSched  = school.specialtySchedule || {};
     const classes  = school.classes || [];
-    const subjects = Object.keys(spSched);
-    if (!subjects.length) return;
+    const teachers = school.specialtyTeachers || [];
 
-    const ws       = wb.addWorksheet('교담 시간표');
-    const totalCols= 1 + subjects.length * DAYS.length;
+    const hasAnyEntry = Object.values(spSched).some(s => Object.keys(s).length > 0);
+    if (!hasAnyEntry && !teachers.length) return;
 
-    ws.columns = [
-      { width:16 },
-      ...Array(subjects.length * DAYS.length).fill({ width:12 }),
+    // ── ① 교사 컬럼 목록 구성 ────────────────────────────────
+    const TEACHER_PALETTE = [
+      { bg:'FEE2E2', fg:'991B1B' },
+      { bg:'FFEDD5', fg:'9A3412' },
+      { bg:'FEF9C3', fg:'854D0E' },
+      { bg:'DCFCE7', fg:'166534' },
+      { bg:'DBEAFE', fg:'1E40AF' },
+      { bg:'F3E8FF', fg:'6B21A8' },
+      { bg:'FCE7F3', fg:'9D174D' },
+      { bg:'E0F2FE', fg:'0C4A6E' },
     ];
 
-    // ① 타이틀
+    const teacherCols = [];
+
+    // (A) specialtyTeachers에 등록된 교사
+    teachers.forEach((t, ti) => {
+      const palette = TEACHER_PALETTE[ti % TEACHER_PALETTE.length];
+
+      // assignments 정규화
+      const assignments = t.assignments?.length
+        ? t.assignments
+        : (t.grades||[]).flatMap(g => (t.subjects||[]).map(s => ({ grade: g, subject: s })));
+
+      const subjGrades = {};
+      assignments.forEach(({ grade, subject }) => {
+        if (!subject) return;
+        if (!subjGrades[subject]) subjGrades[subject] = new Set();
+        if (grade) subjGrades[subject].add(grade);
+      });
+      if (!Object.keys(subjGrades).length) {
+        (t.subjects||[]).forEach(s => { subjGrades[s] = new Set(); });
+      }
+
+      const schedMaps = {};
+      Object.keys(subjGrades).forEach(subj => {
+        if (spSched[subj]) schedMaps[subj] = spSched[subj];
+      });
+
+      // 헤더 레이블: "4과학,1생활(송민지)" 형식
+      const subjParts = Object.entries(subjGrades).map(([subj, grades]) => {
+        const gradePrefix = grades.size > 0
+          ? [...grades].sort((a,b)=>a-b).join('·')
+          : '';
+        return gradePrefix ? `${gradePrefix}${subj}` : subj;
+      });
+      const label = subjParts.join(',') + (t.label ? `(${t.label})` : '');
+
+      teacherCols.push({ label, teacher: t, subjGrades, schedMaps,
+                         bgHex: palette.bg, fgHex: palette.fg });
+    });
+
+    // (B) specialtyTeachers에 없지만 spSched에만 있는 교과 → 하위 호환 열
+    const coveredSubjects = new Set(teacherCols.flatMap(tc => Object.keys(tc.subjGrades)));
+    Object.keys(spSched).forEach(subj => {
+      if (coveredSubjects.has(subj)) return;
+      if (!Object.keys(spSched[subj]).length) return;
+      const sc = subjectColors(subj, 3);
+      teacherCols.push({
+        label: subj, teacher: null,
+        subjGrades: { [subj]: new Set() },
+        schedMaps:  { [subj]: spSched[subj] },
+        bgHex: sc.bg, fgHex: sc.fg,
+      });
+    });
+
+    if (!teacherCols.length) return;
+
+    const ws        = wb.addWorksheet('교담 시간표');
+    const totalCols = 1 + teacherCols.length * DAYS.length;
+
+    ws.columns = [
+      { width: 14 },
+      ...Array(teacherCols.length * DAYS.length).fill({ width: 11 }),
+    ];
+
+    // ── ② 타이틀 ────────────────────────────────────────────
     ws.mergeCells(1, 1, 1, totalCols);
-    const t    = ws.getCell(1,1);
-    t.value    = `${school.name}  교과전담 시간표`;
-    t.fill     = fill(C.HDR_TITLE_BG);
-    t.font     = font(C.HDR_TITLE_FG, true, 13);
-    t.alignment= align('center','middle');
-    t.border   = border();
+    const titleCell     = ws.getCell(1, 1);
+    titleCell.value     = `${school.name}  교과전담 시간표`;
+    titleCell.fill      = fill(C.HDR_TITLE_BG);
+    titleCell.font      = font(C.HDR_TITLE_FG, true, 13);
+    titleCell.alignment = align('center', 'middle');
+    titleCell.border    = border();
     ws.getRow(1).height = 28;
 
-    // ② 교과명 헤더 (병합)
+    // ── ③ 교사명 헤더 ───────────────────────────────────────
     setCell(ws, 2, 1, '교시/시간', C.HDR_PERIOD_BG, C.HDR_PERIOD_FG, true);
-    subjects.forEach((subj, si) => {
-      const startCol = 2 + si * DAYS.length;
+    teacherCols.forEach((tc, ti) => {
+      const startCol = 2 + ti * DAYS.length;
       ws.mergeCells(2, startCol, 2, startCol + DAYS.length - 1);
-      const sc        = subjectColors(subj, 3);
       const hCell     = ws.getCell(2, startCol);
-      hCell.value     = subj;
-      hCell.fill      = fill(sc.bg);
-      hCell.font      = font(sc.fg, true, 11);
+      hCell.value     = tc.label;
+      hCell.fill      = fill(tc.bgHex);
+      hCell.font      = font(tc.fgHex, true, 10);
       hCell.border    = border();
-      hCell.alignment = align('center','middle');
+      hCell.alignment = align('center', 'middle', true);
     });
-    ws.getRow(2).height = 24;
+    ws.getRow(2).height = 36;
 
-    // ③ 요일 서브헤더
+    // ── ④ 요일 서브헤더 ─────────────────────────────────────
     setCell(ws, 3, 1, '', C.HDR_PERIOD_BG, C.HDR_PERIOD_FG);
-    subjects.forEach((subj, si) => {
+    teacherCols.forEach((tc, ti) => {
       DAYS.forEach((d, di) => {
-        setCell(ws, 3, 2 + si * DAYS.length + di, d, C.HDR_DAY_BG, C.HDR_DAY_FG, true, 10);
+        setCell(ws, 3, 2 + ti * DAYS.length + di, d, C.HDR_DAY_BG, C.HDR_DAY_FG, true, 10);
       });
     });
     ws.getRow(3).height = 20;
 
-    // ④ 데이터 행 — 학년 그룹별로 분리 + 교시번호 기반 key로 조회
-    // specialtySchedule key = "요일-교시번호" (plain) 또는 "요일-교시번호|g학년그룹"
-    // → 각 학년 그룹 행의 periodNum으로 매칭
+    // ── ⑤ 데이터 행 ─────────────────────────────────────────
     const allSlots = getScheduleRowsForSchool(school);
     const dataRows = [];
     allSlots.forEach(slot => {
@@ -8150,55 +8220,70 @@ async function exportAllToExcel() {
         byPeriod[p].push(parseInt(g));
       });
       Object.entries(byPeriod).sort((a,b)=>Number(a[0])-Number(b[0])).forEach(([p, gs]) => {
-        const pNum = parseInt(p);
+        const pNum    = parseInt(p);
         const isMulti = Object.keys(byPeriod).length > 1;
-        const gradePart = isMulti ? `(${gs.sort((a,b)=>a-b).join('·')}학년) ` : '';
+        const gPart   = isMulti ? `(${gs.sort((a,b)=>a-b).join('·')}학년)\n` : '';
         dataRows.push({
           periodNum: pNum,
-          slotStart: slot.start,
-          gradeSet: new Set(gs),
-          label: `${gradePart}${pNum}교시\n${slot.start}`,
+          gradeSet:  new Set(gs),
+          label:     `${gPart}${pNum}교시\n${slot.start}`,
         });
       });
     });
+
+    // 교사·요일·교시에서 배정 학급 탐색
+    function findEntry(schedMaps, subjGrades, day, dr) {
+      const plainKey = `${day}-${dr.periodNum}`;
+      const qKey     = `${plainKey}|g${[...dr.gradeSet].sort().join('')}`;
+
+      for (const [subj, schedMap] of Object.entries(schedMaps)) {
+        const myGrades = subjGrades[subj];
+
+        const qe = schedMap[qKey];
+        if (qe?.classId) {
+          const c = classes.find(x=>x.id===qe.classId);
+          if (!c) continue;
+          if (!myGrades?.size || !c.grade || myGrades.has(c.grade))
+            return { entry: qe, subject: subj };
+        }
+
+        const pe = schedMap[plainKey];
+        if (pe?.classId) {
+          const c = classes.find(x=>x.id===pe.classId);
+          if (!c) continue;
+          const inRow  = !c.grade || dr.gradeSet.has(c.grade);
+          const inMine = !myGrades?.size || !c.grade || myGrades.has(c.grade);
+          if (inRow && inMine) return { entry: pe, subject: subj };
+        }
+
+        for (const [k, v] of Object.entries(schedMap)) {
+          if (!v?.classId) continue;
+          const base = k.includes('|g') ? k.split('|g')[0] : k;
+          if (base !== plainKey) continue;
+          const c = classes.find(x=>x.id===v.classId);
+          if (!c?.grade) continue;
+          const inRow  = dr.gradeSet.has(c.grade);
+          const inMine = !myGrades?.size || myGrades.has(c.grade);
+          if (inRow && inMine) return { entry: v, subject: subj };
+        }
+      }
+      return null;
+    }
 
     dataRows.forEach((dr, ri) => {
       const rowNo = ri + 4;
       ws.getRow(rowNo).height = 32;
       setCell(ws, rowNo, 1, dr.label, C.HDR_PERIOD_BG, C.HDR_PERIOD_FG, false, 9, 'left');
 
-      subjects.forEach((subj, subi) => {
-        const schedMap = spSched[subj] || {};
+      teacherCols.forEach((tc, ti) => {
         DAYS.forEach((day, di) => {
-          const colNo  = 2 + subi * DAYS.length + di;
-          // specialtySchedule key = "요일-교시번호" 또는 "요일-교시번호|g학년그룹"
-          const plainKey = `${day}-${dr.periodNum}`;
-          const qKey     = `${plainKey}|g${[...dr.gradeSet].sort().join('')}`;
-
-          // qualified key 우선, 없으면 plain key에서 해당 학년 학급 확인
-          let entry = schedMap[qKey] || null;
-          if (!entry) {
-            const pe = schedMap[plainKey];
-            if (pe) {
-              const cls2 = classes.find(c=>c.id===pe.classId);
-              if (!cls2?.grade || dr.gradeSet.has(cls2.grade)) entry = pe;
-            }
-          }
-          // plain key에도 없으면 같은 교시번호의 다른 qualified key도 탐색
-          if (!entry) {
-            for (const [k, v] of Object.entries(schedMap)) {
-              if (!v?.classId) continue;
-              const base = k.includes('|g') ? k.split('|g')[0] : k;
-              if (base !== plainKey) continue;
-              const cls2 = classes.find(c=>c.id===v.classId);
-              if (cls2?.grade && dr.gradeSet.has(cls2.grade)) { entry = v; break; }
-            }
-          }
-
-          const cls = entry ? classes.find(c=>c.id===entry.classId) : null;
-          if (cls) {
-            const gc = cls.grade >= 1 && cls.grade <= 6 ? C.GRADE[cls.grade-1] : { bg:'E5E7EB', fg:'374151' };
-            setCell(ws, rowNo, colNo, cls.name, gc.bg, gc.fg, true, 10);
+          const colNo = 2 + ti * DAYS.length + di;
+          const found = findEntry(tc.schedMaps, tc.subjGrades, day, dr);
+          if (found) {
+            const cls = classes.find(c=>c.id===found.entry.classId);
+            const g   = cls?.grade;
+            const gc  = (g >= 1 && g <= 6) ? C.GRADE[g-1] : { bg:'E5E7EB', fg:'374151' };
+            setCell(ws, rowNo, colNo, cls?.name || '', gc.bg, gc.fg, true, 10);
           } else {
             setCell(ws, rowNo, colNo, '', C.EMPTY_BG, 'E5E7EB');
           }
@@ -8206,7 +8291,9 @@ async function exportAllToExcel() {
       });
     });
 
-    ws.pageSetup = { paperSize:9, orientation:'landscape', fitToPage:true, fitToWidth:1, fitToHeight:0 };
+    ws.pageSetup = { paperSize:9, orientation:'landscape', fitToPage:true,
+                     fitToWidth:1, fitToHeight:0 };
+    ws.pageSetup.margins = { left:.4, right:.4, top:.6, bottom:.6, header:.3, footer:.3 };
   }
 
   // ── 시트 생성 실행 ───────────────────────────────────────
@@ -8750,28 +8837,36 @@ window.adhGoSpecialty = adhGoSpecialty;
     // 잠금 배너는 역할과 무관하게 항상 반영
     updateLockUI();
 
-    // 교담/협업 교사는 항상 전담 화면으로
-    if (S.user?.role === 'specialty' || S.user?.role === 'collaborative') {
+    // 교담/협업 교사 전용 계정만 전담 화면으로
+    // originalRole이 'admin'이면 관리자가 교담 화면을 보다 새로고침한 것이므로 제외
+    const isOriginallyAdmin = S.user?.originalRole === 'admin';
+    if ((S.user?.role === 'specialty' || S.user?.role === 'collaborative')
+        && !isOriginallyAdmin) {
       goToSpecialtyScreen();
       history.replaceState({ screen: 'screen-specialty' }, '');
       return;
     }
 
     // 관리자·담임: lastScreen 기반 복원
-    // 복원 가능한 화면 목록 (역할별 허용)
-    const adminScreens   = ['screen-admin-home','screen-setup',
-                            'screen-room-schedule','screen-specialty','screen-timetable'];
+    const adminScreens    = ['screen-admin-home','screen-setup',
+                             'screen-room-schedule','screen-specialty','screen-timetable'];
     const homeroomScreens = ['screen-timetable'];
 
-    const isAdmin   = S.user?.role === 'admin';
-    const allowed   = isAdmin ? adminScreens : homeroomScreens;
-    const restoreId = allowed.includes(lastScreen) ? lastScreen : null;
+    const isAdmin = S.user?.role === 'admin' || isOriginallyAdmin;
+    const allowed = isAdmin ? adminScreens : homeroomScreens;
+    let restoreId = allowed.includes(lastScreen) ? lastScreen : null;
 
-    if (isAdmin) initTimetable();
-    else         initTimetable();
+    // Fix C: 관리자가 교담 화면을 보다 새로고침한 경우
+    // screen-specialty는 관리자에게 "특별실 배정 → 교담 화면" 흐름의 중간이므로
+    // 특별실 배정 화면으로 복원하고 role을 admin으로 되돌림
+    if (restoreId === 'screen-specialty' && isOriginallyAdmin) {
+      restoreId = 'screen-room-schedule';
+      S.user.role = 'admin';  // 역할 복원
+    }
+
+    initTimetable();
 
     if (restoreId && SCREEN_RESTORE_FN[restoreId]) {
-      // 저장된 화면으로 복원
       SCREEN_RESTORE_FN[restoreId]();
       history.replaceState({ screen: restoreId }, '');
     } else if (isAdmin) {
