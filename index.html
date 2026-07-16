@@ -1955,6 +1955,11 @@ a{color:inherit;text-decoration:none}
     📅 생성한 지 <strong>1년이 지난 학교(그룹)는 삭제될 수 있습니다.</strong> 📊 엑셀 저장으로 데이터를 백업해 두세요.
   </div>
 
+  <!-- [Fix 4] 교담 학년 불일치 경고 배너 -->
+  <div id="sp-grade-mismatch-banner" style="display:none;background:#fef3c7;border-bottom:1px solid #fde68a;padding:.45rem 1rem;font-size:.78rem;color:#92400e;text-align:center">
+    ⚠️ <strong id="sp-grade-mismatch-msg"></strong>
+  </div>
+
   <!-- Body -->
   <div class="tt-layout">
     <!-- Left sidebar: subjects -->
@@ -2618,6 +2623,63 @@ function migrateRoomScheduleKeys() {
   if (changed) {
     saveSchool(S.school);
     console.log('roomSchedule keys migrated to storageKey format');
+  }
+}
+
+/* [Fix 2] specialtySchedule 구형 plain key → |g학년그룹 접미사 형식으로 마이그레이션
+ * "요일-교시" 형태의 key에 담긴 classId의 학년을 조회하여 |g 접미사를 붙여줌.
+ * initTimetable() 및 goToSpecialtyScreen() 진입 시 1회 실행 */
+function migrateSpecialtyScheduleKeys() {
+  if (!S.school?.specialtySchedule) return;
+  const classes = S.school.classes || [];
+  let changed   = false;
+
+  for (const [subject, schedule] of Object.entries(S.school.specialtySchedule)) {
+    const toAdd    = {};
+    const toDelete = [];
+
+    for (const [key, entry] of Object.entries(schedule)) {
+      if (!entry?.classId) continue;
+      if (key.includes('|g')) continue; // 이미 새 형식 → skip
+
+      // plain "요일-교시" key: 배정된 학급의 학년으로 |g 접미사 생성
+      const cls = classes.find(c => c.id === entry.classId);
+      if (!cls?.grade) continue;
+
+      // 해당 학년이 속하는 교시 행의 학년 그룹을 schedRows에서 탐색
+      const period    = parseInt(key.split('-')[1]);
+      const pTimes    = getPeriodTimes(cls.grade);
+      const slotStart = pTimes[period - 1]?.start;
+      if (!slotStart) continue;
+
+      const schedRows = getScheduleRows();
+      const slot      = schedRows.find(s => s.start === slotStart);
+      if (!slot) continue;
+
+      // 같은 교시번호(period)를 가지는 학년 그룹 수집
+      const byPeriod = {};
+      Object.entries(slot.gradeMap).forEach(([g, p]) => {
+        byPeriod[p] = byPeriod[p] || new Set();
+        byPeriod[p].add(parseInt(g));
+      });
+      const targetGrades = byPeriod[period];
+      if (!targetGrades || !targetGrades.has(cls.grade)) continue;
+
+      const newKey = `${key}|g${[...targetGrades].sort().join('')}`;
+      if (newKey !== key) {
+        toAdd[newKey]   = entry;
+        toDelete.push(key);
+        changed = true;
+      }
+    }
+
+    toDelete.forEach(k => delete schedule[k]);
+    Object.assign(schedule, toAdd);
+  }
+
+  if (changed) {
+    saveSchool(S.school);
+    console.log('[Fix2] specialtySchedule keys migrated to |g format');
   }
 }
 
@@ -3612,9 +3674,37 @@ async function saveSpCell() {
   const classId  = q('#sp-class-select').value;
   const schedule = getSpecialtySchedule(subject);
 
+  // [Fix 3] gradeHint 누락 보완: spEditGradeHint가 없으면 선택된 학급의 학년으로 대체
+  let effectiveGradeHint = spEditGradeHint;
+  if ((!effectiveGradeHint || effectiveGradeHint.size === 0) && classId) {
+    const selCls   = (S.school?.classes || []).find(c => c.id === classId);
+    const selGrade = selCls?.grade;
+    if (selGrade) {
+      // 해당 학년이 속한 학년 그룹을 schedRows에서 탐색하여 Set 구성
+      const period    = parseInt(spEditKey.split('-')[1]);
+      const pTimes    = getPeriodTimes(selGrade);
+      const slotStart = pTimes[period - 1]?.start;
+      if (slotStart) {
+        const slot = getScheduleRows().find(r => r.start === slotStart);
+        if (slot) {
+          const gradeGroup = new Set(
+            Object.entries(slot.gradeMap)
+              .filter(([, p]) => p === period)
+              .map(([g]) => parseInt(g))
+          );
+          if (gradeGroup.size > 0) effectiveGradeHint = gradeGroup;
+        }
+      }
+      // schedRows 탐색 실패 시 단일 학년으로라도 보호
+      if (!effectiveGradeHint || effectiveGradeHint.size === 0) {
+        effectiveGradeHint = new Set([selGrade]);
+      }
+    }
+  }
+
   // 저장 key: 중복 교시번호 구별이 필요한 경우 "|g학년그룹" 접미사 사용
-  const saveKey = (spEditGradeHint && spEditGradeHint.size > 0)
-    ? `${spEditKey}|g${[...spEditGradeHint].sort().join('')}`
+  const saveKey = (effectiveGradeHint && effectiveGradeHint.size > 0)
+    ? `${spEditKey}|g${[...effectiveGradeHint].sort().join('')}`
     : spEditKey;
 
   // 기존 배정 학급 저장 (변경 전)
@@ -3878,13 +3968,25 @@ function getTeacherLabelForSubject(subject, grade) {
 function getSpecialtyAssignmentsForClass(classId) {
   const result = {};
   const ss = S.school?.specialtySchedule || {};
+
+  // [Fix 1] classId 일치뿐 아니라 학년도 교차 검증
+  // |g 접미사에 담긴 학년 그룹에 현재 반의 학년이 포함되지 않으면 skip
+  const cls      = (S.school?.classes || []).find(c => c.id === classId);
+  const clsGrade = cls?.grade ?? null;
+
   for (const [subject, schedule] of Object.entries(ss)) {
     for (const [key, entry] of Object.entries(schedule)) {
-      if (entry.classId === classId) {
-        // "|g학년그룹" 접미사 제거 → 담임 시간표의 plain "요일-교시" key로 변환
-        const plainKey = key.includes('|g') ? key.split('|g')[0] : key;
-        result[plainKey] = subject;
+      if (entry.classId !== classId) continue;
+
+      // |g 접미사가 있는 경우: 해당 학년 그룹에 현재 반 학년 포함 여부 확인
+      if (key.includes('|g') && clsGrade) {
+        const gradeDigits = key.split('|g')[1].split('').map(Number);
+        if (!gradeDigits.includes(clsGrade)) continue; // 학년 불일치 → skip
       }
+
+      // "|g학년그룹" 접미사 제거 → 담임 시간표의 plain "요일-교시" key로 변환
+      const plainKey = key.includes('|g') ? key.split('|g')[0] : key;
+      result[plainKey] = subject;
     }
   }
   return result;
@@ -5984,6 +6086,9 @@ async function initTimetable() {
   if (!S.school || !S.user) return;
   const { school, user } = S;
 
+  // [Fix 2] 구형 specialtySchedule plain key → |g 접미사 형식으로 자동 마이그레이션
+  migrateSpecialtyScheduleKeys();
+
   q('#tt-school-name').textContent  = school.name;
   // originalRole 포함: 관리자가 교담 화면을 거쳐 왔을 때도 관리자로 표시
   const isAdminUser = user.role === 'admin' || user.originalRole === 'admin';
@@ -6214,12 +6319,59 @@ async function saveCellToStorage(key, data) {
 }
 
 /* ===========================================================
+   [Fix 4] 교담 학년 불일치 경고 배너
+   =========================================================== */
+function updateSpGradeMismatchBanner() {
+  const banner = q('#sp-grade-mismatch-banner');
+  const msg    = q('#sp-grade-mismatch-msg');
+  if (!banner || !msg || !S.classId || !S.school) {
+    if (banner) banner.style.display = 'none';
+    return;
+  }
+
+  const cls      = (S.school.classes || []).find(c => c.id === S.classId);
+  const clsGrade = cls?.grade ?? null;
+  if (!clsGrade) { banner.style.display = 'none'; return; }
+
+  // specialtySchedule 전체를 순회하여 이 반(classId)이 배정됐지만
+  // 학년 그룹이 불일치하는 항목을 탐색
+  const ss           = S.school.specialtySchedule || {};
+  const mismatched   = [];
+
+  for (const [subject, schedule] of Object.entries(ss)) {
+    for (const [key, entry] of Object.entries(schedule)) {
+      if (entry?.classId !== S.classId) continue;
+      if (!key.includes('|g')) continue; // 구형 key는 마이그레이션 후 처리됨
+
+      const gradeDigits = key.split('|g')[1].split('').map(Number);
+      if (!gradeDigits.includes(clsGrade)) {
+        mismatched.push(`${subject}(${key.split('|g')[0]})`);
+      }
+    }
+  }
+
+  if (mismatched.length) {
+    msg.textContent =
+      `이 반(${cls.name})에 다른 학년용 교담 배정이 감지되었습니다: ` +
+      mismatched.slice(0, 3).join(', ') +
+      (mismatched.length > 3 ? ` 외 ${mismatched.length - 3}건` : '') +
+      ' — 관리자에게 교담 시간표 재확인을 요청하세요.';
+    banner.style.display = 'block';
+  } else {
+    banner.style.display = 'none';
+  }
+}
+
+/* ===========================================================
    RENDER GRID
    =========================================================== */
 function renderGrid() {
   const tbody    = q('#tt-tbody');
   const spAssign  = S.classId ? getSpecialtyAssignmentsForClass(S.classId) : {};
   const collabMap = S.classId ? getCollabForClass(S.classId) : {};
+
+  // [Fix 4] 학년 불일치 배너 갱신
+  updateSpGradeMismatchBanner();
   const ptimes    = getCurrentClassPeriodTimes();
   const periods   = ptimes.map((_, i) => i + 1);  // 학년별 교시 수 동적 적용
 
