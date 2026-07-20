@@ -561,6 +561,14 @@ a{color:inherit;text-decoration:none}
   cursor:pointer;font-weight:700;
 }
 .class-select:focus{outline:none;border-color:var(--brand)}
+/* 동학년 보기 전용 배지 */
+#tt-readonly-badge{
+  display:none;align-items:center;gap:.3rem;
+  font-size:.75rem;font-weight:700;padding:.22rem .65rem;
+  background:#fef3c7;color:#92400e;border:1.5px solid #fcd34d;
+  border-radius:20px;white-space:nowrap;
+}
+#tt-readonly-badge.visible{display:inline-flex;}
 
 .tt-layout{display:flex;flex:1;overflow:hidden;min-height:0}
 
@@ -1906,6 +1914,7 @@ a{color:inherit;text-decoration:none}
         <option value="">학급 선택</option>
       </select>
       <span id="tt-user-chip" class="tt-user-chip">사용자</span>
+      <span id="tt-readonly-badge">👁 보기 전용</span>
     </div>
     <div class="tt-header-right">
       <!-- 상태 인디케이터 -->
@@ -6134,13 +6143,16 @@ async function initTimetable() {
 
   if (isAdmin || user.role==='specialty') {
     buildOptions(classes);
+  } else if (user.role === 'homeroom' && user.classId) {
+    // 담임: 자기 반 학년과 같은 반을 모두 드롭다운에 표시 (동학년 보기 기능)
+    const myClass = classes.find(x => x.id === user.classId);
+    const myGrade = myClass?.grade;
+    const sameGrade = myGrade
+      ? classes.filter(x => x.grade === myGrade)
+      : [myClass].filter(Boolean);
+    buildOptions(sameGrade.length ? sameGrade : classes);
   } else {
-    if (user.classId) {
-      const c = classes.find(x=>x.id===user.classId);
-      if (c) { const o=document.createElement('option'); o.value=c.id; o.textContent=c.name; sel.appendChild(o); }
-    } else {
-      buildOptions(classes);
-    }
+    buildOptions(classes);
   }
 
   if (sel.options.length > 0) {
@@ -6149,6 +6161,7 @@ async function initTimetable() {
   }
 
   renderSubjectPalette();
+  updateReadonlyUI();
   await subscribeToClass(); // async - fresh fetch 완료 후 setSyncDot
   setSyncDot();
 }
@@ -6168,11 +6181,32 @@ function setSyncDot() {
 /* ===========================================================
    CHANGE CLASS
    =========================================================== */
+/* 동학년 보기 전용 상태 여부 반환 */
+function isViewingOtherClass() {
+  return S.user?.role === 'homeroom'
+    && !!S.user.classId
+    && S.classId !== S.user.classId;
+}
+
+/* 보기 전용 배지 표시/숨김 + 편집 버튼 제어 */
+function updateReadonlyUI() {
+  const badge   = q('#tt-readonly-badge');
+  const btnRnd  = q('#btn-tt-random');
+  const btnClr  = q('#btn-clear-tt');
+  const viewing = isViewingOtherClass();
+
+  if (badge)  badge.classList.toggle('visible', viewing);
+  // 다른 반 볼 때는 랜덤 배정·초기화 버튼 숨김
+  if (btnRnd) btnRnd.style.display = viewing ? 'none' : (S.user?.role === 'homeroom' || S.user?.role === 'admin' ? 'flex' : 'none');
+  if (btnClr) btnClr.style.display = viewing ? 'none' : (S.user?.role === 'homeroom' || S.user?.role === 'admin' ? 'flex' : 'none');
+}
+
 async function changeClass(id) {
   S.classId = id;
   S.ttData  = {};
   if (S.unsub)       { S.unsub();       S.unsub=null;       }
   if (S.unsubSchool) { S.unsubSchool(); S.unsubSchool=null; }
+  updateReadonlyUI();
   await subscribeToClass();
 }
 window.changeClass = changeClass;
@@ -6364,7 +6398,7 @@ function renderGrid() {
                    ondragend="onDragEnd(event)"
                    onclick="onCellClick('${key}')">
                 <span class="cell-subj" style="color:${color}">${escHtml(cell.subject)}</span>
-                ${cell.specialRoom?`<span class="cell-room" style="color:${color}">📍${escHtml(cell.specialRoom)}</span>`:''}
+                ${(cell.specialRoom && roomAssign?.roomName === cell.specialRoom)?`<span class="cell-room" style="color:${color}">📍${escHtml(cell.specialRoom)}</span>`:''}
               </div>
               ${(collabMap[key]||[]).length ? `<div class="sp-top-bar" style="background:#0891b2;color:#fff;position:absolute;bottom:0;left:0;right:0;border-radius:0 0 5px 5px;margin:0;font-size:.7rem;padding:2px 6px">${(collabMap[key]||[]).map(n=>`🤝 ${escHtml(n)}`).join(' · ')}</div>` : ''}
             </td>`;
@@ -6425,6 +6459,8 @@ function getCellLockState(cell, key, spSubject) {
   // 전교 마감: 관리자 제외 모든 수정 차단
   if (S.school?.locked && !isAdmin) return 'full';
   if (isAdmin) return 'none';
+  // 동학년 다른 반 보기 전용: 모든 셀 수정 차단
+  if (isViewingOtherClass()) return 'full';
   // 교담 배정 칸: 담임은 수정 불가
   if (spSubject) return 'full';
   // 특별실 배정 칸: 잠금 없음 — 과목은 자유롭게 편집 가능 (특별실 배정은 독립 저장)
@@ -6455,9 +6491,10 @@ function getSubjColor(name) {
    SUBJECT PALETTE
    =========================================================== */
 function renderSubjectPalette() {
-  const subjects = getSubjectsForCurrentClass();
-  const grade    = getCurrentClassGrade();
-  const gradeLbl = grade ? `${grade}학년` : '';
+  const subjects  = getSubjectsForCurrentClass();
+  const grade     = getCurrentClassGrade();
+  const gradeLbl  = grade ? `${grade}학년` : '';
+  const readonly  = isViewingOtherClass();
 
   const hdr = q('.sidebar-header');
   if (hdr) hdr.textContent = `📚 ${gradeLbl} 과목 팔레트`;
@@ -6470,13 +6507,14 @@ function renderSubjectPalette() {
     const badge   = special
       ? `<span class="chip-badge" style="background:${hexAlpha(s.color,.18)};color:${s.color}">${cur}</span>`
       : `<span class="chip-badge ${cls}" style="background:${hexAlpha(s.color,.18)};color:${s.color}">${cur}/${req}</span>`;
+    // 보기 전용 모드: 드래그 비활성화
+    const dragAttrs = readonly ? 'draggable="false" style="opacity:.55;cursor:default;"' :
+      `draggable="true" ondragstart="onPaletteDragStart(event,'${escHtml(s.name)}','${s.color}')" ondragend="onDragEnd(event)"`;
     return `
       <div class="subject-chip"
            style="background:${hexAlpha(s.color,.1)};border-color:${hexAlpha(s.color,.25)}"
-           draggable="true"
            data-subject="${escHtml(s.name)}"
-           ondragstart="onPaletteDragStart(event,'${escHtml(s.name)}','${s.color}')"
-           ondragend="onDragEnd(event)">
+           ${dragAttrs}>
         <span class="chip-name" style="color:${s.color}">${escHtml(s.name)}</span>
         ${badge}
       </div>`;
@@ -6652,6 +6690,8 @@ function renderTracker() {
    =========================================================== */
 function onCellClick(key) {
   if (!S.user || !S.classId) return;
+  // 동학년 다른 반 보기 전용: 셀 클릭 완전 차단
+  if (isViewingOtherClass()) return;
   // 요일별 교시 수 초과 셀 클릭 차단
   const [clickDay, clickPStr] = key.split('-');
   const clickGrade = getCurrentClassGrade();
@@ -6719,18 +6759,19 @@ window.onCellClick = onCellClick;
 async function saveCellModal() {
   const subject    = q('#mcell-subject').value;
   const rsel       = q('#mcell-room');
-  const roomAssign = getRoomAssignmentForKey(S.editingKey);
   if (!subject) { toast('과목을 선택해주세요.', 'error'); return; }
 
-  const room = roomAssign
-    ? roomAssign.roomName                         // 특별실 배정에서 온 경우 고정
-    : (rsel.disabled ? null : rsel.value || null); // 일반 셀
+  // specialRoom은 roomSchedule에서 실시간으로 파생하므로 ttData에 저장하지 않음
+  // 레거시 호환을 위해 rsel이 활성화된 경우(관리자가 직접 선택)에만 저장
+  const roomAssign = getRoomAssignmentForKey(S.editingKey);
+  const legacyRoom = (!roomAssign && !rsel.disabled) ? (rsel.value || null) : null;
 
   const data = {
     subject,
     role:         S.user.role,
-    specialRoom:  room || null,
-    // isSpecialRoom은 저장하지 않음 — 특별실 배정은 roomSchedule에서 별도 관리
+    // specialRoom: roomSchedule 기반 배정은 저장하지 않음 (renderGrid에서 실시간 파생)
+    // 레거시: 관리자가 셀 모달에서 직접 선택한 경우만 유지
+    ...(legacyRoom ? { specialRoom: legacyRoom } : {}),
     updatedAt:    Date.now(),
   };
   await saveCellToStorage(S.editingKey, data);
@@ -6815,11 +6856,10 @@ async function onDrop(event, targetKey, el) {
   }
 
   if (S.dragSrc.type === 'palette') {
+    // specialRoom / isSpecialRoom은 roomSchedule에서 실시간으로 파생하므로 저장하지 않음
     await saveCellToStorage(targetKey, {
       subject:      S.dragSrc.subject,
       role:         S.user.role,
-      specialRoom:  targetRoom ? targetRoom.roomName : null,
-      isSpecialRoom:!!targetRoom,
       updatedAt:    Date.now(),
     });
     toast(`${S.dragSrc.subject} 배정`, 'success');
@@ -6829,8 +6869,13 @@ async function onDrop(event, targetKey, el) {
     const srcData = S.ttData[srcKey];
     if (!srcData) { S.dragSrc=null; return; }
     const tgtData = S.ttData[targetKey] || null;
-    await saveCellToStorage(targetKey, {...srcData, updatedAt:Date.now()});
-    await saveCellToStorage(srcKey,    tgtData ? {...tgtData, updatedAt:Date.now()} : null);
+    // specialRoom은 roomSchedule 기반으로 실시간 파생하므로 셀 이동 시 복사하지 않음
+    const { specialRoom: _sr1, isSpecialRoom: _isr1, ...srcClean } = srcData;
+    const tgtClean = tgtData
+      ? (({ specialRoom: _sr2, isSpecialRoom: _isr2, ...rest }) => rest)(tgtData)
+      : null;
+    await saveCellToStorage(targetKey, {...srcClean, updatedAt:Date.now()});
+    await saveCellToStorage(srcKey,    tgtClean ? {...tgtClean, updatedAt:Date.now()} : null);
     toast('이동 완료', 'success');
   }
   S.dragSrc = null;
