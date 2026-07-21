@@ -102,6 +102,20 @@ a{color:inherit;text-decoration:none}
 }
 .hours-input:focus{outline:none;border-color:var(--brand)}
 
+/* 교담 교사 목록 — 많아지면 스크롤 */
+#specialty-teacher-list{
+  max-height:400px;
+  overflow-y:auto;
+  overflow-x:hidden;
+  /* 스크롤바 얇게 */
+  scrollbar-width:thin;
+  scrollbar-color:var(--g300) transparent;
+}
+#specialty-teacher-list::-webkit-scrollbar{width:5px}
+#specialty-teacher-list::-webkit-scrollbar-track{background:transparent}
+#specialty-teacher-list::-webkit-scrollbar-thumb{background:var(--g300);border-radius:4px}
+#specialty-teacher-list::-webkit-scrollbar-thumb:hover{background:var(--g400)}
+
 /* 교과목 목록 2열 컴팩트 그리드 */
 #subject-list.list-wrap{display:grid;grid-template-columns:1fr 1fr;gap:.35rem}
 #subject-list .list-item{padding:.45rem .7rem;gap:.55rem}
