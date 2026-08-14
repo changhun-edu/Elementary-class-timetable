@@ -689,6 +689,20 @@ a{color:inherit;text-decoration:none}
   flex-shrink:0;
 }
 
+.cell-collab-bar {
+  width:100%;
+  display:flex;align-items:center;justify-content:center;gap:3px;
+  padding:2px 6px;
+  background:#0891b2;color:#fff;
+  font-size:.7rem;font-weight:800;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  flex-shrink:0;
+}
+.cell-inner.has-collab {
+  justify-content:space-between;
+  padding-bottom:0;
+}
+
 /* Tracker */
 .tt-tracker{
   width:196px;background:#fff;border-left:1px solid var(--g200);
@@ -6678,6 +6692,12 @@ function renderGrid() {
   const ptimes    = getCurrentClassPeriodTimes();
   const periods   = ptimes.map((_, i) => i + 1);  // 학년별 교시 수 동적 적용
 
+  // 협업 강사 표시 바 — 담임이 과목을 넣기 전에도 미리 보이게 한다.
+  // (협업 수업은 담임 수업과 함께 진행되므로 시수에는 포함하지 않는다)
+  const collabBar = (names) => (names && names.length)
+    ? `<div class="cell-collab-bar">🤝 ${names.map(n => escHtml(n)).join(' · ')}</div>`
+    : '';
+
   tbody.innerHTML = periods.map(p => `
     <tr>
       <td class="period-cell">${periodLabel(p, ptimes)}</td>
@@ -6723,6 +6743,7 @@ function renderGrid() {
             : `<span style="font-size:.82rem;color:var(--g300)">+</span>`;
           const subjWrap = `<div class="cell-subj-wrap">${subjInner}</div>`;
           const roomBar  = `<div class="cell-room-bar" style="background:${rc.bg};color:${rc.text};border-top:1px solid ${rc.border}">${rc.icon} ${escHtml(roomAssign.roomName)}</div>`;
+          const cBar     = collabBar(collabMap[key]);
           return `
             <td class="tt-cell" data-key="${key}"
                 ondragover="onDragOver(event,'${key}',this)"
@@ -6734,6 +6755,7 @@ function renderGrid() {
                    ${canDrag?`ondragstart="onCellDragStart(event,'${key}')" ondragend="onDragEnd(event)"` : ''}
                    onclick="onCellClick('${key}')">
                 ${subjWrap}
+                ${cBar}
                 ${roomBar}
               </div>
             </td>`;
@@ -6743,21 +6765,23 @@ function renderGrid() {
           const bg     = hexAlpha(color, .11);
           const border = hexAlpha(color, .35);
           const locked = lockState === 'full';
+          const cBar   = collabBar(collabMap[key]);
+          const body   = `<span class="cell-subj" style="color:${color}">${escHtml(cell.subject)}</span>
+                ${(cell.specialRoom && roomAssign?.roomName === cell.specialRoom)?`<span class="cell-room" style="color:${color}">📍${escHtml(cell.specialRoom)}</span>`:''}`;
           return `
             <td class="tt-cell" data-key="${key}"
                 ondragover="onDragOver(event,'${key}',this)"
                 ondragleave="onDragLeave(event,this)"
                 ondrop="onDrop(event,'${key}',this)">
-              <div class="cell-inner filled ${locked?'locked':''}"
+              <div class="cell-inner filled ${locked?'locked':''} ${cBar?'has-collab':''}"
                    style="background:${bg};border-color:${border};border-width:1.5px;border-style:solid;"
                    draggable="${!locked}"
                    ondragstart="${!locked?`onCellDragStart(event,'${key}')`:'return false'}"
                    ondragend="onDragEnd(event)"
                    onclick="onCellClick('${key}')">
-                <span class="cell-subj" style="color:${color}">${escHtml(cell.subject)}</span>
-                ${(cell.specialRoom && roomAssign?.roomName === cell.specialRoom)?`<span class="cell-room" style="color:${color}">📍${escHtml(cell.specialRoom)}</span>`:''}
+                ${cBar ? `<div class="cell-subj-wrap" style="flex-direction:column">${body}</div>` : body}
+                ${cBar}
               </div>
-              ${(collabMap[key]||[]).length ? `<div class="sp-top-bar" style="background:#0891b2;color:#fff;position:absolute;bottom:0;left:0;right:0;border-radius:0 0 5px 5px;margin:0;font-size:.7rem;padding:2px 6px">${(collabMap[key]||[]).map(n=>`🤝 ${escHtml(n)}`).join(' · ')}</div>` : ''}
             </td>`;
         } else if (dayBlocked) {
           // 요일별 교시 수 초과 — 비활성화 셀
@@ -6768,6 +6792,20 @@ function renderGrid() {
               </div>
             </td>`;
         } else {
+          const cBar = collabBar(collabMap[key]);
+          if (cBar) {
+            // 협업 강사만 있는 빈 칸 — 미리 보이되, 담임이 과목을 넣을 수 있게 그대로 열어 둔다
+            return `
+              <td class="tt-cell" data-key="${key}"
+                  ondragover="onDragOver(event,'${key}',this)"
+                  ondragleave="onDragLeave(event,this)"
+                  ondrop="onDrop(event,'${key}',this)">
+                <div class="cell-inner empty has-collab" onclick="onCellClick('${key}')">
+                  <div class="cell-subj-wrap">+</div>
+                  ${cBar}
+                </div>
+              </td>`;
+          }
           return `
             <td class="tt-cell" data-key="${key}"
                 ondragover="onDragOver(event,'${key}',this)"
