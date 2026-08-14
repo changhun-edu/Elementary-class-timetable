@@ -1379,6 +1379,7 @@ a{color:inherit;text-decoration:none}
           <select id="join-role" class="form-select" onchange="onJoinRoleChange()">
             <option value="homeroom">🏠 담임교사</option>
           </select>
+          <div id="join-role-hint" class="form-hint" style="display:none;margin-top:.4rem"></div>
         </div>
         <!-- 교과전담교사 전용: 담당 교과 선택 (복수) -->
         <div class="form-group" id="join-subject-group" style="display:none">
@@ -3451,6 +3452,18 @@ function getSelectedSubjects() {
   return [...document.querySelectorAll('.subject-pick-chip.selected')].map(el => el.dataset.name);
 }
 
+/**
+ * 기초 설정에서 이미 등록해 둔 담당 교과를 꺼낸다.
+ * 값이 있으면 참여 화면에서 교과를 다시 고를 필요가 없다.
+ */
+function registeredSubjectsOf(spInfo, ttInfo) {
+  const info = spInfo || ttInfo;
+  if (!info) return [];
+  const fromAsgn = [...new Set((info.assignments || []).map(a => a.subject).filter(Boolean))];
+  if (fromAsgn.length) return fromAsgn;
+  return [...new Set([...(info.subjects || []), ...(info.subjectFilter || [])].filter(Boolean))];
+}
+
 function goToSpecialtyScreen() {
   if (!S.school || !S.user) return;
   const isCollab = S.user.role === 'collaborative';
@@ -3460,7 +3473,15 @@ function goToSpecialtyScreen() {
   if (S.user.spInfo?.assignments?.length) {
     S.user.spInfo.subjects = [...new Set(S.user.spInfo.assignments.map(a => a.subject).filter(Boolean))];
     S.user.spInfo.grades   = [...new Set(S.user.spInfo.assignments.map(a => a.grade).filter(Boolean))];
-    if (!S.user.subjects?.length) S.user.subjects = S.user.spInfo.subjects;
+  }
+  // ttInfo(강사 유형)도 같은 방식으로 보완 — 교과가 비어 화면이 빈 채로 열리지 않도록
+  if (S.user.ttInfo?.assignments?.length) {
+    S.user.ttInfo.subjectFilter = [...new Set(S.user.ttInfo.assignments.map(a => a.subject).filter(Boolean))];
+    S.user.ttInfo.gradeFilter   = [...new Set(S.user.ttInfo.assignments.map(a => a.grade).filter(Boolean))];
+  }
+  if (!S.user.subjects?.length && !isCollab) {
+    const fromReg = registeredSubjectsOf(S.user.spInfo, S.user.ttInfo);
+    if (fromReg.length) S.user.subjects = fromReg;
   }
 
   // ── 기본 UI 업데이트 ────────────────────────────────────
@@ -3558,6 +3579,61 @@ function getSpecialtySchedule(subject) {
   return S.school.specialtySchedule[subject];
 }
 
+/**
+ * 내가 맡은 다른 교과의 배정을 "요일-실제 시작시각" 기준으로 모은다.
+ * 교시 번호는 학년마다 시각이 다르므로, 실제 시작시각으로 환산해야
+ * 같은 시간에 두 학년 수업이 잡히는 것을 정확히 걸러낼 수 있다.
+ * @return { "월-09:50": { subject, className, classId } }
+ */
+function getMyBusyByTime(excludeSubject) {
+  const map = {};
+  if (!S.school) return map;
+  const classes = S.school.classes || [];
+  (S.user?.subjects || []).forEach(subj => {
+    if (subj === excludeSubject) return;
+    const sched = getSpecialtySchedule(subj);
+    for (const [k, entry] of Object.entries(sched)) {
+      if (!entry?.classId) continue;
+      const plain = stripGradeSuffix(k);
+      const dash  = plain.lastIndexOf('-');
+      if (dash < 0) continue;
+      const day   = plain.slice(0, dash);
+      const pNum  = parseInt(plain.slice(dash + 1));
+      if (!day || !pNum) continue;
+      const cls   = classes.find(c => c.id === entry.classId);
+      const grade = cls?.grade || parseInt(cls?.name?.[0]);
+      if (!grade) continue;
+      const start = getPeriodTimes(grade)[pNum - 1]?.start;
+      if (!start) continue;
+      map[`${day}-${start}`] = {
+        subject: subj,
+        className: cls?.name || entry.className || '',
+        classId: entry.classId,
+      };
+    }
+  });
+  return map;
+}
+
+/**
+ * 현재 보고 있는 교과의 담당 학년만 돌려준다.
+ * assignments에 학년-교과 짝이 있으면 그 교과의 학년만, 없으면 기존처럼 전체 담당 학년.
+ * @return Set<number> | null  (null = 전 학년)
+ */
+function getAssignedGradesFor(subject) {
+  const spInfo = S.user?.spInfo;
+  const ttInfo = S.user?.ttInfo;
+  const asgn   = spInfo?.assignments?.length ? spInfo.assignments
+               : ttInfo?.assignments?.length ? ttInfo.assignments
+               : [];
+  const perSubj = asgn.filter(a => a.subject === subject && a.grade).map(a => a.grade);
+  if (perSubj.length) return new Set(perSubj);
+  // 구버전 데이터(학년-교과 짝 없음) → 담당 학년 전체
+  if (spInfo?.grades?.length)      return new Set(spInfo.grades);
+  if (ttInfo?.gradeFilter?.length) return new Set(ttInfo.gradeFilter);
+  return null;
+}
+
 function getCollabForClass(classId) {
   // { key: [collabName, ...] }
   const result = {};
@@ -3585,11 +3661,12 @@ function renderSpecialtyGrid() {
   if (el) el.textContent = cnt ? `${subject}: ${cnt}개 시간 배정됨` : `${subject}: 배정 없음`;
 
   // ── 담당 학년 결정 ──────────────────────────────────────
-  const spInfo = S.user?.spInfo;
-  const ttInfo = S.user?.ttInfo;
-  const assignedGrades = spInfo?.grades?.length ? new Set(spInfo.grades)
-    : ttInfo?.gradeFilter?.length ? new Set(ttInfo.gradeFilter)
-    : null;  // null = 전 학년
+  // 현재 보고 있는 교과의 담당 학년만 (예: 3학년 과학 + 6학년 영어 → 과학 탭은 3학년만)
+  const isCollabView   = subject.startsWith('__collab__');
+  const assignedGrades = isCollabView ? null : getAssignedGradesFor(subject);
+
+  // 내가 맡은 다른 교과의 시간 점유 현황 (실제 시작시각 기준)
+  const busyByTime = isCollabView ? {} : getMyBusyByTime(subject);
 
   // ── 담당 학년 교시만 필터링하여 서브행 생성 ──────────────
   // 같은 교시번호라도 시간이 다른 학년 그룹은 별도 행으로 분리하고,
@@ -3645,16 +3722,10 @@ function renderSpecialtyGrid() {
         const cls   = entry ? classes.find(c => c.id === entry.classId) : null;
         const g     = cls?.grade || parseInt(cls?.name?.[0]);
         const clrG  = (g >= 1 && g <= 6) ? gradeColors[g-1] : color;
-        const otherSubj = (S.user?.subjects||[]).filter(s=>s!==subject)
-          .find(s => {
-            const e2 = getSpecialtySchedule(s)[key];
-            if (!e2) return false;
-            const c2 = classes.find(c=>c.id===e2.classId);
-            return c2?.grade && allowedGradesForRow.has(c2.grade);
-          });
-        const otherCls = otherSubj
-          ? classes.find(c=>c.id===getSpecialtySchedule(otherSubj)[key]?.classId)
-          : null;
+        // 같은 실제 시각에 내가 맡은 다른 교과 수업이 있는지 (학년 표시와 무관하게 판단)
+        const busy      = busyByTime[`${day}-${slotStart}`] || null;
+        const otherSubj = busy?.subject || null;
+        const otherCls  = busy ? { name: busy.className } : null;
 
         // 이 시간에 특별실 사용 중인 반 확인 (이 행의 학년 그룹만, 시간 기반 키)
         const slot = getScheduleRows().find(r => r.start === slotStart);
@@ -3696,20 +3767,26 @@ function renderSpecialtyGrid() {
         } else if (cls) {
           inner = `<div class="sp-ci" style="background:${hexAlpha(clrG,.12)};color:${clrG};border:1.5px solid ${hexAlpha(clrG,.35)};cursor:grab;pointer-events:none">${escHtml(cls.name)}</div>`;
         } else if (otherSubj && otherCls) {
-          inner = `<div class="sp-ci" style="background:var(--g50);color:var(--g400);border:1.5px dashed var(--g200);font-size:.7rem;pointer-events:none">${escHtml(otherCls.name)}<br><span style="font-size:.65rem;opacity:.7">${escHtml(otherSubj)}</span></div>`;
+          inner = `<div class="sp-ci" style="background:var(--g50);color:var(--g400);border:1.5px dashed var(--g200);font-size:.7rem;pointer-events:none">
+            <span style="font-size:.65rem">🔒</span> ${escHtml(otherCls.name)}<br><span style="font-size:.65rem;opacity:.7">${escHtml(otherSubj)}</span></div>`;
         } else {
           inner = `<div class="sp-ci empty" style="pointer-events:none">+</div>`;
         }
+        // 같은 시각에 내 다른 수업이 있으면 배정 자체를 막는다 (이미 배정된 칸은 수정 가능)
+        const timeBlocked = !!(otherSubj && !cls);
+        const clickAttr = timeBlocked
+          ? `title="${escHtml(`이 시간에는 ${otherSubj} 수업(${otherCls.name})이 있습니다`)}" style="position:relative;cursor:not-allowed"`
+          : `style="position:relative" onclick="openSpModal('${key}',this)"
+             ondragover="spOnDragOver(event,this)"
+             ondragleave="spOnDragLeave(event,this)"
+             ondrop="spOnDrop(event,'${key}',this)"`;
         const draggable = cls
           ? `draggable="true" ondragstart="spOnDragStart(event,'${key}')" ondragend="spOnDragEnd(event)"`
           : '';
-        return `<td class="sp-cell" style="position:relative" ${draggable}
+        return `<td class="sp-cell" ${clickAttr} ${draggable}
                     data-sp-key="${key}"
                     data-grade-hint="${gradeHint}"
-                    onclick="openSpModal('${key}',this)"
-                    ondragover="spOnDragOver(event,this)"
-                    ondragleave="spOnDragLeave(event,this)"
-                    ondrop="spOnDrop(event,'${key}',this)">${inner}${roomBadge}</td>`;
+                    data-slot-start="${slotStart}">${inner}${roomBadge}</td>`;
       }).join('')}
     </tr>
   `).join('');
@@ -3718,9 +3795,12 @@ window.renderSpecialtyGrid = renderSpecialtyGrid;
 
 // spEditGradeHint: 현재 모달을 연 셀의 학년 그룹 (중복 교시번호 구별용)
 let spEditGradeHint = null;
+// spEditSlotStart: 현재 모달을 연 셀의 실제 시작시각 (교사 시간 중복 검사용)
+let spEditSlotStart = null;
 
 function openSpModal(key, cellEl) {
   spEditKey = key;
+  spEditSlotStart = cellEl?.dataset?.slotStart || null;
   // 셀 엘리먼트에서 학년 힌트 읽기 (없으면 null)
   spEditGradeHint = cellEl?.dataset?.gradeHint
     ? new Set(cellEl.dataset.gradeHint.split(',').map(Number).filter(Boolean))
@@ -3729,6 +3809,16 @@ function openSpModal(key, cellEl) {
   const period = key.split('-')[1];
   const subject  = spCurrentSubject;
   const isCollab = subject?.startsWith('__collab__');
+
+  // 같은 시각에 내 다른 교과 수업이 있으면 배정 창을 열지 않는다
+  if (!isCollab && spEditSlotStart) {
+    const busy = getMyBusyByTime(subject)[`${day}-${spEditSlotStart}`];
+    const cur  = getSpecialtySchedule(subject)[key];
+    if (busy && !cur) {
+      toast(`이 시간에는 ${busy.subject} 수업(${busy.className})이 있습니다.`, 'warn');
+      return;
+    }
+  }
   const schedule = getSpecialtySchedule(subject);
   // 같은 교시번호 key에 여러 학년 그룹이 있을 때 이 행의 학년에 속한 배정만 현재값으로 인식
   const allEntries = schedule[key];
@@ -3754,17 +3844,13 @@ function openSpModal(key, cellEl) {
   // ── 특별실 사용 현황 (담당 학년 학급만, 시간 기반 키) ─────
   const roomInfoEl = q('#sp-room-info');
   const rs         = S.school.roomSchedule || {};
-  const spInfoModal = S.user.spInfo;
-  const ttInfoModal = S.user.ttInfo;
-  const myGrades    = spInfoModal?.grades?.length ? new Set(spInfoModal.grades)
-    : ttInfoModal?.gradeFilter?.length ? new Set(ttInfoModal.gradeFilter)
-    : null;
+  const myGrades   = isCollab ? null : getAssignedGradesFor(subject);
 
-  // period key → time key 변환 (담당 학년 기준)
+  // period key → time key 변환 (셀의 실제 시작시각 우선)
   const firstGrade  = myGrades ? [...myGrades][0] : 1;
   const pTimes      = getPeriodTimes(firstGrade);
   const pNum        = parseInt(key.split('-')[1]);
-  const startTime   = pTimes[pNum - 1]?.start;
+  const startTime   = spEditSlotStart || pTimes[pNum - 1]?.start;
   const timeKey     = startTime ? `${key.split('-')[0]}-${startTime}` : key;
 
   const roomsUsed  = [];
@@ -3798,14 +3884,10 @@ function openSpModal(key, cellEl) {
   // ── 담당 학년 필터 ───────────────────────────────────────
   // spInfo.grades 우선, ttInfo.gradeFilter 차선
   // 추가로 spEditGradeHint(셀 행의 학년 그룹)와 교집합하여 중복 교시번호 구별
-  const spInfo   = S.user.spInfo;
-  const ttInfo   = S.user.ttInfo;
   let allowedGradeSet = null;
   if (!isCollab) {
-    const gradeArr = spInfo?.grades?.length ? spInfo.grades
-                   : ttInfo?.gradeFilter?.length ? ttInfo.gradeFilter
-                   : null;
-    if (gradeArr?.length) allowedGradeSet = new Set(gradeArr);
+    // 현재 교과에 해당하는 담당 학년만
+    allowedGradeSet = getAssignedGradesFor(subject);
   }
   // 중복 교시번호 행 구별: 셀에 gradeHint가 있으면 해당 학년만 표시
   if (spEditGradeHint) {
@@ -3920,6 +4002,21 @@ async function saveSpCell() {
   const subject  = spCurrentSubject;
   const classId  = q('#sp-class-select').value;
   const schedule = getSpecialtySchedule(subject);
+
+  // ── 교사 본인 시간 중복 최종 확인 ────────────────────────
+  // (드래그 이동·다른 기기에서의 동시 입력 등 모든 경로를 여기서 한 번 더 막는다)
+  if (classId && !subject.startsWith('__collab__')) {
+    const cls   = (S.school.classes||[]).find(c => c.id === classId);
+    const grade = cls?.grade || parseInt(cls?.name?.[0]);
+    const day   = spEditKey.split('-')[0];
+    const pNum  = parseInt(spEditKey.split('-')[1]);
+    const start = grade ? getPeriodTimes(grade)[pNum-1]?.start : null;
+    const busy  = start ? getMyBusyByTime(subject)[`${day}-${start}`] : null;
+    if (busy) {
+      toast(`같은 시간에 ${busy.subject} 수업(${busy.className})이 있어 배정할 수 없습니다.`, 'error');
+      return;
+    }
+  }
 
   // 저장 key: 중복 교시번호 구별이 필요한 경우 "|g학년그룹" 접미사 사용
   const saveKey = (spEditGradeHint && spEditGradeHint.size > 0)
@@ -4314,6 +4411,17 @@ function spOnDrop(event, toKey, cellEl) {
     _spDrag = null; return;
   }
 
+  // ── 교사 본인 시간 중복 검사 (실제 시작시각 기준) ────────
+  if (!subject.startsWith('__collab__')) {
+    const toStart = cellEl?.dataset?.slotStart || null;
+    const day     = plainTo.split('-')[0];
+    const busy    = toStart ? getMyBusyByTime(subject)[`${day}-${toStart}`] : null;
+    if (busy) {
+      toast(`⚠ 이 시간에는 ${busy.subject} 수업(${busy.className})이 있습니다.`, 'warn');
+      _spDrag = null; return;
+    }
+  }
+
   // 이동: fromKey(qualified 또는 plain) 삭제 → toQKey에 저장
   const removedEntry = { key: plainFrom, classId };
   delete schedule[fromKey];          // qualified key 삭제
@@ -4401,12 +4509,8 @@ function openSpRandomModal() {
   const subject = spCurrentSubject;
   if (!subject) { toast('교과목 탭을 선택하세요.', 'warn'); return; }
 
-  // 담당 학년 학급 목록
-  const spInfo  = S.user?.spInfo;
-  const ttInfo  = S.user?.ttInfo;
-  const myGrades = spInfo?.grades?.length ? new Set(spInfo.grades)
-    : ttInfo?.gradeFilter?.length ? new Set(ttInfo.gradeFilter)
-    : null;
+  // 담당 학년 학급 목록 — 현재 교과의 담당 학년만
+  const myGrades = getAssignedGradesFor(subject);
   const eligible = (S.school.classes||[]).filter(c => c.grade && (!myGrades || myGrades.has(c.grade)));
 
   if (!eligible.length) { toast('배정 가능한 학급이 없습니다.', 'warn'); return; }
@@ -4471,11 +4575,9 @@ function runSpRandomAssign(subject, eligible, countPerClass = 1) {
   const schedule = getSpecialtySchedule(subject);
   Object.keys(schedule).forEach(k => delete schedule[k]);
 
-  const spInfo   = S.user?.spInfo;
-  const ttInfo   = S.user?.ttInfo;
-  const myGrades = spInfo?.grades?.length ? new Set(spInfo.grades)
-    : ttInfo?.gradeFilter?.length ? new Set(ttInfo.gradeFilter)
-    : null;
+  const myGrades = getAssignedGradesFor(subject);
+  // 내가 맡은 다른 교과가 이미 쓰고 있는 시간대는 제외한다
+  const busyByTime = getMyBusyByTime(subject);
 
   // 전체 가용 슬롯 목록 (교담 키: "요일-교시번호")
   const allSlotsList = [];
@@ -4483,6 +4585,7 @@ function runSpRandomAssign(subject, eligible, countPerClass = 1) {
     Object.entries(slot.gradeMap).forEach(([g, p]) => {
       if (myGrades && !myGrades.has(parseInt(g))) return;
       DAYS.forEach(day => {
+        if (busyByTime[`${day}-${slot.start}`]) return;   // 같은 시각에 내 다른 수업 있음
         const key = `${day}-${p}`;
         if (!allSlotsList.find(s => s.key === key)) {
           allSlotsList.push({ key, start: slot.start, periodNum: p });
@@ -6202,8 +6305,27 @@ function onJoinRoleChange() {
   const isCollab = ttInfo?.mode === 'collaborative';
   const isIndep  = (isSp) || (isTt && ttInfo?.mode === 'independent');
 
+  // 기초 설정에 담당 교과가 등록돼 있으면 선택 단계를 건너뛴다.
+  const preset   = isIndep ? registeredSubjectsOf(spInfo, ttInfo) : [];
+  const needPick = isIndep && !preset.length;
+
   q('#join-class-group').style.display   = isHomeroom ? 'block' : 'none';
-  q('#join-subject-group').style.display = isIndep ? 'block' : 'none';
+  q('#join-subject-group').style.display = needPick ? 'block' : 'none';
+
+  // 등록된 담당 교과 안내 (선택 대신 확인만)
+  const roleHint = q('#join-role-hint');
+  if (roleHint) {
+    if (isIndep && preset.length) {
+      roleHint.innerHTML = `📚 담당 교과: <strong>${escHtml(preset.join(', '))}</strong>
+        <span class="text-muted" style="font-size:.72rem">— 관리자가 등록한 내용입니다</span>`;
+      roleHint.style.display = 'block';
+    } else if (needPick) {
+      roleHint.innerHTML = `⚠️ 관리자가 담당 교과를 등록하지 않았습니다. 아래에서 직접 선택해주세요.`;
+      roleHint.style.display = 'block';
+    } else {
+      roleHint.style.display = 'none';
+    }
+  }
 
   // 비밀번호 힌트: 역할에 따라 어떤 비밀번호를 써야 하는지 안내
   const hintEl = q('#join-pw-label-hint');
@@ -6238,20 +6360,10 @@ function onJoinRoleChange() {
     hint.style.display = 'none';
   }
 
-  // 교담(sp:) 선택 시 → 해당 교담의 과목 자동 pre-select
-  if (isSp && spInfo) {
-    renderSubjectPickerFiltered(spInfo.subjects?.length ? spInfo.subjects : null, spInfo.grades?.length ? spInfo.grades : null);
-    // 배정된 교과 자동 선택
-    setTimeout(() => {
-      document.querySelectorAll('#join-subject-chips .subject-pick-chip').forEach(el => {
-        if ((spInfo.subjects||[]).includes(el.dataset.name)) {
-          el.classList.add('selected');
-          const color = el.style.borderColor || '#6366f1';
-          el.style.background = color; el.style.color = '#fff';
-        }
-      });
-    }, 50);
-  } else if (isTt && isIndep && ttInfo) {
+  // 담당 교과가 등록되지 않은 경우에만 선택 화면을 채운다 (안전망)
+  if (needPick && isSp && spInfo) {
+    renderSubjectPickerFiltered(null, spInfo.grades?.length ? spInfo.grades : null);
+  } else if (needPick && isTt && ttInfo) {
     renderSubjectPickerFiltered(ttInfo.subjectFilter, ttInfo.gradeFilter);
   }
 }
@@ -6302,8 +6414,9 @@ async function joinSchool() {
   const isCollab   = ttInfo?.mode === 'collaborative';
   const isIndep    = isSp || (isTt && ttInfo?.mode === 'independent');
 
-  // 단독 수업(교담/영어회화강사 등): 교과 선택 필수
-  const selectedSubjects = isIndep ? getSelectedSubjects() : [];
+  // 단독 수업(교담/강사 등): 등록된 담당 교과를 우선 사용, 없으면 직접 선택한 값
+  const preset = isIndep ? registeredSubjectsOf(spInfo, ttInfo) : [];
+  const selectedSubjects = isIndep ? (preset.length ? preset : getSelectedSubjects()) : [];
   if (isIndep && !selectedSubjects.length) {
     q('#join-subject-err').style.display = 'block';
     toast('담당 교과목을 1개 이상 선택해주세요.', 'error'); return;
