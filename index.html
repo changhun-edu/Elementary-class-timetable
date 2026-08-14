@@ -2340,9 +2340,13 @@ a{color:inherit;text-decoration:none}
           <input type="checkbox" id="xl-opt-timetable" checked>
           <span style="font-size:.85rem">담임 시간표 (학급별 시트)</span>
         </label>
-        <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer">
+        <label style="display:flex;align-items:center;gap:.5rem;margin-bottom:.4rem;cursor:pointer">
           <input type="checkbox" id="xl-opt-specialty">
           <span style="font-size:.85rem">교담 배정 (교담 시간표 시트)</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer">
+          <input type="checkbox" id="xl-opt-collab">
+          <span style="font-size:.85rem">협업 강사 배정 (협업 강사 시간표 시트)</span>
         </label>
         <div class="alert alert-info" style="font-size:.78rem;margin-top:.65rem;padding:.55rem .75rem">
           💡 학급 이름이 현재 설정과 일치하는 시트만 불러옵니다.
@@ -3578,6 +3582,21 @@ function getAssignedGradesFor(subject) {
   if (spInfo?.grades?.length)      return new Set(spInfo.grades);
   if (ttInfo?.gradeFilter?.length) return new Set(ttInfo.gradeFilter);
   return null;
+}
+
+function getCollabForClassData(school, classId) {
+  // { key: [collabName, ...] } — 엑셀 내보내기용 (S.school에 의존하지 않음)
+  const result = {};
+  const cs = school?.collabSchedule || {};
+  for (const [name, sched] of Object.entries(cs)) {
+    for (const [key, entry] of Object.entries(sched)) {
+      if (entry?.classId !== classId) continue;
+      const plain = key.includes('|g') ? key.split('|g')[0] : key;
+      if (!result[plain]) result[plain] = [];
+      if (!result[plain].includes(name)) result[plain].push(name);
+    }
+  }
+  return result;
 }
 
 function getCollabForClass(classId) {
@@ -8717,6 +8736,7 @@ async function exportAllToExcel() {
 
     const ptimes   = getPeriodTimesForExport(cls.grade);
     const spAssign = getSpecialtyAssignmentsForClassData(ttData, cls.id);
+    const collabMapX = getCollabForClassData(school, cls.id);
     const grade    = cls.grade || 0;
     const gc       = grade >= 1 && grade <= 6 ? C.GRADE[grade-1] : { bg:'E5E7EB', fg:'374151' };
 
@@ -8763,6 +8783,12 @@ async function exportAllToExcel() {
         const cell   = ttData[key];
         const roomA  = getRoomAssignmentForKeyData(school, cls.id, key);
         const colNo  = 3 + di;
+        // 협업 강사 (스포츠 강사 등) — 시수에는 포함되지 않지만 시간표에는 표시
+        const collabs    = collabMapX[key] || [];
+        const collabPart = collabs.length
+          ? [{ text:`\n🤝 ${collabs.join('·')}`,
+               font:{ name:'맑은 고딕', size:8, color:{ argb:'FF0E7490' } } }]
+          : [];
 
         if (sp) {
           // 교담 칸 — 연노랑
@@ -8770,6 +8796,7 @@ async function exportAllToExcel() {
           xCell.value     = { richText:[
             { text:`교담\n`, font:{ name:'맑은 고딕', size:8, color:{ argb:'FF92400E' } } },
             { text: sp,      font:{ name:'맑은 고딕', size:10, bold:true, color:{ argb:'FF78350F' } } },
+            ...collabPart,
           ]};
           xCell.fill      = fill(C.SP_BG);
           xCell.border    = border();
@@ -8777,16 +8804,28 @@ async function exportAllToExcel() {
         } else if (cell?.subject) {
           const sc = subjectColors(cell.subject, grade);
           const xCell = ws.getCell(rowNo, colNo);
-          if (roomA) {
-            xCell.value = { richText:[
-              { text: cell.subject, font:{ name:'맑은 고딕', size:11, bold:true, color:{ argb:'FF'+sc.fg } } },
-              { text:`\n📍${roomA}`, font:{ name:'맑은 고딕', size:8,  color:{ argb:'FF'+C.HDR_TITLE_BG } } },
-            ]};
+          const parts = [
+            { text: cell.subject, font:{ name:'맑은 고딕', size:11, bold:true, color:{ argb:'FF'+sc.fg } } },
+          ];
+          if (roomA) parts.push({ text:`\n📍${roomA}`, font:{ name:'맑은 고딕', size:8, color:{ argb:'FF'+C.HDR_TITLE_BG } } });
+          parts.push(...collabPart);
+          if (parts.length > 1) {
+            xCell.value = { richText: parts };
           } else {
             xCell.value = cell.subject;
             xCell.font  = font(sc.fg, true, 11);
           }
           xCell.fill      = fill(sc.bg);
+          xCell.border    = border();
+          xCell.alignment = align('center','middle');
+        } else if (collabs.length) {
+          // 담임 과목은 없고 협업 수업만 있는 칸
+          const xCell = ws.getCell(rowNo, colNo);
+          xCell.value     = { richText:[
+            { text:`🤝 ${collabs.join('·')}`,
+              font:{ name:'맑은 고딕', size:9, bold:true, color:{ argb:'FF0E7490' } } },
+          ]};
+          xCell.fill      = fill('ECFEFF');
           xCell.border    = border();
           xCell.alignment = align('center','middle');
         } else {
@@ -9233,6 +9272,136 @@ async function exportAllToExcel() {
     ws.pageSetup.margins = { left:.4, right:.4, top:.6, bottom:.6, header:.3, footer:.3 };
   }
 
+  // ── 협업 강사 시간표 시트 (스포츠 강사 등, 강사 기준) ────
+  function makeCollabSheet() {
+    const collabSched = school.collabSchedule || {};
+    const classes     = school.classes || [];
+
+    // 배정이 하나라도 있는 강사만 열로 만든다
+    const names = Object.keys(collabSched)
+      .filter(n => Object.values(collabSched[n] || {}).some(e => e?.classId));
+    if (!names.length) return;
+
+    const PALETTE = [
+      { bg:'CFFAFE', fg:'155E75' }, { bg:'DCFCE7', fg:'166534' },
+      { bg:'FEF9C3', fg:'854D0E' }, { bg:'FCE7F3', fg:'9D174D' },
+      { bg:'E0E7FF', fg:'3730A3' }, { bg:'FFEDD5', fg:'9A3412' },
+    ];
+    const cols = names.map((name, i) => ({
+      name, sched: collabSched[name] || {},
+      ...PALETTE[i % PALETTE.length],
+    }));
+
+    const ws        = wb.addWorksheet('협업 강사 시간표');
+    const totalCols = 1 + cols.length * DAYS.length;
+
+    ws.columns = [{ width:16 }, ...Array(cols.length * DAYS.length).fill({ width:13 })];
+
+    // 타이틀
+    ws.mergeCells(1, 1, 1, totalCols);
+    const titleCell     = ws.getCell(1, 1);
+    titleCell.value     = `${school.name}  협업 강사 시간표`;
+    titleCell.fill      = fill(C.HDR_TITLE_BG);
+    titleCell.font      = font(C.HDR_TITLE_FG, true, 13);
+    titleCell.alignment = align('center', 'middle');
+    titleCell.border    = border();
+    ws.getRow(1).height = 28;
+
+    // 강사명 헤더
+    setCell(ws, 2, 1, '교시/시간', C.HDR_PERIOD_BG, C.HDR_PERIOD_FG, true);
+    cols.forEach((tc, ti) => {
+      const startCol = 2 + ti * DAYS.length;
+      ws.mergeCells(2, startCol, 2, startCol + DAYS.length - 1);
+      const hCell     = ws.getCell(2, startCol);
+      hCell.value     = `🤝 ${tc.name}`;
+      hCell.fill      = fill(tc.bg);
+      hCell.font      = font(tc.fg, true, 10);
+      hCell.border    = border();
+      hCell.alignment = align('center', 'middle', true);
+    });
+    ws.getRow(2).height = 30;
+
+    // 요일 서브헤더
+    setCell(ws, 3, 1, '', C.HDR_PERIOD_BG, C.HDR_PERIOD_FG);
+    cols.forEach((tc, ti) => {
+      DAYS.forEach((d, di) => {
+        setCell(ws, 3, 2 + ti * DAYS.length + di, d, C.HDR_DAY_BG, C.HDR_DAY_FG, true, 10);
+      });
+    });
+    ws.getRow(3).height = 20;
+
+    // 데이터 행 (교담 시트와 동일한 교시·학년 그룹 기준)
+    const dataRows = [];
+    getScheduleRowsForSchool(school).forEach(slot => {
+      const byPeriod = {};
+      Object.entries(slot.gradeMap).forEach(([g, p]) => {
+        if (!byPeriod[p]) byPeriod[p] = [];
+        byPeriod[p].push(parseInt(g));
+      });
+      Object.entries(byPeriod).sort((a,b)=>Number(a[0])-Number(b[0])).forEach(([p, gs]) => {
+        const isMulti = Object.keys(byPeriod).length > 1;
+        const gPart   = isMulti ? `(${gs.sort((a,b)=>a-b).join('·')}학년)\n` : '';
+        dataRows.push({
+          periodNum: parseInt(p),
+          gradeSet:  new Set(gs),
+          label:     `${gPart}${p}교시\n${slot.start}`,
+        });
+      });
+    });
+
+    function findCollabEntry(sched, day, dr) {
+      const plainKey = `${day}-${dr.periodNum}`;
+      const qKey     = `${plainKey}|g${[...dr.gradeSet].sort().join('')}`;
+      const qe = sched[qKey];
+      if (qe?.classId) return qe;
+      for (const [k, v] of Object.entries(sched)) {
+        if (!v?.classId) continue;
+        const base = k.includes('|g') ? k.split('|g')[0] : k;
+        if (base !== plainKey) continue;
+        const c = classes.find(x => x.id === v.classId);
+        if (!c?.grade || dr.gradeSet.has(c.grade)) return v;
+      }
+      return null;
+    }
+
+    dataRows.forEach((dr, ri) => {
+      const rowNo     = ri + 4;
+      const lineCount = (dr.label.match(/\n/g)||[]).length + 1;
+      ws.getRow(rowNo).height = lineCount >= 3 ? 52 : lineCount === 2 ? 40 : 32;
+
+      const pCell = ws.getCell(rowNo, 1);
+      pCell.value     = dr.label;
+      pCell.fill      = fill(C.HDR_PERIOD_BG);
+      pCell.font      = font(C.HDR_PERIOD_FG, true, 10);
+      pCell.border    = border();
+      pCell.alignment = { horizontal:'center', vertical:'middle', wrapText:true };
+
+      cols.forEach((tc, ti) => {
+        DAYS.forEach((day, di) => {
+          const colNo = 2 + ti * DAYS.length + di;
+          const found = findCollabEntry(tc.sched, day, dr);
+          if (found) {
+            const cls  = classes.find(c => c.id === found.classId);
+            const g    = cls?.grade;
+            const gcol = (g >= 1 && g <= 6) ? C.GRADE[g-1] : { bg:'E5E7EB', fg:'374151' };
+            const cell = ws.getCell(rowNo, colNo);
+            cell.value     = cls?.name || found.className || '';
+            cell.fill      = fill(gcol.bg);
+            cell.font      = font(gcol.fg, true, 11);
+            cell.border    = border();
+            cell.alignment = { horizontal:'center', vertical:'middle', wrapText:false };
+          } else {
+            setCell(ws, rowNo, colNo, '', C.EMPTY_BG, 'E5E7EB');
+          }
+        });
+      });
+    });
+
+    ws.pageSetup = { paperSize:9, orientation:'landscape', fitToPage:true,
+                     fitToWidth:1, fitToHeight:0 };
+    ws.pageSetup.margins = { left:.4, right:.4, top:.6, bottom:.6, header:.3, footer:.3 };
+  }
+
   // ── 시트 생성 실행 ───────────────────────────────────────
   try {
     // 1. 학급별 시간표 시트 (학년 순)
@@ -9254,6 +9423,9 @@ async function exportAllToExcel() {
 
     // 4. 교담 시간표 시트
     try { makeSpecialtySheet(); } catch(e) { console.warn('교담 시트 오류:', e); }
+
+    // 5. 협업 강사 시간표 시트
+    try { makeCollabSheet(); } catch(e) { console.warn('협업 강사 시트 오류:', e); }
 
   } catch(e) {
     console.error('엑셀 생성 오류:', e);
@@ -9406,7 +9578,8 @@ function onImportExcelFileChange(input) {
       const classNames   = new Set((S.school.classes||[]).map(c => c.name));
       const matched      = names.filter(n => classNames.has(n));
       const hasSpecialty = names.includes('교담 시간표');
-      _importExcelData   = { wb, matched, hasSpecialty };
+      const hasCollab    = names.includes('협업 강사 시간표');
+      _importExcelData   = { wb, matched, hasSpecialty, hasCollab };
       const previewEl = q('#import-excel-preview');
       previewEl.innerHTML = `
         <div style="font-weight:700;margin-bottom:.35rem">📋 파일 정보</div>
@@ -9415,9 +9588,10 @@ function onImportExcelFileChange(input) {
           ${matched.length
             ? '(' + matched.slice(0,5).map(escHtml).join(', ') + (matched.length>5?'…':'') + ')'
             : '— 학급 이름이 일치하는 시트가 없습니다.'}</div>
-        <div>교담 시간표 시트: ${hasSpecialty ? '✔ 있음' : '없음'}</div>`;
+        <div>교담 시간표 시트: ${hasSpecialty ? '✔ 있음' : '없음'}</div>
+        <div>협업 강사 시간표 시트: ${hasCollab ? '✔ 있음' : '없음'}</div>`;
       previewEl.style.display = 'block';
-      if (!matched.length && !hasSpecialty) {
+      if (!matched.length && !hasSpecialty && !hasCollab) {
         previewEl.innerHTML += `<div style="color:var(--danger);margin-top:.35rem">
           ⚠ 불러올 수 있는 시트가 없습니다.</div>`;
         q('#import-confirm-btn').disabled = true;
@@ -9487,9 +9661,10 @@ async function execImportJSON() {
 
 async function execImportExcel() {
   if (!_importExcelData || !S.school) return;
-  const { wb, matched, hasSpecialty } = _importExcelData;
+  const { wb, matched, hasSpecialty, hasCollab } = _importExcelData;
   const doTimetable = q('#xl-opt-timetable')?.checked ?? true;
   const doSpecialty = q('#xl-opt-specialty')?.checked ?? false;
+  const doCollab    = q('#xl-opt-collab')?.checked ?? false;
   closeModal('modal-import');
   toast('엑셀 불러오는 중…', '');
   let importedCount = 0;
@@ -9513,11 +9688,23 @@ async function execImportExcel() {
       try { _parseSpecialtySheetToSchedule(wb.Sheets['교담 시간표']); await saveSchool(S.school); }
       catch(e) { errors.push(`교담 시간표: ${e.message}`); }
     }
+    let collabInfo = null;
+    if (doCollab && hasCollab) {
+      try {
+        collabInfo = _parseCollabSheetToSchedule(wb.Sheets['협업 강사 시간표']);
+        await saveSchool(S.school);
+      } catch(e) { errors.push(`협업 강사 시간표: ${e.message}`); }
+    }
     saveSession(); initTimetable(); goToAdminHome();
+
+    if (collabInfo?.skipped?.length) {
+      toast(`⚠ 등록되지 않은 강사는 건너뛰었습니다: ${collabInfo.skipped.join(', ')}`, 'warn');
+    }
+    const collabMsg = collabInfo?.imported ? ` · 협업 ${collabInfo.imported}시간` : '';
     if (errors.length)
       toast(`⚠ 일부 시트 오류(${errors.length}개). 나머지 ${importedCount}개 학급 완료.`, 'warn');
     else
-      toast(`✔ ${importedCount}개 학급 시간표를 불러왔습니다.`, 'success');
+      toast(`✔ ${importedCount}개 학급 시간표를 불러왔습니다.${collabMsg}`, 'success');
   } catch(err) {
     toast('불러오기 중 오류: ' + err.message, 'error');
   }
@@ -9539,7 +9726,9 @@ function _parseClassSheetToTtData(ws) {
       const text = _cellText(cell).trim();
       if (!text || text.startsWith('교담')) return;
       const subj = text.split('\n')[0].trim();
-      if (subj) ttData[`${day}-${p}`] = { subject: subj };
+      // 협업 강사만 표시된 칸(🤝 …)은 담임 과목이 아니므로 건너뛴다
+      if (!subj || subj.startsWith('🤝')) return;
+      ttData[`${day}-${p}`] = { subject: subj };
     });
   }
   return ttData;
@@ -9588,6 +9777,66 @@ function _parseSpecialtySheetToSchedule(ws) {
       });
     });
   }
+}
+
+/**
+ * 「협업 강사 시간표」 시트 → collabSchedule 반영.
+ * 시트에 있는 강사만 대상으로 하며, 그 강사의 기존 배정은 시트 내용으로 대체한다.
+ * 현재 학교에 등록되지 않은 강사 이름은 건너뛴다.
+ * @return { imported:number, skipped:string[] }
+ */
+function _parseCollabSheetToSchedule(ws) {
+  const result = { imported: 0, skipped: [] };
+  if (!S.school) return result;
+  const range   = XLSX.utils.decode_range(ws['!ref'] || 'A1:A1');
+  const days    = ['월','화','수','목','금'];
+  const classes = S.school.classes || [];
+  const known   = (S.school.teacherTypes || [])
+    .filter(t => t.mode === 'collaborative')
+    .map(t => t.name);
+
+  // ① 강사 열 찾기 (헤더는 3행, 인덱스 r:1)
+  const cols = [];
+  for (let c = 1; c <= range.e.c; c++) {
+    const cell = ws[XLSX.utils.encode_cell({ r:1, c })];
+    if (!cell) continue;
+    const name = _cellText(cell).replace(/^🤝\s*/, '').trim();
+    if (!name) continue;
+    cols.push({ startCol: c, name });
+    c += days.length - 1;
+  }
+  if (!cols.length) return result;
+
+  // ② 대상 강사의 기존 배정 비우기 (시트 내용으로 대체)
+  if (!S.school.collabSchedule) S.school.collabSchedule = {};
+  const targets = cols.filter(({ name }) => {
+    if (!known.includes(name)) { result.skipped.push(name); return false; }
+    return true;
+  });
+  targets.forEach(({ name }) => { S.school.collabSchedule[name] = {}; });
+
+  // ③ 행별로 배정 학급 읽기
+  for (let r = 3; r <= range.e.r; r++) {
+    const lc = ws[XLSX.utils.encode_cell({ r, c:0 })];
+    if (!lc) continue;
+    const pm = _cellText(lc).match(/(\d+)교시/);
+    if (!pm) continue;
+    const p = parseInt(pm[1]);
+
+    targets.forEach(({ startCol, name }) => {
+      days.forEach((day, di) => {
+        const cell = ws[XLSX.utils.encode_cell({ r, c: startCol + di })];
+        if (!cell) return;
+        const clsName = _cellText(cell).trim();
+        if (!clsName) return;
+        const cls = classes.find(c => c.name === clsName);
+        if (!cls) return;
+        S.school.collabSchedule[name][`${day}-${p}`] = { classId: cls.id, className: cls.name };
+        result.imported++;
+      });
+    });
+  }
+  return result;
 }
 
 function _cellText(cell) {
