@@ -1354,11 +1354,20 @@ a{color:inherit;text-decoration:none}
   </div>
   <div class="page-body">
     <div class="card">
-      <div class="card-title">학교 검색</div>
+      <div class="card-title">🔐 학교 확인</div>
       <div class="form-group">
-        <label class="form-label">학교 이름</label>
-        <input type="text" id="join-search" class="form-input" placeholder="학교 이름을 입력하세요 (1글자 이상)..." oninput="searchSchools(this.value)">
+        <label class="form-label">학교 이름 <span style="color:var(--danger)">*</span></label>
+        <input type="text" id="join-search" class="form-input" placeholder="학교 이름을 정확히 입력하세요"
+               autocomplete="off" onkeydown="if(event.key==='Enter') verifyJoinSchool()">
+        <div class="form-hint">📌 관리자가 만든 학교 이름 그대로 입력해주세요.</div>
       </div>
+      <div class="form-group">
+        <label class="form-label">학교 비밀번호 <span style="color:var(--danger)">*</span></label>
+        <input type="password" id="join-pw" class="form-input" placeholder="학교 비밀번호를 입력하세요"
+               autocomplete="off" onkeydown="if(event.key==='Enter') verifyJoinSchool()">
+        <div id="join-pw-err" class="form-error">⚠️ 학교 이름 또는 비밀번호가 맞지 않습니다. 관리자에게 문의하세요.</div>
+      </div>
+      <button class="btn btn-primary btn-block" id="btn-join-verify" onclick="verifyJoinSchool()">확인</button>
       <div id="school-results"></div>
     </div>
 
@@ -1369,8 +1378,6 @@ a{color:inherit;text-decoration:none}
           <label class="form-label">역할</label>
           <select id="join-role" class="form-select" onchange="onJoinRoleChange()">
             <option value="homeroom">🏠 담임교사</option>
-            <option value="specialty">⭐ 교과전담교사</option>
-            <option value="admin">👑 관리자 (설정·배정 권한)</option>
           </select>
         </div>
         <!-- 교과전담교사 전용: 담당 교과 선택 (복수) -->
@@ -1387,12 +1394,6 @@ a{color:inherit;text-decoration:none}
           </select>
           <div id="join-class-err" class="form-error" style="display:none">⚠️ 담당 학급을 선택해주세요.</div>
           <div class="form-hint" id="join-class-hint">📌 교과전담교사이거나 전체 학급 담당이면 선택하지 않아도 됩니다.</div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">학교 비밀번호 <span id="join-pw-label-hint" class="text-muted text-sm"></span></label>
-          <input type="password" id="join-pw" class="form-input" placeholder="학교 비밀번호를 입력하세요"
-                 onkeydown="if(event.key==='Enter') joinSchool()">
-          <div id="join-pw-err" class="form-error">⚠️ 비밀번호가 맞지 않습니다. 관리자에게 문의하세요.</div>
         </div>
         <button class="btn btn-primary btn-block" onclick="joinSchool()">🚀 시간표 입력 시작</button>
       </div>
@@ -1667,11 +1668,11 @@ a{color:inherit;text-decoration:none}
         <div class="form-hint" style="margin-bottom:.85rem">
           담임·교과전담·협업 교사가 접속할 때 사용하는 비밀번호입니다.
         </div>
-        <!-- 현재 비밀번호 인라인 표시 -->
+        <!-- 현재 비밀번호는 저장하지 않으므로 표시하지 않는다 -->
         <div style="font-size:.82rem;color:var(--g600);margin-bottom:.85rem;display:flex;align-items:center;gap:.5rem">
           <span>현재 비밀번호:</span>
           <strong id="teacher-pw-mask" style="letter-spacing:.1em">••••</strong>
-          <button class="btn btn-ghost btn-sm" style="font-size:.72rem;padding:.15rem .5rem" onclick="toggleTeacherPwShow()">표시</button>
+          <span class="text-muted" style="font-size:.72rem">🔒 보안을 위해 저장되지 않습니다</span>
         </div>
         <div id="teacher-pw-current-display" style="display:none"></div>
         <div class="form-group">
@@ -2016,7 +2017,7 @@ a{color:inherit;text-decoration:none}
 <div id="screen-superadmin" class="screen">
   <div class="sa-header">
     <div class="sa-title">🔐 총괄 관리자 패널</div>
-    <button class="btn btn-sm" onclick="goTo('screen-landing')"
+    <button class="btn btn-sm" onclick="saExit()"
       style="color:#94a3b8;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06)">← 나가기</button>
   </div>
 
@@ -2040,7 +2041,7 @@ a{color:inherit;text-decoration:none}
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.6rem">
         <div>
           <div style="font-size:.85rem;font-weight:700;color:#f1f5f9">🔑 슈퍼관리자 비밀번호 변경</div>
-          <div style="font-size:.75rem;color:rgba(255,255,255,.35);margin-top:2px">이 기기에 저장됩니다</div>
+          <div style="font-size:.75rem;color:rgba(255,255,255,.35);margin-top:2px">Firebase 계정 비밀번호가 변경됩니다</div>
         </div>
         <button class="btn btn-sm" onclick="openSaPwChange()"
           style="color:#94a3b8;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06)">🔐 변경</button>
@@ -2057,6 +2058,18 @@ a{color:inherit;text-decoration:none}
         </div>
         <div id="sa-pw-err" style="font-size:.78rem;color:#f87171;margin-top:.4rem;display:none"></div>
       </div>
+    </div>
+
+    <!-- 보안 전환 (1회 실행) -->
+    <div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:var(--r-lg);padding:.85rem 1rem;margin-bottom:1.25rem">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.6rem">
+        <div>
+          <div style="font-size:.85rem;font-weight:700;color:#f1f5f9">🛡️ 개인정보 보호 전환</div>
+          <div style="font-size:.75rem;color:rgba(255,255,255,.35);margin-top:2px">기존 학교의 비밀번호를 해시로 바꾸고 원문을 삭제합니다 (1회만 실행)</div>
+        </div>
+        <button class="btn btn-primary btn-sm" id="sa-migrate-btn" onclick="saMigrateAll()">전환 실행</button>
+      </div>
+      <div id="sa-migrate-log" style="display:none;margin-top:.7rem;font-size:.78rem;color:#94a3b8;max-height:190px;overflow:auto;font-family:monospace"></div>
     </div>
 
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.1rem">
@@ -2358,9 +2371,13 @@ a{color:inherit;text-decoration:none}
    =========================================================== */
 import { initializeApp }   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import {
-  getFirestore, doc, getDoc, getDocs, setDoc, deleteDoc,
+  getFirestore, doc, getDoc, getDocs, setDoc, deleteDoc, updateDoc, deleteField,
   collection, onSnapshot, serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import {
+  getAuth, signInAnonymously, signInWithEmailAndPassword, signOut,
+  updatePassword, onAuthStateChanged
+} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
 /* ===========================================================
    FIREBASE CONFIG
@@ -2376,6 +2393,142 @@ const firebaseConfig = {
 };
 const _app = initializeApp(firebaseConfig);
 const db   = getFirestore(_app);
+const auth = getAuth(_app);
+
+/* ===========================================================
+   인증 · 접근 제어 (개인정보 보호 계층)
+   -----------------------------------------------------------
+   · 모든 방문자는 익명 로그인으로 uid를 받는다.
+   · 학교 데이터(schools/{id})는 members/{uid} 문서가 있어야 읽힌다.
+   · members 문서는 비밀번호 해시가 맞아야만 만들어진다(보안 규칙이 검사).
+   · 비밀번호 원문은 어디에도 저장되지 않는다.
+   =========================================================== */
+const SUPER_EMAIL = 'super@stt.local';   // 총괄 관리자 계정 (Firebase 콘솔에서 1회 생성)
+
+let _authUser = auth.currentUser;
+let _authWaiters = [];
+onAuthStateChanged(auth, u => {
+  _authUser = u;
+  if (u) { _authWaiters.forEach(fn => fn(u)); _authWaiters = []; }
+  else   { signInAnonymously(auth).catch(e => console.warn('anonymous sign-in failed:', e)); }
+});
+
+/** 익명(또는 총괄관리자) 로그인이 끝날 때까지 기다린다. */
+function ensureAuth() {
+  if (_authUser) return Promise.resolve(_authUser);
+  return new Promise(resolve => {
+    _authWaiters.push(resolve);
+    if (!auth.currentUser) signInAnonymously(auth).catch(e => console.warn('anonymous sign-in failed:', e));
+  });
+}
+function myUid() { return _authUser?.uid || auth.currentUser?.uid || null; }
+function isSuperUser() { return (auth.currentUser?.email || '') === SUPER_EMAIL; }
+
+/** 학교 이름 정규화 (공백·대소문자 무시) */
+function normSchoolName(v) {
+  return (v||'').trim().replace(/\s+/g,'').toLowerCase();
+}
+
+async function sha256Hex(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+/** 학교 이름 → nameIndex 문서 ID (이름 목록을 노출하지 않고 정확히 찾기 위함) */
+async function nameKeyOf(name) {
+  return await sha256Hex('stt-name|' + normSchoolName(name));
+}
+
+/** 비밀번호 → 검증용 해시 (솔트 포함, 1000회 반복) */
+async function pwHashOf(salt, pw) {
+  let h = 'stt-pw|' + salt + '|' + pw;
+  for (let i = 0; i < 1000; i++) h = await sha256Hex(h);
+  return h;
+}
+
+function randomSalt() {
+  const a = new Uint8Array(16);
+  crypto.getRandomValues(a);
+  return [...a].map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+/** 이름으로 학교 찾기 — 목록 조회 없이 문서 하나만 읽는다. */
+async function lookupSchoolIndex(name) {
+  await ensureAuth();
+  try {
+    const snap = await getDoc(doc(db, 'nameIndex', await nameKeyOf(name)));
+    return snap.exists() ? snap.data() : null;
+  } catch(e) { console.warn('lookupSchoolIndex error:', e); return null; }
+}
+
+/**
+ * 비밀번호로 학교 접속 자격을 얻는다.
+ * members/{uid} 쓰기가 허용되면 = 비밀번호가 맞다는 뜻(검증은 서버 규칙이 수행).
+ * @return {{school:object, level:'admin'|'teacher'}|null}
+ */
+async function authenticateSchool(name, pw) {
+  await ensureAuth();
+  const idx = await lookupSchoolIndex(name);
+  if (!idx || !idx.schoolId) return null;
+  const uid = myUid();
+  if (!uid) return null;
+
+  const h = await pwHashOf(idx.salt || '', pw);
+  for (const role of ['admin', 'teacher']) {
+    try {
+      await setDoc(doc(db, 'schools', idx.schoolId, 'members', uid),
+                   { role, h, at: Date.now() });
+    } catch(e) { continue; }          // 규칙이 거부 = 해당 역할 비밀번호가 아님
+    try {
+      const snap = await getDoc(doc(db, 'schools', idx.schoolId));
+      if (snap.exists()) {
+        const school = fromFirestoreDoc(snap.data());
+        cacheSchool(school);
+        return { school, level: role };
+      }
+    } catch(e) { console.warn('school read error:', e); }
+  }
+  return null;
+}
+
+/** 비밀번호가 특정 역할과 일치하는지만 확인 (변경 화면의 현재 비밀번호 검증용) */
+async function verifySchoolPw(schoolId, salt, pw, role) {
+  const uid = myUid();
+  if (!uid) return false;
+  try {
+    await setDoc(doc(db, 'schools', schoolId, 'members', uid),
+                 { role, h: await pwHashOf(salt || '', pw), at: Date.now() });
+    return true;
+  } catch(e) { return false; }
+}
+
+/** 비밀번호 해시 저장 (관리자 또는 총괄관리자만 가능) */
+async function writeSchoolSecret(schoolId, patch) {
+  await setDoc(doc(db, 'schools', schoolId, 'secret', 'auth'), patch, { merge: true });
+}
+
+/** 접속 자격이 회수됐을 때(비밀번호 변경 등) 조용히 끊기지 않도록 안내 후 로그아웃 */
+let _deniedHandled = false;
+function onFirestoreDenied(err, where) {
+  console.warn('Firestore listen error (' + where + '):', err);
+  if (err?.code !== 'permission-denied' || _deniedHandled) return;
+  _deniedHandled = true;
+  toast('접속 권한이 만료되었습니다. 비밀번호로 다시 접속해주세요.', 'error');
+  setTimeout(() => { try { logout(); } catch {} _deniedHandled = false; }, 1200);
+}
+
+/** 비밀번호 변경 시 기존 접속 자격 회수 — 해당 역할의 members 문서를 모두 지운다. */
+async function revokeMembers(schoolId, role, keepUid) {
+  try {
+    const snap = await getDocs(collection(db, 'schools', schoolId, 'members'));
+    for (const d of snap.docs) {
+      if (d.id === keepUid) continue;
+      if (d.data()?.role !== role) continue;
+      try { await deleteDoc(d.ref); } catch(e) { /* 무시 */ }
+    }
+  } catch(e) { console.warn('revokeMembers error:', e); }
+}
+
 
 /* ===========================================================
    CONSTANTS
@@ -2741,10 +2894,7 @@ function periodLabel(p, times) {
   if (t) return `${p}교시<span class="period-time">${t.start}~${t.end}</span>`;
   return `${p}교시`;
 }
-const SA_PW_DEFAULT = 'SMARTTT2024!';
-const SA_PW_KEY     = 'stt_sa_pw';
-function getSaPw()      { return localStorage.getItem(SA_PW_KEY) || SA_PW_DEFAULT; }
-function setSaPw(pw)    { localStorage.setItem(SA_PW_KEY, pw); }
+/* 총괄 관리자 비밀번호는 Firebase Authentication 계정에서 관리한다 (기기 저장 없음) */
 
 /* 학년별 교과목 기본값 (2022 개정 교육과정) */
 const DEFAULT_SUBJECTS_BY_GRADE = {
@@ -2965,15 +3115,34 @@ window.easterClick = easterClick;
    SUPER ADMIN
    =========================================================== */
 async function saLogin() {
-  if (document.getElementById('sa-pw').value === getSaPw()) {
-    document.getElementById('sa-login').style.display = 'none';
-    document.getElementById('sa-dashboard').style.display = 'block';
-    await loadAllSchools();
-  } else {
+  const pwEl = document.getElementById('sa-pw');
+  const pw   = pwEl.value;
+  if (!pw) { toast('비밀번호를 입력하세요.', 'error'); return; }
+  try {
+    await signInWithEmailAndPassword(auth, SUPER_EMAIL, pw);
+  } catch(e) {
     toast('비밀번호가 올바르지 않습니다.', 'error');
+    return;
   }
+  pwEl.value = '';
+  document.getElementById('sa-login').style.display = 'none';
+  document.getElementById('sa-dashboard').style.display = 'block';
+  await loadAllSchools();
 }
 window.saLogin = saLogin;
+
+/** 총괄 관리자 패널을 나갈 때는 반드시 로그아웃 (공용 기기 대비) */
+async function saExit() {
+  try { if (isSuperUser()) await signOut(auth); } catch(e) { console.warn(e); }
+  saSchoolsCache = [];
+  const list = document.getElementById('sa-list');
+  if (list) list.innerHTML = '';
+  document.getElementById('sa-dashboard').style.display = 'none';
+  document.getElementById('sa-login').style.display     = 'block';
+  await ensureAuth();          // 익명 사용자로 복귀
+  goTo('screen-landing');
+}
+window.saExit = saExit;
 
 // 만료(1년 경과) 학교 중 일괄 삭제 대상으로 선택된 id 집합 (새로고침해도 선택 상태 유지)
 let saExpiredSel = new Set();
@@ -2982,7 +3151,7 @@ let saSchoolsCache = [];
 async function loadAllSchools() {
   const list = document.getElementById('sa-list');
   list.innerHTML = '<div style="color:rgba(255,255,255,.3);text-align:center;padding:2rem"><div class="spinner" style="border-color:rgba(255,255,255,.15);border-top-color:var(--brand)"></div></div>';
-  const schools = await fetchSchools();
+  const schools = await fetchAllSchools();
   if (!schools.length) {
     list.innerHTML = '<div class="sa-empty">🏫 등록된 학교가 없습니다.</div>';
     return;
@@ -3042,10 +3211,7 @@ async function loadAllSchools() {
           <div class="sa-meta">
             생성: ${dateStr} &nbsp;${ageBadge}&nbsp;
             · 학급 ${(s.classes||[]).length}개
-            · PW: <span onclick="saTogglePwVisible('${s.id}')" id="sa-pw-${s.id}"
-                data-pw="${escHtml(s.adminPassword||'')}"
-                style="cursor:pointer;font-family:monospace;filter:blur(3px);transition:filter .12s"
-                title="클릭하여 비밀번호 보기/숨기기">${escHtml(s.adminPassword || '-')}</span>
+            · <span style="font-family:monospace;font-size:.72rem;color:${(s.adminPassword||s.teacherPassword) ? '#fca5a5' : '#6ee7b7'}">${(s.adminPassword||s.teacherPassword) ? '⚠ 구버전(전환 필요)' : '🔒 PW 미저장'}</span>
           </div>
           ${expired ? `<div style="font-size:.73rem;color:#fca5a5;margin-top:2px">📅 생성 1년 경과 — 삭제를 검토하세요</div>` : ''}
         </div>
@@ -3121,16 +3287,23 @@ function openSaPwChange() {
 }
 window.openSaPwChange = openSaPwChange;
 
-function changeSaPw() {
+async function changeSaPw() {
   const pw1 = q('#sa-new-pw').value;
   const pw2 = q('#sa-new-pw2').value;
   const err = q('#sa-pw-err');
   err.style.display = 'none';
   if (pw1.length < 8)      { err.textContent = '비밀번호는 8자 이상이어야 합니다.'; err.style.display='block'; return; }
   if (pw1 !== pw2)         { err.textContent = '두 비밀번호가 일치하지 않습니다.';  err.style.display='block'; return; }
-  setSaPw(pw1);
+  if (!isSuperUser())      { err.textContent = '다시 로그인한 뒤 시도해주세요.';    err.style.display='block'; return; }
+  try {
+    await updatePassword(auth.currentUser, pw1);
+  } catch(e) {
+    err.textContent = '변경에 실패했습니다. 로그아웃 후 다시 로그인해주세요.';
+    err.style.display = 'block';
+    return;
+  }
   q('#sa-pw-change-form').style.display = 'none';
-  toast('슈퍼관리자 비밀번호가 변경되었습니다. ✔', 'success');
+  toast('총괄 관리자 비밀번호가 변경되었습니다. ✔', 'success');
 }
 window.changeSaPw = changeSaPw;
 
@@ -3143,12 +3316,24 @@ function saResetSchoolPw(schoolId, schoolName) {
     async () => {
       const newPw = q('#sa-reset-pw-input').value.trim();
       if (!newPw || newPw.length < 4) { toast('4자 이상 입력하세요.', 'error'); return; }
-      const schools = await fetchSchools();
-      const school  = schools.find(s => s.id === schoolId);
+      const school = saSchoolsCache.find(s => s.id === schoolId);
       if (!school) { toast('학교를 찾을 수 없습니다.', 'error'); return; }
-      school.adminPassword = newPw;
-      await saveSchool(school);
-      toast(`${schoolName} 비밀번호가 "${newPw}"(으)로 변경되었습니다.`, 'success');
+      try {
+        let salt = school.pwSalt;
+        if (!salt) {   // 구버전 데이터 보정
+          salt = randomSalt();
+          school.pwSalt = salt;
+          await setDoc(doc(db,'schools',schoolId), toFirestoreDoc(school));
+          await setDoc(doc(db,'nameIndex', await nameKeyOf(school.name)),
+                       { schoolId, salt, name: school.name });
+        }
+        await writeSchoolSecret(schoolId, { adminHash: await pwHashOf(salt, newPw) });
+        await revokeMembers(schoolId, 'admin', null);
+        toast(`${schoolName} 관리자 비밀번호가 변경되었습니다.`, 'success');
+      } catch(e) {
+        console.error('saResetSchoolPw error:', e);
+        toast('변경에 실패했습니다.', 'error');
+      }
     },
     /* extraHtml */ `<input type="text" id="sa-reset-pw-input" class="form-input" placeholder="새 비밀번호 입력" style="margin-top:.75rem">`,
     /* okLabel */ '저장',
@@ -3156,6 +3341,63 @@ function saResetSchoolPw(schoolId, schoolName) {
   );
 }
 window.saResetSchoolPw = saResetSchoolPw;
+
+/* ───────────────────────────────────────────────────────────
+   보안 전환 — 평문 비밀번호를 해시로 옮기고 원문을 삭제 (1회 실행)
+   ─────────────────────────────────────────────────────────── */
+async function saMigrateAll() {
+  if (!isSuperUser()) { toast('총괄 관리자로 로그인해주세요.', 'error'); return; }
+  const btn = q('#sa-migrate-btn');
+  const log = q('#sa-migrate-log');
+  log.style.display = 'block';
+  log.innerHTML = '';
+  const say = (msg) => { log.innerHTML += escHtml(msg) + '<br>'; log.scrollTop = log.scrollHeight; };
+
+  btn.disabled = true; btn.textContent = '전환 중...';
+  try {
+    const schools = await fetchAllSchools();
+    say(`학교 ${schools.length}개 확인`);
+    let done = 0, skipped = 0;
+
+    for (const s of schools) {
+      try {
+        const hadPlain = !!(s.adminPassword || s.teacherPassword);
+        const salt     = s.pwSalt || randomSalt();
+
+        if (hadPlain) {
+          const aPw = s.adminPassword   || s.teacherPassword;
+          const tPw = s.teacherPassword || s.adminPassword;
+          await setDoc(doc(db,'schools',s.id,'secret','auth'), {
+            adminHash:   await pwHashOf(salt, aPw),
+            teacherHash: await pwHashOf(salt, tPw),
+          });
+        }
+        // 이름 색인 (없으면 생성, 있으면 갱신)
+        await setDoc(doc(db,'nameIndex', await nameKeyOf(s.name)),
+                     { schoolId: s.id, salt, name: s.name });
+        // 학교 문서에서 비밀번호 원문 제거
+        await updateDoc(doc(db,'schools',s.id), {
+          pwSalt: salt,
+          adminPassword:   deleteField(),
+          teacherPassword: deleteField(),
+        });
+
+        if (hadPlain) { done++;    say(`✔ ${s.name} — 전환 완료`); }
+        else          { skipped++; say(`· ${s.name} — 이미 전환됨(색인만 갱신)`); }
+      } catch(e) {
+        console.error('migrate error:', s.id, e);
+        say(`✘ ${s.name} — 실패: ${e.code || e.message || e}`);
+      }
+    }
+    say(`─────────────`);
+    say(`완료: 전환 ${done}개 · 유지 ${skipped}개`);
+    toast(`보안 전환 완료 (${done}개)`, 'success');
+    await loadAllSchools();
+  } finally {
+    btn.disabled = false; btn.textContent = '전환 실행';
+  }
+}
+window.saMigrateAll = saMigrateAll;
 
 /* ===========================================================
    SPECIALTY TEACHER — MULTI-SUBJECT
@@ -4336,12 +4578,25 @@ async function changeSchoolPw() {
   curErr.style.display = 'none';
   newErr.style.display = 'none';
 
-  if (cur !== S.school.adminPassword) { curErr.style.display = 'block'; return; }
+  const salt = S.school.pwSalt || '';
+  // 현재 비밀번호 확인 — 서버 규칙이 판단한다 (앱은 원문을 갖고 있지 않다)
+  const ok = await verifySchoolPw(S.school.id, salt, cur, 'admin');
+  if (!ok) { curErr.style.display = 'block'; return; }
   if (new1.length < 4) { toast('새 비밀번호는 4자 이상이어야 합니다.', 'error'); return; }
   if (new1 !== new2)   { newErr.style.display = 'block'; return; }
 
-  S.school.adminPassword = new1;
-  await saveSchool(S.school);
+  const uid = myUid();
+  const h   = await pwHashOf(salt, new1);
+  try {
+    await writeSchoolSecret(S.school.id, { adminHash: h });
+    // 내 접속 자격을 새 비밀번호 기준으로 갱신한 뒤, 기존 관리자 접속 자격은 회수
+    await setDoc(doc(db,'schools',S.school.id,'members',uid), { role:'admin', h, at: Date.now() });
+    await revokeMembers(S.school.id, 'admin', uid);
+  } catch(e) {
+    console.error('changeSchoolPw error:', e);
+    toast('비밀번호 변경에 실패했습니다. 잠시 후 다시 시도해주세요.', 'error');
+    return;
+  }
   q('#pw-current').value = '';
   q('#pw-new1').value    = '';
   q('#pw-new2').value    = '';
@@ -4349,20 +4604,9 @@ async function changeSchoolPw() {
 }
 window.changeSchoolPw = changeSchoolPw;
 
-/* 교사 비밀번호 표시 토글 */
+/* 교사 비밀번호는 저장하지 않으므로 표시할 수 없다 — 변경만 가능 */
 function toggleTeacherPwShow() {
-  const maskEl = q('#teacher-pw-mask');
-  // 새 인라인 구조에서는 mask 옆 버튼을 형제로 탐색
-  const btn = maskEl?.parentElement?.querySelector('button');
-  if (!maskEl || !S.school) return;
-  const pw = S.school.teacherPassword || S.school.adminPassword;
-  if (maskEl.textContent.includes('•')) {
-    maskEl.textContent = pw;
-    if (btn) btn.textContent = '숨기기';
-  } else {
-    maskEl.textContent = '••••';
-    if (btn) btn.textContent = '표시';
-  }
+  toast('보안을 위해 비밀번호는 저장되지 않습니다. 잊었다면 새로 설정해주세요.', 'info');
 }
 window.toggleTeacherPwShow = toggleTeacherPwShow;
 
@@ -4387,8 +4631,14 @@ async function changeTeacherPw() {
   if (new1.length < 4) { toast('새 비밀번호는 4자 이상이어야 합니다.', 'error'); return; }
   if (new1 !== new2)   { newErr.style.display = 'block'; return; }
 
-  S.school.teacherPassword = new1;
-  await saveSchool(S.school);
+  try {
+    await writeSchoolSecret(S.school.id, { teacherHash: await pwHashOf(S.school.pwSalt || '', new1) });
+    await revokeMembers(S.school.id, 'teacher', myUid());   // 이전 비밀번호로 접속한 기기 회수
+  } catch(e) {
+    console.error('changeTeacherPw error:', e);
+    toast('비밀번호 변경에 실패했습니다. 잠시 후 다시 시도해주세요.', 'error');
+    return;
+  }
   q('#tpw-new1').value = '';
   q('#tpw-new2').value = '';
   const maskEl = q('#teacher-pw-mask');
@@ -4427,8 +4677,7 @@ async function checkDuplicateName(name) {
   if (!warn) return;
   if (!name) { warn.style.display = 'none'; return; }
   try {
-    const schools = await fetchSchools();
-    warn.style.display = schools.some(s => s.name.trim() === name) ? 'block' : 'none';
+    warn.style.display = (await lookupSchoolIndex(name)) ? 'block' : 'none';
   } catch { warn.style.display = 'none'; }
 }
 
@@ -4458,12 +4707,14 @@ async function confirmManageAuth() {
   pwErr.style.display   = 'none';
 
   if (!nameVal) { toast('학교 이름을 입력하세요.', 'error'); return; }
+  if (!pw)      { toast('비밀번호를 입력하세요.', 'error'); return; }
 
-  const schools = await fetchSchools();
-  const found   = schools.find(s => s.name === nameVal || s.name.includes(nameVal));
-  if (!found) { nameErr.style.display = 'block'; return; }
-  if (pw !== found.adminPassword) { pwErr.style.display = 'block'; return; }
+  const res = await authenticateSchool(nameVal, pw);
+  // 이름·비밀번호 중 무엇이 틀렸는지 구분해 알리지 않는다 (학교 이름 추측 방지)
+  if (!res)                  { pwErr.style.display = 'block'; return; }
+  if (res.level !== 'admin') { pwErr.style.display = 'block'; return; }
 
+  const found = res.school;
   S.school = found;
   S.user   = { name: '관리자', role: 'admin', className: '', classId: null };
   saveSession();
@@ -4476,15 +4727,20 @@ window.confirmManageAuth = confirmManageAuth;
 function goToJoin() {
   // 참여 폼 초기화
   const si = q('#join-search');
-  if (si) si.value = '';
+  if (si) { si.value = ''; si.disabled = false; }
+  const pwEl = q('#join-pw');
+  if (pwEl) { pwEl.value = ''; pwEl.disabled = false; }
+  const vBtn = q('#btn-join-verify');
+  if (vBtn) { vBtn.style.display = ''; vBtn.disabled = false; vBtn.textContent = '확인'; }
   q('#school-results').innerHTML = '';
   q('#join-form').style.display = 'none';
-  q('#join-pw').value = '';
   q('#join-pw-err').style.display = 'none';
   const roleEl = q('#join-role');
   if (roleEl) roleEl.value = 'homeroom';
   q('#join-class-group').style.display = 'block';
   joinSchoolRef = null;
+  joinAuthLevel = null;
+  joinFailCount = 0;
   goTo('screen-join');
 }
 window.goToJoin = goToJoin;
@@ -4516,9 +4772,8 @@ async function createSchool() {
 
   // ── 중복 이름 차단 ────────────────────────────────────────
   try {
-    const existing = await fetchSchools();
-    const isDup = existing.some(s => s.name.trim() === name);
-    if (isDup) {
+    const dup = await lookupSchoolIndex(name);
+    if (dup) {
       const dupWarn = q('#create-name-dup-warn');
       if (dupWarn) dupWarn.style.display = 'block';
       toast('⚠️ 이미 같은 이름의 학교(그룹)가 있습니다. 다른 이름을 사용해 주세요.', 'error');
@@ -4537,8 +4792,7 @@ async function createSchool() {
     });
     const schoolData = {
       id, name,
-      adminPassword: pw,
-      teacherPassword: pw,  // 초기값은 관리자 비밀번호와 동일, 나중에 별도 변경 가능
+      pwSalt: randomSalt(),
       subjectsByGrade: sbg,
       subjects:     [],
       specialRooms: DEFAULT_ROOMS.map((r,i) => ({id:'rm'+i, name:r})),
@@ -4556,7 +4810,21 @@ async function createSchool() {
       createdAt:    Date.now(),
     };
 
+    await ensureAuth();
+    const uid = myUid();
+    if (!uid) { toast('네트워크 인증에 실패했습니다. 잠시 후 다시 시도해주세요.', 'error'); return; }
+
+    // ① 비밀번호 해시 저장 (원문은 저장하지 않음, 초기값은 관리자·교사 동일)
+    const h = await pwHashOf(schoolData.pwSalt, pw);
+    await setDoc(doc(db,'schools',id,'secret','auth'), { adminHash: h, teacherHash: h });
+
+    // ② 내 접속 자격(관리자) 등록 — 이 문서가 있어야 학교 데이터를 읽고 쓸 수 있다
+    await setDoc(doc(db,'schools',id,'members',uid), { role:'admin', h, at: Date.now() });
+
+    // ③ 학교 데이터 + 이름 색인
     await saveSchool(schoolData);
+    await setDoc(doc(db,'nameIndex', await nameKeyOf(name)),
+                 { schoolId: id, salt: schoolData.pwSalt, name });
     rlRecord();
 
     S.school = schoolData;
@@ -5763,34 +6031,100 @@ window.goAdminSetup = goAdminSetup;
    JOIN SCHOOL
    =========================================================== */
 let joinSchoolRef = null;
+let joinAuthLevel = null;   // 'admin' | 'teacher' — 서버 규칙이 인정한 권한
+let joinFailCount = 0;      // 연속 실패 횟수 (무작위 대입 지연용)
 
-async function searchSchools(keyword) {
-  const resEl  = q('#school-results');
-  const formEl = q('#join-form');
-  if (!keyword.trim()) { resEl.innerHTML=''; formEl.style.display='none'; return; }
-  const all = await fetchSchools();
-  const hit = all.filter(s => s.name.includes(keyword));
-  if (!hit.length) {
-    resEl.innerHTML = '<div class="text-muted text-sm" style="padding:.6rem">검색 결과가 없습니다.</div>';
-    formEl.style.display='none'; joinSchoolRef=null; return;
+/**
+ * 1단계: 학교 이름 + 비밀번호 검증.
+ * 비밀번호는 해시로만 전송되고, 맞는지는 Firestore 보안 규칙이 판단한다.
+ * 검증에 성공해야 역할·학급·교사 목록을 읽을 수 있다.
+ */
+async function verifyJoinSchool() {
+  const nameVal = q('#join-search').value;
+  const pw      = q('#join-pw').value;
+  const err     = q('#join-pw-err');
+  const btn     = q('#btn-join-verify');
+  err.style.display = 'none';
+
+  if (!normSchoolName(nameVal) || !pw) {
+    err.textContent = '⚠️ 학교 이름과 비밀번호를 모두 입력해주세요.';
+    err.style.display = 'block';
+    return;
   }
-  resEl.innerHTML = hit.map(s => `
-    <div class="school-result" onclick="selectSchool('${s.id}',this)">
-      <span style="font-size:1.3rem">🏫</span>
-      <div>
-        <div style="font-weight:700;font-size:.9rem">${escHtml(s.name)}</div>
-      </div>
-    </div>
-  `).join('');
-}
-window.searchSchools = searchSchools;
 
-async function selectSchool(id, el) {
-  document.querySelectorAll('.school-result').forEach(e=>e.classList.remove('selected'));
-  el.classList.add('selected');
-  const all = await fetchSchools();
-  joinSchoolRef = all.find(s=>s.id===id);
+  // 연속 5회 실패 시 잠시 대기 (무작위 대입 속도 늦추기)
+  if (joinFailCount >= 5) {
+    err.textContent = '⚠️ 시도 횟수가 많습니다. 30초 후 다시 시도해주세요.';
+    err.style.display = 'block';
+    btn.disabled = true;
+    setTimeout(() => { joinFailCount = 0; btn.disabled = false; err.style.display='none'; }, 30000);
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = '확인 중...';
+  try {
+    const res = await authenticateSchool(nameVal, pw);
+
+    if (!res) {
+      joinFailCount++;
+      joinSchoolRef = null; joinAuthLevel = null;
+      q('#join-form').style.display = 'none';
+      q('#school-results').innerHTML = '';
+      err.textContent = '⚠️ 학교 이름 또는 비밀번호가 맞지 않습니다. 관리자에게 문의하세요.';
+      err.style.display = 'block';
+      return;
+    }
+
+    joinFailCount = 0;
+    joinAuthLevel = res.level;
+    await openJoinForm(res.school);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '확인';
+  }
+}
+window.verifyJoinSchool = verifyJoinSchool;
+
+/** 확인된 학교로 되돌아가기(다른 학교 입력) */
+function resetJoinAuth() {
+  joinSchoolRef = null; joinAuthLevel = null;
+  q('#join-pw').value = '';
+  q('#join-search').value = '';
+  q('#join-search').disabled = false;
+  q('#join-pw').disabled = false;
+  q('#btn-join-verify').style.display = '';
+  q('#school-results').innerHTML = '';
+  q('#join-pw-err').style.display = 'none';
+  q('#join-form').style.display = 'none';
+  q('#join-search').focus();
+}
+window.resetJoinAuth = resetJoinAuth;
+
+/**
+ * 2단계: 검증된 학교의 역할·학급·교과 목록을 채운다.
+ * (이전 selectSchool 로직 — 비밀번호 확인 이후에만 호출된다)
+ */
+async function openJoinForm(school) {
+  joinSchoolRef = school;
   if (!joinSchoolRef) return;
+
+  // 1단계 입력란 잠그고 확인된 학교 표시
+  q('#join-search').disabled = true;
+  q('#join-pw').disabled     = true;
+  q('#btn-join-verify').style.display = 'none';
+  q('#school-results').innerHTML = `
+    <div class="school-result selected" style="margin-top:.6rem;justify-content:space-between">
+      <div style="display:flex;align-items:center;gap:.5rem">
+        <span style="font-size:1.3rem">🏫</span>
+        <div>
+          <div style="font-weight:700;font-size:.9rem">${escHtml(joinSchoolRef.name)}</div>
+          <div class="text-muted text-sm">${joinAuthLevel === 'admin' ? '👑 관리자 권한으로 확인됨' : '✅ 교사 권한으로 확인됨'}</div>
+        </div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="resetJoinAuth()">다른 학교</button>
+    </div>`;
+
   // populate class dropdown (grouped by grade)
   const sel = q('#join-class');
   sel.innerHTML = '<option value="">-- 선택 없음 --</option>';
@@ -5826,7 +6160,7 @@ async function selectSchool(id, el) {
         const suffix = t.mode === 'collaborative' ? ' (협업)' : '';
         return `<option value="tt:${escHtml(t.id)}">${icon} ${escHtml(t.name)}${suffix}</option>`;
       }).join('')}
-      <option value="admin">👑 관리자 (설정·배정 권한)</option>
+      ${joinAuthLevel === 'admin' ? '<option value="admin">👑 관리자 (설정·배정 권한)</option>' : ''}
     `;
     roleEl.value = 'homeroom';
   }
@@ -5851,7 +6185,7 @@ async function selectSchool(id, el) {
     });
   }
 }
-window.selectSchool = selectSchool;
+window.openJoinForm = openJoinForm;
 
 function onJoinRoleChange() {
   const val  = q('#join-role').value;
@@ -5949,9 +6283,11 @@ function renderSubjectPickerFiltered(subjectFilter, gradeFilter) {
 }
 
 async function joinSchool() {
-  if (!joinSchoolRef) { toast('학교를 선택해주세요.', 'error'); return; }
+  if (!joinSchoolRef || !joinAuthLevel) {
+    toast('먼저 학교 이름과 비밀번호를 확인해주세요.', 'error');
+    resetJoinAuth(); return;
+  }
   const val  = q('#join-role').value;
-  const pw   = q('#join-pw').value;
   const err  = q('#join-pw-err');
   err.style.display = 'none';
 
@@ -5973,11 +6309,11 @@ async function joinSchool() {
     toast('담당 교과목을 1개 이상 선택해주세요.', 'error'); return;
   }
 
-  // 관리자는 adminPassword, 교사는 teacherPassword(없으면 adminPassword) 검증
-  const correctPw = isAdmin
-    ? joinSchoolRef.adminPassword
-    : (joinSchoolRef.teacherPassword || joinSchoolRef.adminPassword);
-  if (pw !== correctPw) { err.style.display = 'block'; return; }
+  // 1단계에서 확인한 권한으로 판정 (관리자 역할은 관리자 비밀번호로 들어온 경우만 허용)
+  if (isAdmin && joinAuthLevel !== 'admin') {
+    toast('관리자 비밀번호로 다시 확인해주세요.', 'error');
+    resetJoinAuth(); return;
+  }
 
   const clsId = q('#join-class').value;
   // 담임 교사는 학급 선택 필수
@@ -6238,7 +6574,7 @@ async function subscribeToClass() {
           renderSubjectPalette();
           renderTracker();
         }
-      });
+      }, err => onFirestoreDenied(err, 'timetable'));
 
       // ── ① school 문서 실시간 구독 (specialtySchedule 변경 감지) ──
       const schoolRef2 = doc(db, 'schools', S.school.id);
@@ -6256,7 +6592,7 @@ async function subscribeToClass() {
         renderGrid();
         renderSubjectPalette();
         renderTracker();
-      });
+      }, err => onFirestoreDenied(err, 'school'));
     } catch(e) { console.warn('Firestore subscribe error:',e); }
   }
 }
@@ -6557,14 +6893,11 @@ function countSubj(name) {
 function refreshSpecialtyFromStorage() {
   if (!S.school?.id) return;
   try {
-    const raw = localStorage.getItem('stt_schools');
-    if (!raw) return;
-    const schools = JSON.parse(raw);
-    const fresh = schools.find(s => s.id === S.school.id);
+    const fresh = readCachedSchool(S.school.id);
     if (fresh?.specialtySchedule !== undefined) {
       S.school.specialtySchedule = fresh.specialtySchedule;
     }
-  } catch(e) { /* localStorage 읽기 실패 시 기존 데이터 유지 */ }
+  } catch(e) { /* 로컬 캐시 읽기 실패 시 기존 데이터 유지 */ }
 }
 
 function renderTracker() {
@@ -6919,12 +7252,11 @@ function saveSession() {
   // 현재 보이는 화면 ID를 함께 저장 — 새로고침 후 원래 화면으로 복원하기 위함
   const currentScreen = document.querySelector('.screen.active')?.id || null;
 
-  // school은 stt_schools의 최신값으로 항상 동기화
-  // (saveRsCell 등이 stt_schools를 먼저 갱신하므로 세션에 오래된 스냅샷이 남는 버그 방지)
+  // school은 로컬 캐시의 최신값으로 항상 동기화
+  // (saveRsCell 등이 캐시를 먼저 갱신하므로 세션에 오래된 스냅샷이 남는 버그 방지)
   let schoolToSave = S.school;
   try {
-    const schools = JSON.parse(localStorage.getItem('stt_schools') || '[]');
-    const latest  = schools.find(s => s.id === S.school?.id);
+    const latest = S.school?.id ? readCachedSchool(S.school.id) : null;
     if (latest) schoolToSave = latest;
   } catch {}
 
@@ -6942,6 +7274,9 @@ function loadSession() {
     if (!school || !user) return false;
     S.school = school;
     S.user   = user;
+    // 구버전 세션에 남아 있을 수 있는 비밀번호 원문 제거
+    delete S.school.adminPassword;
+    delete S.school.teacherPassword;
     // ② JSON.stringify/parse 과정에서 gradeClasses의 숫자 키(1~6)가 문자열 키("1"~"6")로
     //    변환되는 문제를 정규화: renderGradeGrid 등 숫자 키 접근이 정상 동작하도록 복원
     if (S.school?.gradeClasses) {
@@ -6956,6 +7291,12 @@ function loadSession() {
   } catch { return false; }
 }
 function logout() {
+  // 이 기기의 접속 자격을 서버에서도 회수 (공용 컴퓨터 대비)
+  const sid = S.school?.id, uid = myUid();
+  if (db && sid && uid) {
+    deleteDoc(doc(db,'schools',sid,'members',uid)).catch(()=>{});
+  }
+  try { if (sid) localStorage.removeItem('stt_school_' + sid); } catch {}
   localStorage.removeItem('stt_session');
   if (S.unsub)       { S.unsub();       S.unsub=null;       }
   if (S.unsubSchool) { S.unsubSchool(); S.unsubSchool=null; }
@@ -7002,41 +7343,68 @@ function fromFirestoreDoc(obj) {
   return obj;
 }
 
+/** 현재 접속한 학교만 로컬에 캐시 (다른 학교 데이터는 이 기기에 남지 않는다) */
+function cacheSchool(data) {
+  if (!data?.id) return;
+  try { localStorage.setItem('stt_school_' + data.id, JSON.stringify(data)); } catch {}
+}
+function readCachedSchool(id) {
+  try { return JSON.parse(localStorage.getItem('stt_school_' + id) || 'null'); } catch { return null; }
+}
+
 async function saveSchool(data) {
-  const all = await fetchSchools();
-  const i   = all.findIndex(s=>s.id===data.id);
-  if (i>=0) all[i]=data; else all.push(data);
-  localStorage.setItem('stt_schools', JSON.stringify(all));
-  // 현재 세션의 S.school도 즉시 갱신 (같은 기기에서 교담→담임 전환 시 즉시 반영)
-  if (S.school?.id === data.id) {
-    S.school = data;
-  }
+  if (!data?.id) return;
+  // 비밀번호 원문은 절대 저장하지 않는다 (구버전 잔재 제거)
+  delete data.adminPassword;
+  delete data.teacherPassword;
+  cacheSchool(data);
+  if (S.school?.id === data.id) S.school = data;
   if (db) {
     try {
+      await ensureAuth();
       await setDoc(doc(db,'schools',data.id), toFirestoreDoc(data));
     } catch(e) { console.warn('Firestore saveSchool error:', e); }
   }
 }
 
-async function fetchSchools() {
+/** 현재 접속 자격이 있는 학교 1개만 읽는다. */
+async function fetchSchool(id) {
+  if (!id) return null;
   if (db) {
     try {
-      const snap = await getDocs(collection(db,'schools'));
-      return snap.docs.map(d => fromFirestoreDoc(d.data()));
-    } catch(e) { console.warn('Firestore fetchSchools error:', e); }
+      await ensureAuth();
+      const snap = await getDoc(doc(db,'schools',id));
+      if (snap.exists()) { const s = fromFirestoreDoc(snap.data()); cacheSchool(s); return s; }
+    } catch(e) { console.warn('Firestore fetchSchool error:', e); }
   }
+  return readCachedSchool(id);
+}
+
+/** 전체 학교 목록 — 총괄 관리자 전용 (보안 규칙이 다른 사용자의 목록 조회를 차단한다) */
+async function fetchAllSchools() {
+  if (!db) return [];
   try {
-    return JSON.parse(localStorage.getItem('stt_schools')||'[]');
-  } catch { return []; }
+    const snap = await getDocs(collection(db,'schools'));
+    return snap.docs.map(d => fromFirestoreDoc(d.data()));
+  } catch(e) { console.warn('Firestore fetchAllSchools error:', e); return []; }
 }
 
 async function removeSchool(id) {
-  let all = await fetchSchools();
-  all = all.filter(s=>s.id!==id);
-  localStorage.setItem('stt_schools', JSON.stringify(all));
-  if (db) {
-    try { await deleteDoc(doc(db,'schools',id)); } catch(e) { console.warn(e); }
-  }
+  try { localStorage.removeItem('stt_school_' + id); } catch {}
+  if (!db) return;
+  await ensureAuth();
+  // members 문서는 내 삭제 권한의 근거이므로 반드시 마지막에 지운다.
+  try {
+    const snap = await getDoc(doc(db,'schools',id));
+    const nm   = snap.exists() ? snap.data()?.name : null;
+    if (nm) await deleteDoc(doc(db,'nameIndex', await nameKeyOf(nm)));
+  } catch(e) { console.warn(e); }
+  try { await deleteDoc(doc(db,'schools',id,'secret','auth')); } catch(e) { console.warn(e); }
+  try { await deleteDoc(doc(db,'schools',id)); } catch(e) { console.warn(e); }
+  try {
+    const ms = await getDocs(collection(db,'schools',id,'members'));
+    for (const d of ms.docs) { try { await deleteDoc(d.ref); } catch {} }
+  } catch(e) { console.warn(e); }
 }
 
 /* ===========================================================
@@ -8845,7 +9213,9 @@ async function exportBackupJSON() {
     _version: 2,
     _exportedAt: new Date().toISOString(),
     _appName: '초등 반별 시간표',
-    school, timetables,
+    // 비밀번호 관련 정보는 백업 파일에 담지 않는다
+    school: (({ adminPassword, teacherPassword, pwSalt, ...rest }) => rest)(school),
+    timetables,
   };
   const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
   const url  = URL.createObjectURL(blob);
@@ -8992,12 +9362,21 @@ window.execImport = execImport;
 
 async function execImportJSON() {
   if (!_importJsonData) return;
+  if (!S.school) { toast('학교에 접속한 뒤 복원할 수 있습니다.', 'error'); return; }
   const scope  = document.querySelector('input[name="import-scope"]:checked')?.value || 'full';
   const backup = _importJsonData;
   closeModal('modal-import');
   toast('백업 복원 중…', '');
   try {
     const newSchool = JSON.parse(JSON.stringify(backup.school));
+    // 백업 내용은 항상 "현재 접속한 학교"로 복원한다.
+    // (다른 학교의 백업 파일로 그 학교 데이터를 덮어쓰지 못하도록)
+    newSchool.id        = S.school.id;
+    newSchool.name      = S.school.name;
+    newSchool.pwSalt    = S.school.pwSalt;
+    newSchool.createdAt = S.school.createdAt || newSchool.createdAt;
+    delete newSchool.adminPassword;
+    delete newSchool.teacherPassword;
     if (scope === 'new-semester') {
       (newSchool.classes||[]).forEach(cls => {
         localStorage.removeItem(`stt_${newSchool.id}_${cls.id}`);
@@ -9624,7 +10003,13 @@ window.adhGoSpecialty = adhGoSpecialty;
 /* ===========================================================
    INIT
    =========================================================== */
-(function init() {
+(async function init() {
+  // 구버전이 기기에 남긴 전체 학교 캐시(비밀번호 포함) 정리
+  try { localStorage.removeItem('stt_schools'); } catch {}
+
+  // 익명 로그인이 끝나야 Firestore 읽기가 가능하다
+  try { await ensureAuth(); } catch(e) { console.warn('auth init failed:', e); }
+
   // loadSession()은 S.school, S.user 복원 후 true 반환
   // lastScreen은 JSON에서 직접 읽어야 함 (loadSession 반환값에 없음)
   let lastScreen = null;
