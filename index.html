@@ -8732,6 +8732,23 @@ async function exportAllToExcel() {
     return { horizontal:h, vertical:v, wrapText:wrap };
   }
 
+  // 셀 내용이 몇 줄로 표시될지 추정 (줄바꿈 + 열 너비에 따른 자동 줄바꿈)
+  // 한글·이모지는 폭을 2로 계산한다.
+  function estLineCount(text, colWidth = 14) {
+    if (text === null || text === undefined || text === '') return 1;
+    const cap = Math.max(4, (colWidth - 1) * 1.6);   // 열 너비 → 대략적인 글자 폭 용량
+    return String(text).split('\n').reduce((sum, seg) => {
+      let w = 0;
+      for (const ch of seg) w += ch.codePointAt(0) > 0x7F ? 2 : 1;
+      return sum + Math.max(1, Math.ceil(w / cap));
+    }, 0);
+  }
+
+  // 줄 수 → 행 높이 (글씨가 잘리지 않도록 넉넉히)
+  function rowHeightFor(lines, min = 34) {
+    return Math.max(min, lines * 18 + 6);
+  }
+
   // 셀에 스타일+값 한번에 적용
   function setCell(ws, row, col, value, bgHex, fgHex='333333', bold=false, size=10, hAlign='center') {
     const cell = ws.getCell(row, col);
@@ -8804,7 +8821,7 @@ async function exportAllToExcel() {
       const p     = idx + 1;
       const rowNo = idx + 3;
       const row   = ws.getRow(rowNo);
-      row.height  = 36;
+      const rowTexts = [];   // 이 행 셀들의 표시 텍스트 (높이 계산용)
 
       // 교시 번호
       setCell(ws, rowNo, 1, `${p}교시`, C.HDR_PERIOD_BG, C.HDR_PERIOD_FG, true);
@@ -8835,6 +8852,7 @@ async function exportAllToExcel() {
           xCell.fill      = fill(C.SP_BG);
           xCell.border    = border();
           xCell.alignment = align('center','middle');
+          rowTexts.push(`교담\n${sp}${collabs.length ? `\n🤝 ${collabs.join('·')}` : ''}`);
         } else if (cell?.subject) {
           const sc = subjectColors(cell.subject, grade);
           const xCell = ws.getCell(rowNo, colNo);
@@ -8852,6 +8870,7 @@ async function exportAllToExcel() {
           xCell.fill      = fill(sc.bg);
           xCell.border    = border();
           xCell.alignment = align('center','middle');
+          rowTexts.push(parts.map(x => x.text).join(''));
         } else if (collabs.length) {
           // 담임 과목은 없고 협업 수업만 있는 칸
           const xCell = ws.getCell(rowNo, colNo);
@@ -8862,10 +8881,15 @@ async function exportAllToExcel() {
           xCell.fill      = fill('ECFEFF');
           xCell.border    = border();
           xCell.alignment = align('center','middle');
+          rowTexts.push(`🤝 ${collabs.join('·')}`);
         } else {
           setCell(ws, rowNo, colNo, '', C.EMPTY_BG, 'D1D5DB');
         }
       });
+
+      // 가장 줄 수가 많은 칸에 맞춰 행 높이를 확보 (글씨 잘림 방지)
+      const maxLines = rowTexts.reduce((m, t) => Math.max(m, estLineCount(t, 14)), 1);
+      row.height = rowHeightFor(maxLines);
     });
 
     // 인쇄 설정
@@ -8931,7 +8955,7 @@ async function exportAllToExcel() {
     ptimes.forEach((t, idx) => {
       const p      = idx + 1;
       const rowNo  = idx + 4;
-      ws.getRow(rowNo).height = 34;
+      const rowTexts = [];
 
       setCell(ws, rowNo, 1, `${p}교시`, C.HDR_PERIOD_BG, C.HDR_PERIOD_FG, true);
       setCell(ws, rowNo, 2, `${t.start||''}~${t.end||''}`, 'F8FAFC', '64748B', false, 9);
@@ -8950,14 +8974,19 @@ async function exportAllToExcel() {
 
           if (sp) {
             setCell(ws, rowNo, colNo, `교담(${sp})`, C.SP_BG, '854D0E', false, 9);
+            rowTexts.push(`교담(${sp})`);
           } else if (cell?.subject) {
             const sc = subjectColors(cell.subject, grade);
             setCell(ws, rowNo, colNo, cell.subject, sc.bg, sc.fg, true, 10);
+            rowTexts.push(cell.subject);
           } else {
             setCell(ws, rowNo, colNo, '', C.EMPTY_BG, 'E5E7EB');
           }
         });
       });
+
+      const maxLines = rowTexts.reduce((m, t) => Math.max(m, estLineCount(t, 11)), 1);
+      ws.getRow(rowNo).height = rowHeightFor(maxLines, 32);
     });
 
     ws.pageSetup = { paperSize:9, orientation:'landscape', fitToPage:true, fitToWidth:1, fitToHeight:0 };
@@ -9037,8 +9066,8 @@ async function exportAllToExcel() {
 
     dataRows.forEach((dr, ri) => {
       const rowNo   = ri + 4;
-      const lineCount = (dr.label.match(/\n/g)||[]).length + 1;
-      ws.getRow(rowNo).height = lineCount >= 3 ? 52 : lineCount === 2 ? 40 : 32;
+      const lineCount = estLineCount(dr.label, 16);
+      ws.getRow(rowNo).height = rowHeightFor(lineCount, 32);
 
       // 교시/시간 셀: 굵게·가운데·줄바꿈 허용
       const pCell = ws.getCell(rowNo, 1);
@@ -9269,8 +9298,8 @@ async function exportAllToExcel() {
 
     dataRows.forEach((dr, ri) => {
       const rowNo   = ri + 4;
-      const lineCount = (dr.label.match(/\n/g)||[]).length + 1;
-      ws.getRow(rowNo).height = lineCount >= 3 ? 52 : lineCount === 2 ? 40 : 32;
+      const lineCount = estLineCount(dr.label, 16);
+      ws.getRow(rowNo).height = rowHeightFor(lineCount, 32);
 
       // 교시/시간 셀: 굵게·가운데·줄바꿈 허용
       const pCell = ws.getCell(rowNo, 1);
@@ -9400,8 +9429,8 @@ async function exportAllToExcel() {
 
     dataRows.forEach((dr, ri) => {
       const rowNo     = ri + 4;
-      const lineCount = (dr.label.match(/\n/g)||[]).length + 1;
-      ws.getRow(rowNo).height = lineCount >= 3 ? 52 : lineCount === 2 ? 40 : 32;
+      const lineCount = estLineCount(dr.label, 16);
+      ws.getRow(rowNo).height = rowHeightFor(lineCount, 32);
 
       const pCell = ws.getCell(rowNo, 1);
       pCell.value     = dr.label;
