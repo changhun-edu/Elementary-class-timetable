@@ -2061,18 +2061,6 @@ a{color:inherit;text-decoration:none}
       </div>
     </div>
 
-    <!-- 보안 전환 (1회 실행) -->
-    <div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:var(--r-lg);padding:.85rem 1rem;margin-bottom:1.25rem">
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.6rem">
-        <div>
-          <div style="font-size:.85rem;font-weight:700;color:#f1f5f9">🛡️ 개인정보 보호 전환</div>
-          <div style="font-size:.75rem;color:rgba(255,255,255,.35);margin-top:2px">기존 학교의 비밀번호를 해시로 바꾸고 원문을 삭제합니다 (1회만 실행)</div>
-        </div>
-        <button class="btn btn-primary btn-sm" id="sa-migrate-btn" onclick="saMigrateAll()">전환 실행</button>
-      </div>
-      <div id="sa-migrate-log" style="display:none;margin-top:.7rem;font-size:.78rem;color:#94a3b8;max-height:190px;overflow:auto;font-family:monospace"></div>
-    </div>
-
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.1rem">
       <div class="sa-section-label">📋 등록된 학교 목록</div>
       <button class="btn btn-sm" onclick="loadAllSchools()"
@@ -2372,7 +2360,7 @@ a{color:inherit;text-decoration:none}
    =========================================================== */
 import { initializeApp }   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import {
-  getFirestore, doc, getDoc, getDocs, setDoc, deleteDoc, updateDoc, deleteField,
+  getFirestore, doc, getDoc, getDocs, setDoc, deleteDoc,
   collection, onSnapshot, serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import {
@@ -3212,7 +3200,7 @@ async function loadAllSchools() {
           <div class="sa-meta">
             생성: ${dateStr} &nbsp;${ageBadge}&nbsp;
             · 학급 ${(s.classes||[]).length}개
-            · <span style="font-family:monospace;font-size:.72rem;color:${(s.adminPassword||s.teacherPassword) ? '#fca5a5' : '#6ee7b7'}">${(s.adminPassword||s.teacherPassword) ? '⚠ 구버전(전환 필요)' : '🔒 PW 미저장'}</span>
+            · <span style="font-family:monospace;font-size:.72rem;color:${(s.adminPassword||s.teacherPassword) ? '#fca5a5' : '#6ee7b7'}">${(s.adminPassword||s.teacherPassword) ? '⚠ 구버전 데이터' : '🔒 PW 미저장'}</span>
           </div>
           ${expired ? `<div style="font-size:.73rem;color:#fca5a5;margin-top:2px">📅 생성 1년 경과 — 삭제를 검토하세요</div>` : ''}
         </div>
@@ -3343,62 +3331,6 @@ function saResetSchoolPw(schoolId, schoolName) {
 }
 window.saResetSchoolPw = saResetSchoolPw;
 
-/* ───────────────────────────────────────────────────────────
-   보안 전환 — 평문 비밀번호를 해시로 옮기고 원문을 삭제 (1회 실행)
-   ─────────────────────────────────────────────────────────── */
-async function saMigrateAll() {
-  if (!isSuperUser()) { toast('총괄 관리자로 로그인해주세요.', 'error'); return; }
-  const btn = q('#sa-migrate-btn');
-  const log = q('#sa-migrate-log');
-  log.style.display = 'block';
-  log.innerHTML = '';
-  const say = (msg) => { log.innerHTML += escHtml(msg) + '<br>'; log.scrollTop = log.scrollHeight; };
-
-  btn.disabled = true; btn.textContent = '전환 중...';
-  try {
-    const schools = await fetchAllSchools();
-    say(`학교 ${schools.length}개 확인`);
-    let done = 0, skipped = 0;
-
-    for (const s of schools) {
-      try {
-        const hadPlain = !!(s.adminPassword || s.teacherPassword);
-        const salt     = s.pwSalt || randomSalt();
-
-        if (hadPlain) {
-          const aPw = s.adminPassword   || s.teacherPassword;
-          const tPw = s.teacherPassword || s.adminPassword;
-          await setDoc(doc(db,'schools',s.id,'secret','auth'), {
-            adminHash:   await pwHashOf(salt, aPw),
-            teacherHash: await pwHashOf(salt, tPw),
-          });
-        }
-        // 이름 색인 (없으면 생성, 있으면 갱신)
-        await setDoc(doc(db,'nameIndex', await nameKeyOf(s.name)),
-                     { schoolId: s.id, salt, name: s.name });
-        // 학교 문서에서 비밀번호 원문 제거
-        await updateDoc(doc(db,'schools',s.id), {
-          pwSalt: salt,
-          adminPassword:   deleteField(),
-          teacherPassword: deleteField(),
-        });
-
-        if (hadPlain) { done++;    say(`✔ ${s.name} — 전환 완료`); }
-        else          { skipped++; say(`· ${s.name} — 이미 전환됨(색인만 갱신)`); }
-      } catch(e) {
-        console.error('migrate error:', s.id, e);
-        say(`✘ ${s.name} — 실패: ${e.code || e.message || e}`);
-      }
-    }
-    say(`─────────────`);
-    say(`완료: 전환 ${done}개 · 유지 ${skipped}개`);
-    toast(`보안 전환 완료 (${done}개)`, 'success');
-    await loadAllSchools();
-  } finally {
-    btn.disabled = false; btn.textContent = '전환 실행';
-  }
-}
-window.saMigrateAll = saMigrateAll;
 
 /* ===========================================================
    SPECIALTY TEACHER — MULTI-SUBJECT
