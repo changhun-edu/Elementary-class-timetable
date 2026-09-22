@@ -1,1 +1,556 @@
 
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>설치 안내 · 초등 반별 시간표 만들기</title>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet">
+<style>
+:root{
+  --brand:#2563eb; --brand-dark:#1e40af; --brand-50:#eff6ff; --brand-100:#dbeafe;
+  --warn:#d97706; --warn-bg:#fef3c7; --danger:#dc2626; --danger-bg:#fee2e2;
+  --ok:#059669; --ok-bg:#d1fae5;
+  --g50:#f9fafb; --g100:#f3f4f6; --g200:#e5e7eb; --g300:#d1d5db;
+  --g400:#9ca3af; --g500:#6b7280; --g600:#4b5563; --g700:#374151;
+  --g800:#1f2937; --g900:#111827;
+  --r:8px; --r-md:12px; --r-lg:16px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px;scroll-behavior:smooth}
+body{
+  font-family:'Pretendard Variable','Pretendard',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+  background:var(--g50);color:var(--g800);line-height:1.75;
+}
+.wrap{max-width:760px;margin:0 auto;padding:0 1.25rem 5rem}
+
+/* 머리말 */
+.hero{
+  background:linear-gradient(140deg,#0f172a,#1e3a8a 55%,#2563eb);
+  color:#fff;padding:3rem 1.25rem 2.5rem;text-align:center;margin-bottom:2.25rem;
+}
+.hero-badge{
+  display:inline-block;font-size:.72rem;font-weight:800;letter-spacing:.02em;
+  background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);
+  border-radius:999px;padding:.25rem .8rem;margin-bottom:.8rem;
+}
+.hero h1{font-size:1.65rem;font-weight:900;letter-spacing:-.03em;margin-bottom:.5rem}
+.hero p{font-size:.9rem;color:rgba(255,255,255,.8);max-width:520px;margin:0 auto;line-height:1.8}
+
+/* 목차 */
+.toc{
+  background:#fff;border:1px solid var(--g200);border-radius:var(--r-lg);
+  padding:1.1rem 1.3rem;margin-bottom:2.25rem;box-shadow:0 1px 3px rgba(0,0,0,.05);
+}
+.toc-title{font-size:.78rem;font-weight:800;color:var(--g500);letter-spacing:.06em;margin-bottom:.6rem}
+.toc ol{margin-left:1.15rem;font-size:.88rem}
+.toc li{margin-bottom:.25rem}
+.toc a{color:var(--brand);text-decoration:none}
+.toc a:hover{text-decoration:underline}
+
+/* 단계 */
+.step{
+  background:#fff;border:1px solid var(--g200);border-radius:var(--r-lg);
+  padding:1.5rem 1.4rem;margin-bottom:1.5rem;box-shadow:0 1px 3px rgba(0,0,0,.05);
+  scroll-margin-top:1rem;
+}
+.step-head{display:flex;align-items:center;gap:.75rem;margin-bottom:.9rem}
+.step-num{
+  flex-shrink:0;width:30px;height:30px;border-radius:50%;
+  background:var(--brand);color:#fff;font-size:.85rem;font-weight:800;
+  display:flex;align-items:center;justify-content:center;
+}
+.step-title{font-size:1.02rem;font-weight:800;color:var(--g900);letter-spacing:-.02em}
+.step-time{font-size:.72rem;font-weight:700;color:var(--g400);margin-left:auto;white-space:nowrap}
+.step p{font-size:.88rem;margin-bottom:.7rem;color:var(--g700)}
+.step ul,.step ol{margin:0 0 .8rem 1.2rem;font-size:.88rem;color:var(--g700)}
+.step li{margin-bottom:.35rem}
+.step b{color:var(--g900);font-weight:700}
+.step a{color:var(--brand);text-decoration:underline;text-underline-offset:2px;word-break:break-all}
+code{
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.85em;
+  background:var(--g100);padding:.12rem .38rem;border-radius:5px;color:var(--g800);
+}
+pre{
+  background:var(--g900);color:#e2e8f0;border-radius:var(--r);
+  padding:1rem 1.1rem;overflow-x:auto;margin:.6rem 0 .9rem;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.78rem;line-height:1.75;
+}
+pre code{background:none;padding:0;color:inherit;font-size:inherit}
+.note{
+  border-radius:var(--r);padding:.8rem 1rem;font-size:.84rem;line-height:1.75;margin:.6rem 0 .9rem;
+}
+.note-warn{background:var(--warn-bg);border:1px solid #fcd34d;color:#92400e}
+.note-warn b{color:#78350f}
+.note-info{background:var(--brand-50);border:1px solid var(--brand-100);color:#1e40af}
+.note-info b{color:#1e3a8a}
+.note-ok{background:var(--ok-bg);border:1px solid #6ee7b7;color:#065f46}
+.note-ok b{color:#064e3b}
+.note-bad{background:var(--danger-bg);border:1px solid #fca5a5;color:#991b1b}
+.note-bad b{color:#7f1d1d}
+table{width:100%;border-collapse:collapse;font-size:.84rem;margin:.4rem 0 .9rem}
+th,td{border:1px solid var(--g200);padding:.5rem .65rem;text-align:left;vertical-align:top}
+th{background:var(--g50);font-weight:700;color:var(--g800);white-space:nowrap}
+.copy-wrap{position:relative}
+.copy-btn{
+  position:absolute;top:.55rem;right:.55rem;font-family:inherit;
+  font-size:.72rem;font-weight:700;cursor:pointer;
+  background:rgba(255,255,255,.14);color:#e2e8f0;
+  border:1px solid rgba(255,255,255,.25);border-radius:6px;padding:.2rem .6rem;
+}
+.copy-btn:hover{background:rgba(255,255,255,.25);color:#fff}
+h3{font-size:.92rem;font-weight:800;color:var(--g900);margin:1.1rem 0 .45rem}
+footer{
+  text-align:center;padding:2.5rem 1.25rem;color:var(--g500);font-size:.8rem;
+  border-top:1px solid var(--g200);margin-top:2rem;line-height:1.8;
+}
+footer b{color:var(--g700)}
+@media(max-width:480px){
+  .hero{padding:2.25rem 1rem 2rem}
+  .hero h1{font-size:1.35rem}
+  .step{padding:1.2rem 1.05rem}
+  pre{font-size:.72rem;padding:.85rem .9rem}
+}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-badge">🏫 학교별 설치본</div>
+  <h1>초등 반별 시간표 만들기<br>설치 안내</h1>
+  <p>
+    우리 학교 저장소를 만들어 연결하는 과정입니다.
+    프로그램을 설치하거나 서버를 사지 않아도 되고, <b>모두 무료</b>입니다.
+    처음 하시면 30분쯤 걸립니다.
+  </p>
+</div>
+
+<div class="wrap">
+
+  <div class="note note-info" style="margin-bottom:1.75rem">
+    <b>왜 학교가 직접 설치하나요?</b><br>
+    시간표에는 우리 학교의 학급 구성과 담당 교사 정보가 담깁니다.
+    이 자료가 만든이의 서버에 모이면 만든이가 <b>개인정보 수탁자</b>가 됩니다.
+    학교가 자기 저장소에 설치하면 자료가 <b>학교 밖으로 나가지 않고</b>, 관리 책임도 명확해집니다.
+  </div>
+
+  <div class="toc">
+    <div class="toc-title">순서</div>
+    <ol>
+      <li><a href="#s1">준비물 확인</a></li>
+      <li><a href="#s2">Firebase 프로젝트 만들기</a></li>
+      <li><a href="#s3">Firestore 데이터베이스 만들기</a></li>
+      <li><a href="#s4">익명 로그인 켜기</a></li>
+      <li><a href="#s5">설정값 복사해 index.html에 넣기</a></li>
+      <li><a href="#s6">보안 규칙 붙여 넣기 — 가장 중요</a></li>
+      <li><a href="#s7">인터넷에 올리기</a></li>
+      <li><a href="#s8">첫 사용 — 학교 만들고 선생님께 안내</a></li>
+      <li><a href="#s9">개인정보 처리방침 채우기</a></li>
+      <li><a href="#s10">문제가 생겼을 때</a></li>
+    </ol>
+  </div>
+
+  <!-- 1 -->
+  <div class="step" id="s1">
+    <div class="step-head">
+      <div class="step-num">1</div>
+      <div class="step-title">준비물 확인</div>
+      <div class="step-time">2분</div>
+    </div>
+    <ul>
+      <li><b>구글 계정</b> 하나 — 학교 공용 계정을 권합니다. 담당자가 바뀌어도 이어받을 수 있습니다.</li>
+      <li><b>index.html 파일</b> — 이 안내와 함께 받은 파일입니다.</li>
+      <li><b>메모장</b> 같은 텍스트 편집기 — 윈도우 기본 메모장으로 충분합니다.</li>
+    </ul>
+    <div class="note note-warn">
+      <b>개인 구글 계정은 피해 주세요.</b> 전보를 가시면 학교가 자료에 접근할 수 없게 됩니다.
+      학교 업무용 계정으로 만들고, 인수인계 문서에 계정과 이 안내를 함께 남겨 주세요.
+    </div>
+  </div>
+
+  <!-- 2 -->
+  <div class="step" id="s2">
+    <div class="step-head">
+      <div class="step-num">2</div>
+      <div class="step-title">Firebase 프로젝트 만들기</div>
+      <div class="step-time">5분</div>
+    </div>
+    <p>Firebase는 구글이 제공하는 무료 저장소입니다. 학교 규모에서는 요금이 나올 일이 없습니다.</p>
+    <ol>
+      <li><a href="https://console.firebase.google.com" target="_blank" rel="noopener noreferrer">console.firebase.google.com</a> 에 학교 구글 계정으로 접속합니다.</li>
+      <li><b>[프로젝트 만들기]</b>를 누릅니다.</li>
+      <li>프로젝트 이름을 적습니다. 예: <code>unnam-timetable</code>
+        <br><span style="color:var(--g500);font-size:.82rem">영문·숫자·하이픈만 쓸 수 있습니다. 이름은 나중에 바꿔도 됩니다.</span></li>
+      <li><b>Google 애널리틱스는 꺼</b> 두셔도 됩니다. 이 프로그램은 쓰지 않습니다.</li>
+      <li><b>[프로젝트 만들기]</b>를 누르고 1분쯤 기다립니다.</li>
+    </ol>
+  </div>
+
+  <!-- 3 -->
+  <div class="step" id="s3">
+    <div class="step-head">
+      <div class="step-num">3</div>
+      <div class="step-title">Firestore 데이터베이스 만들기</div>
+      <div class="step-time">3분</div>
+    </div>
+    <ol>
+      <li>왼쪽 메뉴에서 <b>빌드 → Firestore Database</b>를 고릅니다.</li>
+      <li><b>[데이터베이스 만들기]</b>를 누릅니다.</li>
+      <li>위치는 <b>asia-northeast3 (서울)</b>을 고릅니다.
+        <div class="note note-warn" style="margin:.5rem 0">
+          <b>위치는 나중에 바꿀 수 없습니다.</b> 반드시 서울로 고르세요.
+          그리고 이 값을 적어 두세요 — 개인정보 처리방침에 <b>저장 지역</b>으로 적어야 합니다.
+        </div>
+      </li>
+      <li>보안 규칙은 <b>프로덕션 모드</b>로 시작합니다. (6단계에서 제대로 된 규칙을 넣습니다)</li>
+    </ol>
+  </div>
+
+  <!-- 4 -->
+  <div class="step" id="s4">
+    <div class="step-head">
+      <div class="step-num">4</div>
+      <div class="step-title">익명 로그인 켜기</div>
+      <div class="step-time">2분</div>
+    </div>
+    <p>
+      선생님들이 아이디를 만들지 않고도 쓸 수 있도록, 브라우저마다 이름 없는 번호를 하나씩 받는 방식입니다.
+      개인정보를 받지 않으면서도 “누가 우리 학교 사람인지”를 가릴 수 있게 해 줍니다.
+    </p>
+    <ol>
+      <li>왼쪽 메뉴에서 <b>빌드 → Authentication</b>을 고릅니다.</li>
+      <li><b>[시작하기]</b>를 누릅니다.</li>
+      <li><b>로그인 방법</b> 탭에서 <b>익명</b>을 찾아 누릅니다.</li>
+      <li><b>사용 설정</b>을 켜고 저장합니다.</li>
+    </ol>
+    <div class="note note-bad">
+      <b>이 단계를 빠뜨리면</b> 학교를 만들 때 “네트워크 인증에 실패했습니다”가 뜹니다.
+      가장 흔한 실수이니 꼭 확인해 주세요.
+    </div>
+  </div>
+
+  <!-- 5 -->
+  <div class="step" id="s5">
+    <div class="step-head">
+      <div class="step-num">5</div>
+      <div class="step-title">설정값 복사해 index.html에 넣기</div>
+      <div class="step-time">5분</div>
+    </div>
+    <ol>
+      <li>왼쪽 위 <b>⚙️ → 프로젝트 설정</b>을 누릅니다.</li>
+      <li>아래로 내려 <b>내 앱</b>에서 <b>&lt;/&gt;</b> (웹) 아이콘을 누릅니다.</li>
+      <li>앱 닉네임을 적고(예: <code>시간표</code>) <b>[앱 등록]</b>을 누릅니다.
+        호스팅 설정은 체크하지 않아도 됩니다.</li>
+      <li>화면에 나오는 <code>firebaseConfig</code> 값을 <b>전부 복사</b>합니다.</li>
+      <li><b>index.html</b>을 메모장으로 엽니다. (파일 우클릭 → 연결 프로그램 → 메모장)</li>
+      <li><code>Ctrl+F</code>로 <b>여기만 고치면 됩니다</b>를 찾습니다.</li>
+      <li>따옴표 안을 복사한 값으로 채우고 저장합니다.</li>
+    </ol>
+
+    <p>이렇게 생긴 부분입니다.</p>
+    <div class="copy-wrap">
+      <button class="copy-btn" onclick="copyPre(this)">복사</button>
+<pre><code>const firebaseConfig = {
+  apiKey:            "AIzaSyD-여기에-우리학교-값",
+  authDomain:        "unnam-timetable.firebaseapp.com",
+  projectId:         "unnam-timetable",
+  storageBucket:     "unnam-timetable.appspot.com",
+  messagingSenderId: "123456789012",
+  appId:             "1:123456789012:web:abcdef123456",
+};</code></pre>
+    </div>
+
+    <div class="note note-warn">
+      <b>따옴표와 쉼표를 지우지 마세요.</b> 따옴표 <b>안쪽</b> 글자만 바꾸면 됩니다.
+      하나라도 빠지면 화면이 하얗게 뜹니다.
+    </div>
+    <div class="note note-info">
+      <b>이 값이 공개되어도 괜찮나요?</b> 괜찮습니다. 웹 앱의 주소 같은 값이라 원래 공개됩니다.
+      실제 보안은 다음 단계의 <b>보안 규칙</b>이 담당합니다.
+    </div>
+  </div>
+
+  <!-- 6 -->
+  <div class="step" id="s6">
+    <div class="step-head">
+      <div class="step-num">6</div>
+      <div class="step-title">보안 규칙 붙여 넣기 — 가장 중요</div>
+      <div class="step-time">5분</div>
+    </div>
+    <div class="note note-bad">
+      <b>이 단계를 건너뛰면 누구나 우리 학교 자료를 읽고 지울 수 있습니다.</b>
+      반드시 끝까지 하세요.
+    </div>
+    <ol>
+      <li><b>Firestore Database → 규칙</b> 탭을 엽니다.</li>
+      <li>기존 내용을 <b>모두 지우고</b> 아래를 붙여 넣습니다.</li>
+      <li><b>[게시]</b>를 누릅니다.</li>
+    </ol>
+
+    <div class="copy-wrap">
+      <button class="copy-btn" onclick="copyPre(this)">복사</button>
+<pre><code>rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+    // 이 학교의 접속 자격(members 문서)을 가지고 있는가
+    function isMember(sid) {
+      return signedIn() &amp;&amp; exists(
+        /databases/$(database)/documents/schools/$(sid)/members/$(request.auth.uid)
+      );
+    }
+    // 저장된 비밀번호 해시
+    function secretOf(sid) {
+      return get(
+        /databases/$(database)/documents/schools/$(sid)/secret/auth
+      ).data;
+    }
+    function secretExists(sid) {
+      return exists(
+        /databases/$(database)/documents/schools/$(sid)/secret/auth
+      );
+    }
+
+    // 학교 이름 색인 — 이름 하나로 정확히 찾을 때만 쓴다
+    match /nameIndex/{key} {
+      allow get:    if signedIn();
+      allow list:   if false;          // 학교 목록 통째로 보기 금지
+      allow create: if signedIn();
+      allow update, delete: if signedIn();
+    }
+
+    match /schools/{sid} {
+      allow get:    if isMember(sid);
+      allow list:   if false;          // 학교 목록 통째로 보기 금지
+      allow create, update, delete: if isMember(sid);
+
+      // 비밀번호 해시 — 아무도 읽지 못한다
+      match /secret/{docId} {
+        allow read:   if false;
+        allow create: if signedIn() &amp;&amp; !secretExists(sid);
+        allow update, delete: if isMember(sid);
+      }
+
+      // 접속 자격 — 비밀번호가 맞아야만 만들 수 있다
+      match /members/{uid} {
+        allow get:  if signedIn() &amp;&amp; request.auth.uid == uid;
+        allow list: if isMember(sid);
+        allow create, update: if signedIn()
+          &amp;&amp; request.auth.uid == uid
+          &amp;&amp; (
+            // 학교를 처음 만드는 순간
+            !secretExists(sid)
+            // 관리자 비밀번호가 맞을 때
+            || (request.resource.data.role == 'admin'
+                &amp;&amp; request.resource.data.h == secretOf(sid).adminHash)
+            // 교사 비밀번호가 맞을 때
+            || (request.resource.data.role == 'teacher'
+                &amp;&amp; request.resource.data.h == secretOf(sid).teacherHash)
+          );
+        allow delete: if signedIn();
+      }
+
+      // 각 반 시간표
+      match /timetables/{classId} {
+        allow read, write: if isMember(sid);
+      }
+    }
+  }
+}</code></pre>
+    </div>
+
+    <h3>이 규칙이 막아 주는 것</h3>
+    <table>
+      <tr><th>상황</th><th>결과</th></tr>
+      <tr><td>비밀번호를 모르는 사람이 주소만 알고 들어옴</td><td>학교 자료를 읽을 수 없음</td></tr>
+      <tr><td>등록된 학교 목록을 통째로 보려고 시도</td><td>차단됨 (<code>list</code> 금지)</td></tr>
+      <tr><td>저장된 비밀번호를 읽으려고 시도</td><td>차단됨. 게다가 원문이 아니라 되돌릴 수 없는 해시만 저장됨</td></tr>
+      <tr><td>다른 학교 자료에 접근</td><td>그 학교의 접속 자격이 없으므로 차단됨</td></tr>
+    </table>
+  </div>
+
+  <!-- 7 -->
+  <div class="step" id="s7">
+    <div class="step-head">
+      <div class="step-num">7</div>
+      <div class="step-title">인터넷에 올리기</div>
+      <div class="step-time">10분</div>
+    </div>
+    <p>파일 하나뿐이라 어디에 올려도 됩니다. 쉬운 순서대로 적었습니다.</p>
+
+    <h3>가장 쉬운 방법 — Netlify Drop</h3>
+    <ol>
+      <li><a href="https://app.netlify.com/drop" target="_blank" rel="noopener noreferrer">app.netlify.com/drop</a> 에 접속합니다.</li>
+      <li><b>index.html이 든 폴더</b>를 화면에 끌어다 놓습니다.</li>
+      <li>몇 초 뒤 주소가 나옵니다. 이 주소를 선생님들께 안내하면 끝입니다.</li>
+    </ol>
+    <div class="note note-info">
+      계정 없이도 올라가지만, <b>가입해 두면</b> 나중에 파일을 고쳐 다시 올리거나 주소를 바꿀 수 있습니다.
+    </div>
+
+    <h3>다른 방법</h3>
+    <table>
+      <tr><th>방법</th><th>특징</th></tr>
+      <tr><td><b>학교 홈페이지</b></td><td>학교 도메인을 쓸 수 있어 가장 안정적입니다. 담당 업체나 정보부에 파일 업로드를 요청하세요.</td></tr>
+      <tr><td><b>GitHub Pages</b></td><td>무료·안정적이지만 가입과 저장소 만들기가 필요합니다.</td></tr>
+      <tr><td><b>Vercel</b></td><td>GitHub와 연결하면 파일을 고칠 때마다 자동으로 반영됩니다.</td></tr>
+    </table>
+    <div class="note note-warn">
+      <b>파일을 그냥 더블클릭해서 여는 방식</b>(<code>file://</code>)은 쓰지 마세요.
+      브라우저 보안 때문에 저장이 되지 않습니다. 반드시 인터넷에 올려서 <code>https://</code> 주소로 쓰셔야 합니다.
+    </div>
+  </div>
+
+  <!-- 8 -->
+  <div class="step" id="s8">
+    <div class="step-head">
+      <div class="step-num">8</div>
+      <div class="step-title">첫 사용 — 학교 만들고 선생님께 안내</div>
+      <div class="step-time">10분</div>
+    </div>
+    <ol>
+      <li>올린 주소로 들어가 <b>[✨ 새 학교(그룹) 만들기]</b>를 누릅니다.</li>
+      <li>학교 이름과 비밀번호를 정합니다.
+        <div class="note note-warn" style="margin:.5rem 0">
+          <b>비밀번호를 잃어버리면 되살릴 수 없습니다.</b> 원문을 저장하지 않기 때문입니다.
+          업무 인수인계 문서에 꼭 적어 두세요.
+        </div>
+      </li>
+      <li><b>기초 설정</b>에서 학급 구성 → 교시 시간 → 교과전담 → 특별실 → 교과 시수를 입력합니다.
+        <br><span style="color:var(--g500);font-size:.82rem">교과전담은 <b>실명 대신 ‘과학 전담’처럼 담당 표기</b>를 권합니다.</span></li>
+      <li><b>특별실 배정</b>에서 강당·과학실 등을 학급별로 배정합니다.</li>
+      <li>선생님들께 <b>주소·학교 이름·비밀번호</b>를 안내합니다.</li>
+    </ol>
+
+    <h3>선생님들께 보낼 안내문 예시</h3>
+    <div class="copy-wrap">
+      <button class="copy-btn" onclick="copyPre(this)">복사</button>
+<pre><code>[시간표 작성 안내]
+
+아래 주소에서 우리 반 시간표를 직접 입력해 주세요.
+
+· 주소: https://(우리 학교 주소)
+· 학교 이름: (만든 학교 이름)
+· 비밀번호: (정한 비밀번호)
+
+접속 → 학교 이름·비밀번호 입력 → 역할에서 '담임교사'
+→ 담당 학급 선택 → 시간표 입력
+
+교과전담 시간은 이미 채워져 있으니 나머지만 넣으시면 됩니다.
+다 하시면 따로 저장을 누르지 않아도 자동으로 반영됩니다.
+
+문의: (담당자)</code></pre>
+    </div>
+  </div>
+
+  <!-- 9 -->
+  <div class="step" id="s9">
+    <div class="step-head">
+      <div class="step-num">9</div>
+      <div class="step-title">개인정보 처리방침 채우기</div>
+      <div class="step-time">5분</div>
+    </div>
+    <p>
+      화면 맨 아래 <b>[개인정보]</b> 버튼에 처리방침이 들어 있습니다.
+      학교마다 달라지는 곳을 <code>[ ]</code>로 비워 두었으니 채워 주세요.
+    </p>
+    <table>
+      <tr><th>채울 곳</th><th>적을 내용</th></tr>
+      <tr><td>저장 지역</td><td>3단계에서 고른 위치 — 보통 <b>asia-northeast3(서울)</b></td></tr>
+      <tr><td>보유 기간</td><td>학교 기록물 기준에 맞춰. 예: <b>해당 학년도 종료 후 1년</b></td></tr>
+      <tr><td>개인정보 보호 책임자</td><td>직위·성명</td></tr>
+      <tr><td>연락처</td><td>학교 대표 전화 또는 업무용 이메일</td></tr>
+      <tr><td>소속</td><td>학교명</td></tr>
+      <tr><td>시행일</td><td>설치한 날짜</td></tr>
+    </table>
+    <p>
+      메모장에서 <code>Ctrl+F</code>로 <code>[ 학교명 ]</code>처럼 대괄호를 찾으면 빠르게 고칠 수 있습니다.
+    </p>
+    <div class="note note-ok">
+      <b>이 프로그램은 학생 정보를 전혀 입력받지 않습니다.</b>
+      학생 이름이나 번호를 적는 칸이 아예 없습니다. 저장되는 것은 학급명(3-1), 교과목, 교시, 특별실, 시간표뿐입니다.
+    </div>
+  </div>
+
+  <!-- 10 -->
+  <div class="step" id="s10">
+    <div class="step-head">
+      <div class="step-num">10</div>
+      <div class="step-title">문제가 생겼을 때</div>
+    </div>
+    <table>
+      <tr><th>증상</th><th>확인할 것</th></tr>
+      <tr>
+        <td>설치 안내 화면이 계속 뜬다</td>
+        <td>5단계의 <code>apiKey</code>·<code>projectId</code>가 비어 있습니다. 저장했는지, 올린 파일이 고친 파일이 맞는지 확인하세요.</td>
+      </tr>
+      <tr>
+        <td>화면이 하얗게만 나온다</td>
+        <td>5단계에서 따옴표나 쉼표가 빠졌을 가능성이 큽니다. 붙여 넣은 부분을 다시 보세요.</td>
+      </tr>
+      <tr>
+        <td>“네트워크 인증에 실패했습니다”</td>
+        <td>4단계 <b>익명 로그인</b>이 꺼져 있습니다.</td>
+      </tr>
+      <tr>
+        <td>학교는 만들어지는데 내용이 저장되지 않는다</td>
+        <td>6단계 보안 규칙을 <b>[게시]</b>까지 눌렀는지 확인하세요.</td>
+      </tr>
+      <tr>
+        <td>“학교 이름 또는 비밀번호가 맞지 않습니다”</td>
+        <td>학교 이름은 띄어쓰기를 무시하지만 글자는 정확해야 합니다. 비밀번호를 잊으셨다면 새 학교를 만들고 백업을 불러오세요.</td>
+      </tr>
+      <tr>
+        <td>선생님이 입력한 게 관리자 화면에 안 보인다</td>
+        <td>새로고침해 보세요. 그래도 안 되면 같은 주소·같은 학교 이름으로 접속했는지 확인하세요.</td>
+      </tr>
+    </table>
+
+    <h3>해마다 할 일</h3>
+    <ul>
+      <li><b>학년말</b> — 📊 엑셀 저장으로 완성된 시간표를 보관하고, 💾 백업 내보내기로 JSON 파일도 남겨 둡니다.</li>
+      <li><b>새 학년</b> — 기초 설정에서 학급 구성만 고치면 그대로 이어 쓸 수 있습니다.</li>
+      <li><b>담당자 변경</b> — Firebase 계정, 학교 이름, 비밀번호, 이 안내서를 함께 인수인계합니다.</li>
+    </ul>
+  </div>
+
+</div>
+
+<footer>
+  <b>초등 반별 시간표 만들기</b> · 설치 안내<br>
+  © 2026 최창훈 (Choi Changhoon)<br>
+  비영리 이용에 한해 자유롭게 쓸 수 있습니다 · CC BY-NC 4.0
+</footer>
+
+<script>
+function copyPre(btn) {
+  const code = btn.parentElement.querySelector('code');
+  if (!code) return;
+  const text = code.innerText;
+  const done = () => {
+    const old = btn.textContent;
+    btn.textContent = '복사됨 ✓';
+    setTimeout(() => { btn.textContent = old; }, 1600);
+  };
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(() => fallback(text, done));
+  } else {
+    fallback(text, done);
+  }
+}
+function fallback(text, done) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); done(); } catch {}
+  document.body.removeChild(ta);
+}
+</script>
+</body>
+</html>
