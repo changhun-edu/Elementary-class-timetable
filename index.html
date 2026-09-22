@@ -537,6 +537,86 @@ a{color:inherit;text-decoration:none}
 .easter-zone:hover{color:rgba(100,100,120,.7)}
 
 /* ============================================================ */
+/* 랜딩 — 체험판 안내                                            */
+/* ============================================================ */
+.ld-demo-note{
+  max-width:430px;margin:1.35rem auto 0;text-align:left;
+  background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);
+  border-radius:var(--r-md);padding:.85rem 1rem;backdrop-filter:blur(6px);
+}
+.ld-demo-note-title{font-size:.82rem;font-weight:800;color:#fcd34d;margin-bottom:.35rem}
+.ld-demo-note-body{font-size:.76rem;line-height:1.75;color:rgba(255,255,255,.78)}
+.ld-demo-note-body b{color:#fff;font-weight:700}
+
+/* 체험판 상단 띠 (랜딩·총괄관리자 외 모든 화면 상단에 고정) */
+.demo-bar{
+  position:sticky;top:0;z-index:1500;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  background:#78350f;color:#fde68a;font-size:.72rem;font-weight:600;
+  padding:.4rem .9rem;text-align:center;line-height:1.5;
+}
+@media(max-width:480px){.demo-bar{font-size:.68rem;padding:.35rem .7rem}}
+
+/* ============================================================ */
+/* SITE FOOTER (저작권 · 이용조건 · 개인정보)                     */
+/* ============================================================ */
+.site-footer{
+  background:var(--g900);color:var(--g400);
+  padding:2.5rem 1.25rem 3.25rem;text-align:center;
+}
+.sf-inner{max-width:720px;margin:0 auto}
+.sf-title{
+  font-size:.92rem;font-weight:700;color:var(--g100);
+  margin-bottom:.3rem;letter-spacing:-.01em;
+}
+.sf-copy{font-size:.8rem;color:var(--g400);margin-bottom:.35rem}
+.sf-line{font-size:.73rem;color:var(--g500);margin-bottom:1.2rem}
+.sf-links{display:flex;flex-wrap:wrap;gap:.5rem;justify-content:center}
+.sf-link{
+  font-family:inherit;font-size:.76rem;font-weight:600;color:var(--g300);
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);
+  border-radius:999px;padding:.42rem 1rem;cursor:pointer;
+  transition:all var(--t);white-space:nowrap;
+}
+.sf-link:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.28);color:#fff}
+
+/* 푸터 모달 본문 */
+.modal-box.doc-box{max-width:560px;padding:1.5rem 1.35rem 1.25rem;text-align:left}
+.doc-box .modal-title{margin-bottom:.9rem}
+.doc-scroll{max-height:min(62vh,520px);overflow-y:auto;padding-right:.5rem;margin-right:-.35rem}
+.doc-scroll::-webkit-scrollbar{width:7px}
+.doc-scroll::-webkit-scrollbar-thumb{background:var(--g300);border-radius:4px}
+.doc-body{font-size:.84rem;line-height:1.8;color:var(--g700)}
+.doc-body h4{
+  font-size:.86rem;font-weight:800;color:var(--g900);
+  margin:1.15rem 0 .4rem;padding-left:.5rem;border-left:3px solid var(--brand);
+}
+.doc-body h4:first-child{margin-top:0}
+.doc-body p{margin-bottom:.6rem}
+.doc-body ul{margin:0 0 .7rem 1.05rem}
+.doc-body li{margin-bottom:.28rem}
+.doc-body b{color:var(--g900);font-weight:700}
+.doc-body a{color:var(--brand);text-decoration:underline;text-underline-offset:2px;word-break:break-all}
+.doc-body code{
+  font-family:monospace;font-size:.8em;background:var(--g100);
+  padding:.1rem .35rem;border-radius:4px;color:var(--g800);
+}
+.doc-note{
+  background:var(--warn-bg);border:1px solid #fcd34d;border-radius:var(--r);
+  padding:.7rem .9rem;font-size:.79rem;line-height:1.7;color:#92400e;margin:.7rem 0 1rem;
+}
+.doc-note b{color:#78350f}
+.doc-table{width:100%;border-collapse:collapse;font-size:.78rem;margin:.3rem 0 .9rem}
+.doc-table th,.doc-table td{border:1px solid var(--g200);padding:.42rem .55rem;text-align:left;vertical-align:top}
+.doc-table th{background:var(--g50);font-weight:700;color:var(--g800);white-space:nowrap}
+.doc-updated{font-size:.74rem;color:var(--g400);margin-top:1.2rem;padding-top:.7rem;border-top:1px solid var(--g200)}
+@media(max-width:480px){
+  .site-footer{padding:2rem 1rem 2.75rem}
+  .sf-link{font-size:.73rem;padding:.4rem .85rem}
+  .doc-body{font-size:.81rem}
+}
+
+/* ============================================================ */
 /* SCHOOL SEARCH                                                */
 /* ============================================================ */
 .school-result{
@@ -1193,21 +1273,23 @@ a{color:inherit;text-decoration:none}
 
   <!-- ① 히어로 -->
   <div class="ld-hero">
-    <div class="ld-hero-badge">📅 초등학교 선생님 전용</div>
+    <div class="ld-hero-badge">📅 초등학교 선생님 전용 · 체험판</div>
     <h1 class="ld-hero-title">시간표 만들기,<br><em>이제 쉽고 빠르게</em></h1>
     <p class="ld-hero-sub">복잡한 엑셀 없이 클릭 몇 번으로 완성.<br>특별실 충돌·교시 중복을 프로그램이 자동으로 잡아줍니다.</p>
     <div class="ld-hero-actions">
-      <button class="ld-btn-main" onclick="goToJoin()">
-        🗓️ 시간표 입력 시작하기
+      <button class="ld-btn-main" id="demo-start-btn" onclick="startDemo()">
+        🗓️ 체험 시작하기
       </button>
-      <button class="ld-btn-sub" onclick="goToCreate()">
-        ✨ 새 학교(그룹) 만들기
-        <span style="font-size:.7rem;padding:.1rem .4rem;background:rgba(245,158,11,.25);color:#fcd34d;border-radius:8px;font-weight:700">관리자</span>
-      </button>
-      <button class="ld-btn-sub" onclick="goToManage()">
-        ⚙️ 기존 학교 관리하기
-        <span style="font-size:.7rem;padding:.1rem .4rem;background:rgba(99,102,241,.25);color:#a5b4fc;border-radius:8px;font-weight:700">관리자</span>
-      </button>
+    </div>
+
+    <div class="ld-demo-note">
+      <div class="ld-demo-note-title">🧪 이 사이트는 체험판입니다</div>
+      <div class="ld-demo-note-body">
+        가상 학교 <b>‘행복초’</b> 한 곳을 모든 방문자가 함께 사용합니다.
+        로그인 없이 역할만 고르면 바로 들어갑니다.<br>
+        입력한 내용은 <b>다른 방문자에게 그대로 보이며, 예고 없이 초기화</b>됩니다.
+        <b style="color:#fca5a5">실제 학생·교사의 이름이나 학교 이름은 절대 입력하지 마세요.</b>
+      </div>
     </div>
     <div class="ld-hero-scroll">
       <span>더 알아보기</span>
@@ -1294,23 +1376,23 @@ a{color:inherit;text-decoration:none}
 
   <!-- ④ 사용 순서 -->
   <div class="ld-section">
-    <div class="ld-section-label">사용 순서</div>
-    <div class="ld-section-title">처음이라면 이 순서로</div>
+    <div class="ld-section-label">체험 순서</div>
+    <div class="ld-section-title">이 순서로 둘러보세요</div>
     <div class="ld-steps">
 
       <div class="ld-step">
         <div class="ld-step-num" style="background:#0f172a;color:#fff">1</div>
         <div class="ld-step-body">
-          <div class="ld-step-title">학교(그룹) 만들기 <span style="font-size:.7rem;padding:.1rem .45rem;background:#fef3c7;color:#d97706;border-radius:8px;font-weight:700;margin-left:.3rem">관리자</span></div>
-          <div class="ld-step-desc">학교 이름과 비밀번호를 설정합니다. 이 비밀번호로 모든 선생님이 접속합니다.</div>
+          <div class="ld-step-title">체험 시작하기 <span style="font-size:.7rem;padding:.1rem .45rem;background:#e0e7ff;color:#4338ca;border-radius:8px;font-weight:700;margin-left:.3rem">누구나</span></div>
+          <div class="ld-step-desc">역할(담임·교과전담·관리자)만 고르면 가상 학교 ‘행복초’로 바로 들어갑니다. 가입도 비밀번호도 없습니다.</div>
         </div>
       </div>
 
       <div class="ld-step">
         <div class="ld-step-num" style="background:#6366f1;color:#fff">2</div>
         <div class="ld-step-body">
-          <div class="ld-step-title">기초 설정 <span style="font-size:.7rem;padding:.1rem .45rem;background:#fef3c7;color:#d97706;border-radius:8px;font-weight:700;margin-left:.3rem">관리자</span></div>
-          <div class="ld-step-desc">학급 구성, 교시 시간, 교과전담 교사, 특별실 목록, 교과목·시수를 입력합니다.</div>
+          <div class="ld-step-title">기초 설정 둘러보기 <span style="font-size:.7rem;padding:.1rem .45rem;background:#fef3c7;color:#d97706;border-radius:8px;font-weight:700;margin-left:.3rem">관리자</span></div>
+          <div class="ld-step-desc">학급 구성, 교시 시간, 교과전담, 특별실 목록, 교과목·시수가 샘플로 채워져 있습니다. 자유롭게 바꿔 보세요.</div>
         </div>
       </div>
 
@@ -1343,15 +1425,26 @@ a{color:inherit;text-decoration:none}
 
   <!-- ⑤ 하단 CTA -->
   <div class="ld-cta">
-    <div class="ld-cta-title">지금 바로 시작해보세요</div>
-    <div class="ld-cta-sub">설치 없이 브라우저에서 바로 사용할 수 있습니다</div>
-    <button class="ld-btn-main" style="max-width:280px;width:100%" onclick="goToJoin()">
-      🗓️ 시간표 입력 시작하기
-    </button>
-    <button class="ld-btn-sub" style="max-width:280px;width:100%;margin-top:-.1rem" onclick="goToCreate()">
-      ✨ 새 학교 만들기
+    <div class="ld-cta-title">지금 바로 둘러보세요</div>
+    <div class="ld-cta-sub">설치도, 가입도, 로그인도 없습니다</div>
+    <button class="ld-btn-main" style="max-width:280px;width:100%" onclick="startDemo()">
+      🗓️ 체험 시작하기
     </button>
   </div>
+
+  <!-- ⑥ 저작권 푸터 -->
+  <footer class="site-footer">
+    <div class="sf-inner">
+      <div class="sf-title">초등 반별 시간표 만들기</div>
+      <div class="sf-copy">© 2026 최창훈 (Choi Changhoon)</div>
+      <div class="sf-line">비영리 이용에 한해 자유롭게 쓸 수 있습니다 · CC BY-NC 4.0</div>
+      <div class="sf-links">
+        <button class="sf-link" onclick="openModal('modal-terms')">이용조건</button>
+        <button class="sf-link" onclick="openModal('modal-privacy')">개인정보</button>
+        <button class="sf-link" onclick="openModal('modal-notice')">고지·오픈소스</button>
+      </div>
+    </div>
+  </footer>
 
 </div>
 
@@ -1368,20 +1461,23 @@ a{color:inherit;text-decoration:none}
   </div>
   <div class="page-body">
     <div class="card">
-      <div class="card-title">🔐 학교 확인</div>
-      <div class="form-group">
-        <label class="form-label">학교 이름 <span style="color:var(--danger)">*</span></label>
-        <input type="text" id="join-search" class="form-input" placeholder="학교 이름을 정확히 입력하세요"
-               autocomplete="off" onkeydown="if(event.key==='Enter') verifyJoinSchool()">
-        <div class="form-hint">📌 관리자가 만든 학교 이름 그대로 입력해주세요.</div>
+      <div class="card-title">🏫 체험 학교</div>
+      <!-- 체험판에서는 학교 확인 단계를 쓰지 않는다 (배포판에서 display 제거) -->
+      <div id="join-verify-step" style="display:none">
+        <div class="form-group">
+          <label class="form-label">학교 이름 <span style="color:var(--danger)">*</span></label>
+          <input type="text" id="join-search" class="form-input" placeholder="학교 이름을 정확히 입력하세요"
+                 autocomplete="off" onkeydown="if(event.key==='Enter') verifyJoinSchool()">
+          <div class="form-hint">📌 관리자가 만든 학교 이름 그대로 입력해주세요.</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">학교 비밀번호 <span style="color:var(--danger)">*</span></label>
+          <input type="password" id="join-pw" class="form-input" placeholder="학교 비밀번호를 입력하세요"
+                 autocomplete="off" onkeydown="if(event.key==='Enter') verifyJoinSchool()">
+          <div id="join-pw-err" class="form-error">⚠️ 학교 이름 또는 비밀번호가 맞지 않습니다. 관리자에게 문의하세요.</div>
+        </div>
+        <button class="btn btn-primary btn-block" id="btn-join-verify" onclick="verifyJoinSchool()">확인</button>
       </div>
-      <div class="form-group">
-        <label class="form-label">학교 비밀번호 <span style="color:var(--danger)">*</span></label>
-        <input type="password" id="join-pw" class="form-input" placeholder="학교 비밀번호를 입력하세요"
-               autocomplete="off" onkeydown="if(event.key==='Enter') verifyJoinSchool()">
-        <div id="join-pw-err" class="form-error">⚠️ 학교 이름 또는 비밀번호가 맞지 않습니다. 관리자에게 문의하세요.</div>
-      </div>
-      <button class="btn btn-primary btn-block" id="btn-join-verify" onclick="verifyJoinSchool()">확인</button>
       <div id="school-results"></div>
     </div>
 
@@ -2075,6 +2171,21 @@ a{color:inherit;text-decoration:none}
       </div>
     </div>
 
+    <!-- 체험 학교 초기화 -->
+    <div style="background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);border-radius:var(--r-md);padding:1rem 1.1rem;margin-bottom:1.3rem">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:.8rem;flex-wrap:wrap">
+        <div style="flex:1;min-width:190px">
+          <div style="font-size:.85rem;font-weight:800;color:#fcd34d;margin-bottom:.2rem">🧪 체험 학교 초기화</div>
+          <div style="font-size:.75rem;color:rgba(255,255,255,.55);line-height:1.6">
+            체험 학교 <b style="color:#fde68a">‘행복초’</b>를 지우고 샘플 데이터로 다시 만듭니다.
+            방문자가 입력한 내용은 모두 사라집니다.
+          </div>
+        </div>
+        <button class="btn btn-sm" id="sa-demo-reset-btn" onclick="confirmResetDemo()"
+          style="color:#fcd34d;border:1px solid rgba(251,191,36,.45);background:rgba(251,191,36,.12);flex-shrink:0">🔄 초기화 실행</button>
+      </div>
+    </div>
+
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.1rem">
       <div class="sa-section-label">📋 등록된 학교 목록</div>
       <button class="btn btn-sm" onclick="loadAllSchools()"
@@ -2089,6 +2200,221 @@ a{color:inherit;text-decoration:none}
 <!-- ═══════════════════════════════════════════════════════ -->
 
 <!-- Cell edit modal -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- 푸터 문서 ① 이용조건                                     -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="modal-bg" id="modal-terms">
+  <div class="modal-box doc-box">
+    <div class="modal-title">📜 이용조건</div>
+    <div class="doc-scroll">
+      <div class="doc-body">
+
+        <h4>1. 저작권</h4>
+        <p>
+          「초등 반별 시간표 만들기」의 <b>기획·구성·화면 디자인 및 소스 코드</b>는
+          <b>최창훈</b>의 창작물입니다. (© 2026 최창훈)
+        </p>
+
+        <h4>2. 이용 허락 범위</h4>
+        <p>
+          이 저작물은
+          <a href="https://creativecommons.org/licenses/by-nc/4.0/deed.ko" target="_blank" rel="noopener noreferrer">크리에이티브 커먼즈 저작자표시-비영리 4.0 국제 라이선스(CC BY-NC 4.0)</a>에
+          따라 제공됩니다.
+        </p>
+        <ul>
+          <li><b>허락합니다</b> — 비영리 목적의 사용·복제·수정·배포. 학교 현장에서 자유롭게 쓰고, 고쳐 쓰고, 동료에게 나누어 주셔도 됩니다.</li>
+          <li><b>조건입니다</b> — 이용하거나 공유할 때 <b>만든이(최창훈)</b>를 밝혀 주세요.</li>
+          <li><b>허락하지 않습니다</b> — 판매, 유료 서비스·유료 연수 상품에 포함, 광고 수익 목적의 게재 등 <b>상업적 이용</b>.</li>
+        </ul>
+        <p>상업적 이용을 원하시면 만든이에게 따로 문의해 주세요.</p>
+
+        <h4>3. 체험판 안내</h4>
+        <div class="doc-note">
+          이 사이트는 <b>기능을 둘러보기 위한 체험판</b>입니다.
+          가상 학교 <b>‘행복초’</b> 한 곳을 모든 방문자가 함께 사용하며,
+          입력한 내용은 <b>다른 방문자에게 그대로 보이고 예고 없이 초기화</b>됩니다.<br>
+          실제 학교 업무에 사용하거나, 실제 학생·교사·학교의 이름을 입력하지 마세요.
+        </div>
+
+        <h4>4. 실제 학교 운영</h4>
+        <p>
+          학교에서 실제로 쓰시려면 <b>학교별 설치본(배포판)</b>을 내려받아
+          <b>학교가 직접 만든 저장소에 설치</b>해 사용하시기 바랍니다.
+          이 경우 학교의 자료는 그 학교의 저장소에만 쌓이며, 만든이는 여기에 접근하지 않습니다.
+        </p>
+
+        <h4>5. 보증과 책임</h4>
+        <p>
+          이 프로그램은 <b>있는 그대로</b> 제공되며, 특정 목적에 대한 적합성이나 무결점을 보증하지 않습니다.
+          시간표는 반드시 <b>학교의 최종 확인 절차를 거쳐</b> 사용하시고,
+          프로그램의 계산 결과를 그대로 신뢰해 생긴 손해에 대해 만든이는 책임지지 않습니다.
+        </p>
+
+        <div class="doc-updated">최종 수정: 2026년 9월 22일</div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary btn-sm" onclick="closeModal('modal-terms')">확인</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- 푸터 문서 ② 개인정보 처리방침                             -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="modal-bg" id="modal-privacy">
+  <div class="modal-box doc-box">
+    <div class="modal-title">🔒 개인정보 처리방침</div>
+    <div class="doc-scroll">
+      <div class="doc-body">
+
+        <div class="doc-note">
+          <b>이 사이트는 체험판이며, 개인정보를 수집하지 않는 것을 원칙으로 합니다.</b><br>
+          회원가입·로그인이 없고, 이름·연락처·이메일을 묻는 입력란도 없습니다.<br>
+          <b>실제 학생·교사·학교의 이름을 입력하지 마세요.</b> 입력하신 내용은 다른 방문자에게 그대로 보입니다.
+        </div>
+
+        <h4>1. 수집하지 않는 것</h4>
+        <ul>
+          <li>이름, 생년월일, 연락처, 이메일 주소, 주소</li>
+          <li>학생 개인에 관한 어떤 정보도 받지 않습니다</li>
+          <li>쿠키를 이용한 광고·행태정보 수집, 접속 통계 분석 도구</li>
+        </ul>
+
+        <h4>2. 실제로 저장되는 것</h4>
+        <table class="doc-table">
+          <tr><th>항목</th><th>내용 · 목적</th></tr>
+          <tr>
+            <td>익명 식별자</td>
+            <td>접속한 브라우저에 무작위로 부여되는 값(익명 로그인). 누가 썼는지 알 수 없으며, 체험 학교의 자료를 읽고 쓸 자격을 확인하는 데만 씁니다.</td>
+          </tr>
+          <tr>
+            <td>체험 학교 자료</td>
+            <td>방문자가 화면에 입력한 학급명·교과목·교시·특별실·시간표 내용. 체험 기능을 보여 주기 위한 용도입니다.</td>
+          </tr>
+          <tr>
+            <td>브라우저 저장소</td>
+            <td>새로고침해도 보던 화면이 유지되도록, 이용자의 기기 안(localStorage)에만 현재 상태를 저장합니다. 만든이에게 전송되지 않습니다.</td>
+          </tr>
+        </table>
+        <p>
+          위 자료는 <b>이름표가 없는 시간표 내용</b>일 뿐이지만,
+          방문자가 실명을 직접 적어 넣으면 그 글자는 그대로 저장되고 공개됩니다.
+          그래서 <b>실명 입력을 금지</b>하고 있습니다.
+        </p>
+
+        <h4>3. 처리 위탁</h4>
+        <p>
+          체험 학교 자료는 <b>Google LLC</b>가 제공하는
+          <b>Firebase(Cloud Firestore · Authentication)</b>에 저장되며,
+          구글이 운영하는 서버에 보관됩니다.
+          만든이는 이 서비스를 이용할 뿐, 별도의 서버를 운영하지 않습니다.
+        </p>
+
+        <h4>4. 보관 기간과 파기</h4>
+        <ul>
+          <li>체험 학교 자료는 <b>예고 없이, 수시로 전부 삭제</b>됩니다.</li>
+          <li>총괄 관리자가 체험 학교를 초기화하면 그동안 입력된 내용은 <b>복구할 수 없습니다.</b></li>
+          <li>이용자 기기의 브라우저 저장소 값은 <b>로그아웃</b>하거나 브라우저 저장 데이터를 지우면 사라집니다.</li>
+        </ul>
+
+        <h4>5. 이용자의 권리</h4>
+        <p>
+          이 사이트는 개인을 식별할 수 있는 정보를 보관하지 않으므로,
+          특정 개인의 자료만 찾아 열람·정정·삭제해 드리는 것은 기술적으로 불가능합니다.
+          실수로 실명을 입력하셨다면 <b>해당 내용을 화면에서 직접 지우시거나</b>,
+          아래 연락처로 알려 주시면 체험 학교 전체를 초기화해 드립니다.
+        </p>
+
+        <h4>6. 실제 학교 운영용 배포판</h4>
+        <p>
+          학교에서 실제 시간표 업무에 사용하실 때는 <b>학교별 설치본(배포판)</b>을 쓰시기 바랍니다.
+          배포판의 자료는 <b>그 학교가 직접 만든 저장소에만</b> 저장되며,
+          만든이는 여기에 접근할 수 없습니다.
+          이 경우 개인정보의 관리 책임은 해당 학교에 있습니다.
+        </p>
+
+        <h4>7. 문의</h4>
+        <p>
+          개인정보와 관련한 문의는 만든이에게 연락해 주세요.<br>
+          <b>연락처: [문의 이메일 주소를 적어 주세요]</b>
+        </p>
+
+        <div class="doc-updated">최종 수정: 2026년 9월 22일 · 시행: 2026년 9월 22일</div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary btn-sm" onclick="closeModal('modal-privacy')">확인</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- 푸터 문서 ③ 고지 · 오픈소스                               -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="modal-bg" id="modal-notice">
+  <div class="modal-box doc-box">
+    <div class="modal-title">📢 고지 · 오픈소스</div>
+    <div class="doc-scroll">
+      <div class="doc-body">
+
+        <h4>1. 사용한 오픈소스</h4>
+        <p>이 사이트는 아래 오픈소스를 불러와 이용합니다. 각각의 저작권은 원저작자에게 있으며, 해당 라이선스에 따라 이용합니다.</p>
+        <table class="doc-table">
+          <tr><th>이름</th><th>라이선스</th></tr>
+          <tr>
+            <td><a href="https://github.com/orioncactus/pretendard" target="_blank" rel="noopener noreferrer">Pretendard</a><br><span style="color:var(--g500)">본문 글꼴</span></td>
+            <td>SIL Open Font License 1.1<br><span style="color:var(--g500)">© 길형진(orioncactus)</span></td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/firebase/firebase-js-sdk" target="_blank" rel="noopener noreferrer">Firebase JS SDK</a><br><span style="color:var(--g500)">자료 저장·동기화</span></td>
+            <td>Apache License 2.0<br><span style="color:var(--g500)">© Google LLC</span></td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/SheetJS/sheetjs" target="_blank" rel="noopener noreferrer">SheetJS (xlsx)</a><br><span style="color:var(--g500)">엑셀 읽기</span></td>
+            <td>Apache License 2.0<br><span style="color:var(--g500)">© SheetJS LLC</span></td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/exceljs/exceljs" target="_blank" rel="noopener noreferrer">ExcelJS</a><br><span style="color:var(--g500)">엑셀 내보내기</span></td>
+            <td>MIT License<br><span style="color:var(--g500)">© Guyon Roche</span></td>
+          </tr>
+        </table>
+
+        <h4>2. 아이콘</h4>
+        <p>
+          화면의 아이콘(🏛️ 🎲 💾 등)은 별도의 이미지 파일이나 상업용 이모티콘이 아니라
+          <b>유니코드 표준 이모지 문자</b>입니다. 실제 모양은 이용자의 운영체제 글꼴이 그립니다.
+        </p>
+
+        <h4>3. 교과목·시수 기본값</h4>
+        <p>
+          처음 채워져 있는 교과목과 주당 시수는 <b>국가교육과정 고시</b>를 참고한 <b>기본값</b>입니다.
+          저작권법 제7조에 따라 고시·공고는 저작권 보호 대상이 아니므로 자유롭게 이용할 수 있습니다.<br>
+          다만 학년·학기별 실제 시수는 학교 교육과정에 따라 다르므로,
+          <b>반드시 우리 학교 교육과정 편성표와 대조해 조정</b>하신 뒤 사용하세요.
+        </p>
+
+        <h4>4. 엑셀 파일의 글꼴</h4>
+        <p>
+          내보내는 엑셀 파일에는 글꼴 이름(<code>맑은 고딕</code>)만 지정되어 있고
+          글꼴 파일이 들어 있지는 않습니다. 해당 글꼴이 없는 컴퓨터에서는 다른 글꼴로 표시됩니다.
+        </p>
+
+        <h4>5. 면책</h4>
+        <p>
+          이 프로그램은 있는 그대로 제공되며 무결점을 보증하지 않습니다.
+          완성된 시간표는 반드시 학교의 확인 절차를 거쳐 사용해 주세요.
+        </p>
+
+        <div class="doc-updated">최종 수정: 2026년 9월 22일</div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary btn-sm" onclick="closeModal('modal-notice')">확인</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="modal-cell">
   <div class="modal-box">
     <div class="modal-title" id="mcell-title">시간표 입력</div>
@@ -2993,6 +3319,117 @@ const DEFAULT_ROOMS = ['강당','운동장','과학실1','과학실2','컴퓨터
 const DEFAULT_TEACHER_TYPES = [];
 
 /* ===========================================================
+   체험판(DEMO) 설정
+   -----------------------------------------------------------
+   · 이 사이트는 기능을 둘러보는 '체험판'이다.
+   · 모든 방문자가 아래 공용 체험 학교 한 곳을 함께 사용한다.
+   · 비밀번호는 공개값이며, 총괄 관리자가 수시로 초기화한다.
+   · 실제 학교 운영은 배포판(학교별 자체 설치본)으로 한다.
+   =========================================================== */
+const DEMO_SCHOOL_NAME = '행복초';
+const DEMO_SCHOOL_PW   = 'happy2026';
+
+/** 체험 학교의 초기 데이터(샘플). 초기화할 때마다 같은 내용으로 복원된다. */
+function buildDemoSchoolData(id) {
+  const sbg = {};
+  [1,2,3,4,5,6].forEach(g => {
+    sbg[g] = DEFAULT_SUBJECTS_BY_GRADE[g].map((s,i) => ({...s, id:`sub${g}_${i}`}));
+  });
+
+  // 학년당 2개 학급
+  const gradeClasses = {};
+  [1,2,3,4,5,6].forEach(g => {
+    gradeClasses[g] = [1,2].map(n => ({ id:`cls_${g}_${n}`, name:`${g}-${n}`, grade:g }));
+  });
+  const classes = [1,2,3,4,5,6].flatMap(g => gradeClasses[g]);
+
+  // 교과전담 — 실명 대신 담당 교과 표기만 사용한다
+  const specialtyTeachers = [
+    { id:'sp_demo_sci', label:'과학 전담', grades:[5,6], subjects:['과학'],
+      assignments:[{grade:5,subject:'과학'},{grade:6,subject:'과학'}] },
+    { id:'sp_demo_eng', label:'영어 전담', grades:[3,4,5,6], subjects:['영어'],
+      assignments:[{grade:3,subject:'영어'},{grade:4,subject:'영어'},
+                   {grade:5,subject:'영어'},{grade:6,subject:'영어'}] },
+  ];
+
+  return {
+    id, name: DEMO_SCHOOL_NAME,
+    isDemo: true,
+    pwSalt: randomSalt(),
+    subjectsByGrade: sbg,
+    subjects: [],
+    specialRooms: DEFAULT_ROOMS.map((r,i) => ({id:'rm'+i, name:r})),
+    dailyPeriods: Object.fromEntries([1,2,3,4,5,6].map(g => [g, {...DEFAULT_DAILY_PERIODS[g]}])),
+    gradeClasses,
+    classes,
+    gradeConfig: [2,2,2,2,2,2],
+    periodTimes: { default: DEFAULT_PERIOD_TIMES.map(t=>({...t})) },
+    teacherTypes: DEFAULT_TEACHER_TYPES.map(t => ({...t})),
+    specialtyTeachers,
+    specialtyTeacherCount: specialtyTeachers.length,
+    specialtySubjects: ['과학','영어'],
+    specialtySchedule: {},
+    roomSchedule: {},
+    createdAt: Date.now(),
+  };
+}
+
+/** 체험 학교를 새로 만든다(없을 때 1회, 또는 초기화 직후). */
+async function createDemoSchool() {
+  await ensureAuth();
+  const uid = myUid();
+  if (!uid) throw new Error('auth failed');
+
+  const id   = 'demo_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+  const data = buildDemoSchoolData(id);
+  const h    = await pwHashOf(data.pwSalt, DEMO_SCHOOL_PW);
+
+  await setDoc(doc(db,'schools',id,'secret','auth'), { adminHash: h, teacherHash: h });
+  await setDoc(doc(db,'schools',id,'members',uid),   { role:'admin', h, at: Date.now() });
+  await saveSchool(data);
+  await setDoc(doc(db,'nameIndex', await nameKeyOf(DEMO_SCHOOL_NAME)),
+               { schoolId: id, salt: data.pwSalt, name: DEMO_SCHOOL_NAME });
+  return data;
+}
+
+/** 랜딩 → 체험 시작. 비밀번호 단계 없이 역할 선택 화면으로 바로 보낸다. */
+async function startDemo() {
+  const btn = document.getElementById('demo-start-btn');
+  const restore = () => { if (btn) { btn.disabled = false; btn.innerHTML = '🗓️ 체험 시작하기'; } };
+  if (btn) { btn.disabled = true; btn.innerHTML = '⏳ 체험 학교 준비 중...'; }
+
+  try {
+    await ensureAuth();
+    let idx = await lookupSchoolIndex(DEMO_SCHOOL_NAME);
+    if (!idx) {
+      try { await createDemoSchool(); } catch(e) { console.warn('createDemoSchool:', e); }
+      idx = await lookupSchoolIndex(DEMO_SCHOOL_NAME);
+    }
+    if (!idx) {
+      toast('체험 학교를 준비하지 못했습니다. 잠시 후 다시 시도해주세요.', 'error');
+      return;
+    }
+
+    const res = await authenticateSchool(DEMO_SCHOOL_NAME, DEMO_SCHOOL_PW);
+    if (!res) {
+      toast('체험 학교에 접속하지 못했습니다. 총괄 관리자에게 초기화를 요청해주세요.', 'error');
+      return;
+    }
+
+    joinFailCount = 0;
+    joinAuthLevel = res.level;
+    goTo('screen-join');
+    await openJoinForm(res.school);
+  } catch(e) {
+    console.error('startDemo error:', e);
+    toast('체험 학교 접속 중 오류가 발생했습니다.', 'error');
+  } finally {
+    restore();
+  }
+}
+window.startDemo = startDemo;
+
+/* ===========================================================
    STATE
    =========================================================== */
 const S = {
@@ -3029,9 +3466,10 @@ const SCREEN_RESTORE_FN = {
   'screen-room-schedule':() => { if(S.school) goToRoomSchedule(); else goTo('screen-landing'); },
   'screen-specialty':    () => goToSpecialtyScreen(),
   'screen-timetable':    () => { initTimetable(); goTo('screen-timetable'); },
-  'screen-join':         () => goToJoin(),
-  'screen-manage':       () => goToManage(),
-  'screen-create':       () => goToCreate(),
+  // 체험판: 학교 만들기·비밀번호 로그인 경로는 쓰지 않으므로 랜딩으로 되돌린다
+  'screen-join':         () => goTo('screen-landing'),
+  'screen-manage':       () => goTo('screen-landing'),
+  'screen-create':       () => goTo('screen-landing'),
   'screen-landing':      () => _renderScreen('screen-landing'),
 };
 
@@ -3273,6 +3711,37 @@ function confirmBulkDeleteSelected() {
   );
 }
 window.confirmBulkDeleteSelected = confirmBulkDeleteSelected;
+
+/* 체험 학교 초기화 — 기존 체험 학교를 지우고 샘플 데이터로 다시 만든다. */
+function confirmResetDemo() {
+  openConfirm(
+    '체험 학교 초기화',
+    `체험 학교 "${DEMO_SCHOOL_NAME}"를 지우고 샘플 데이터로 다시 만듭니다. 방문자가 입력한 내용은 모두 사라지며 복구할 수 없습니다. 계속하시겠습니까?`,
+    async () => {
+      const btn = document.getElementById('sa-demo-reset-btn');
+      if (btn) { btn.disabled = true; btn.textContent = '⏳ 초기화 중...'; }
+      try {
+        // ① 기존 체험 학교 제거 (이름 색인 포함)
+        const idx = await lookupSchoolIndex(DEMO_SCHOOL_NAME);
+        if (idx?.schoolId) {
+          await removeSchool(idx.schoolId);
+          try { await deleteDoc(doc(db,'nameIndex', await nameKeyOf(DEMO_SCHOOL_NAME))); } catch {}
+        }
+        // ② 샘플 데이터로 다시 생성
+        await createDemoSchool();
+        toast('체험 학교를 초기화했습니다. ✔', 'success');
+        loadAllSchools();
+      } catch(e) {
+        console.error('resetDemo error:', e);
+        toast('초기화 중 오류가 발생했습니다. 다시 시도해주세요.', 'error');
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = '🔄 초기화 실행'; }
+      }
+    },
+    '', '초기화', 'btn-danger'
+  );
+}
+window.confirmResetDemo = confirmResetDemo;
 
 function confirmDeleteSchool(id, name) {
   openConfirm(`"${name}" 삭제`, `학교와 모든 시간표 데이터가 영구 삭제됩니다. 계속하시겠습니까?`, async () => {
@@ -6220,11 +6689,10 @@ async function openJoinForm(school) {
       <div style="display:flex;align-items:center;gap:.5rem">
         <span style="font-size:1.3rem">🏫</span>
         <div>
-          <div style="font-weight:700;font-size:.9rem">${escHtml(joinSchoolRef.name)}</div>
-          <div class="text-muted text-sm">${joinAuthLevel === 'admin' ? '👑 관리자 권한으로 확인됨' : '✅ 교사 권한으로 확인됨'}</div>
+          <div style="font-weight:700;font-size:.9rem">${escHtml(joinSchoolRef.name)} <span style="font-size:.68rem;padding:.1rem .4rem;background:#fef3c7;color:#b45309;border-radius:8px;font-weight:700">체험용 가상 학교</span></div>
+          <div class="text-muted text-sm">✅ 모든 역할을 자유롭게 체험할 수 있습니다</div>
         </div>
       </div>
-      <button class="btn btn-ghost btn-sm" onclick="resetJoinAuth()">다른 학교</button>
     </div>`;
 
   // populate class dropdown (grouped by grade)
@@ -7346,6 +7814,16 @@ window.closeModal = closeModal;
 document.querySelectorAll('.modal-bg').forEach(bg => {
   bg.addEventListener('click', e => { if(e.target===bg) bg.classList.remove('open'); });
 });
+
+/* 체험판 안내 띠 — 랜딩·총괄관리자를 뺀 모든 화면 맨 위에 붙인다.
+   (배포판에서는 이 블록만 지우면 된다) */
+(function installDemoBar() {
+  const html = '<div class="demo-bar">🧪 체험판입니다 — 실제 학생·교사·학교 이름을 입력하지 마세요. 입력 내용은 공개되며 예고 없이 초기화됩니다.</div>';
+  document.querySelectorAll('.screen').forEach(sc => {
+    if (sc.id === 'screen-landing' || sc.id === 'screen-superadmin') return;
+    sc.insertAdjacentHTML('afterbegin', html);
+  });
+})();
 
 function openConfirm(title, desc, onOk, extraHtml='', okLabel='삭제', okClass='btn-danger', onCancel=null) {
   q('#mconf-title').textContent = title;
