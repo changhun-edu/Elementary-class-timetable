@@ -197,8 +197,14 @@ a{color:inherit;text-decoration:none}
 /* ============================================================ */
 #screen-admin-home{
   background:linear-gradient(140deg,#1e3a8a 0%,#1d4ed8 35%,#2563eb 65%,#3b82f6 100%);
-  align-items:center;justify-content:center;padding:2rem;position:relative;overflow:hidden;
+  align-items:stretch;justify-content:flex-start;position:relative;overflow:hidden;
 }
+/* 체험판 띠가 화면 맨 위 전체 폭을 쓰도록, 가운데 정렬은 안쪽 래퍼가 담당 */
+.adh-scroll{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  padding:2rem;overflow-y:auto;position:relative;z-index:1;
+}
+@media(max-width:480px){.adh-scroll{padding:1.25rem 1rem}}
 #screen-admin-home::before{
   content:'';position:absolute;inset:0;
   background:radial-gradient(circle at 15% 25%,rgba(255,255,255,.07) 0%,transparent 50%),
@@ -539,6 +545,42 @@ a{color:inherit;text-decoration:none}
 /* ============================================================ */
 /* 랜딩 — 체험판 안내                                            */
 /* ============================================================ */
+/* 랜딩 — 역할 선택 카드 */
+.ld-entry{max-width:430px;margin:.5rem auto 0;text-align:left}
+.ld-entry-label{
+  font-size:.78rem;font-weight:700;color:rgba(255,255,255,.62);
+  text-align:center;margin-bottom:.7rem;letter-spacing:-.01em;
+}
+.ld-entry-card{
+  font-family:inherit;width:100%;display:flex;align-items:center;gap:.85rem;
+  text-align:left;padding:.95rem 1.05rem;margin-bottom:.55rem;cursor:pointer;
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.17);
+  border-radius:var(--r-lg);transition:all var(--t);
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+}
+.ld-entry-card:hover{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.34);transform:translateY(-1px)}
+.ld-entry-card:active{transform:translateY(0)}
+.ld-entry-card.primary{
+  background:rgba(16,185,129,.16);border-color:rgba(16,185,129,.5);
+}
+.ld-entry-card.primary:hover{background:rgba(16,185,129,.24);border-color:rgba(16,185,129,.75)}
+.ld-entry-card.busy{pointer-events:none;opacity:.75;justify-content:center}
+.ld-entry-icon{font-size:1.5rem;flex-shrink:0;line-height:1}
+.ld-entry-body{display:flex;flex-direction:column;gap:.2rem;flex:1;min-width:0}
+.ld-entry-title{font-size:.9rem;font-weight:800;color:#fff;letter-spacing:-.01em}
+.ld-entry-badge{
+  font-size:.64rem;font-weight:800;vertical-align:middle;margin-left:.3rem;
+  background:#10b981;color:#052e21;border-radius:999px;padding:.1rem .42rem;
+}
+.ld-entry-desc{font-size:.75rem;line-height:1.6;color:rgba(255,255,255,.7)}
+.ld-entry-desc b{color:#fff;font-weight:700}
+.ld-entry-arrow{font-size:1rem;color:rgba(255,255,255,.45);flex-shrink:0}
+.ld-entry-busy{font-size:.85rem;font-weight:700;color:#fff}
+.ld-entry-hint{
+  font-size:.72rem;color:rgba(255,255,255,.55);text-align:center;margin-top:.5rem;
+}
+.ld-entry-hint b{color:rgba(255,255,255,.85)}
+
 .ld-demo-note{
   max-width:430px;margin:1.35rem auto 0;text-align:left;
   background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);
@@ -550,12 +592,44 @@ a{color:inherit;text-decoration:none}
 
 /* 체험판 상단 띠 (랜딩·총괄관리자 외 모든 화면 상단에 고정) */
 .demo-bar{
-  position:sticky;top:0;z-index:1500;flex-shrink:0;width:100%;
-  display:flex;align-items:center;justify-content:center;
+  position:sticky;top:0;z-index:1500;flex-shrink:0;width:100%;align-self:stretch;
+  display:flex;align-items:center;justify-content:center;gap:.55rem;
+  flex-wrap:wrap;
   background:#78350f;color:#fde68a;font-size:.72rem;font-weight:600;
   padding:.4rem .9rem;text-align:center;line-height:1.5;
 }
-@media(max-width:480px){.demo-bar{font-size:.68rem;padding:.35rem .7rem}}
+.demo-bar-msg{opacity:.9}
+.demo-bar-role{
+  background:rgba(253,230,138,.18);border:1px solid rgba(253,230,138,.35);
+  border-radius:999px;padding:.1rem .55rem;font-weight:800;color:#fef3c7;
+  white-space:nowrap;
+}
+.demo-bar-btn{
+  font-family:inherit;font-size:.71rem;font-weight:800;cursor:pointer;
+  background:#fde68a;color:#78350f;border:none;border-radius:999px;
+  padding:.22rem .7rem;transition:all var(--t);white-space:nowrap;
+}
+.demo-bar-btn:hover{background:#fff;transform:translateY(-1px)}
+.demo-bar-btn:active{transform:translateY(0)}
+
+/* 화면별 길잡이 안내 */
+.demo-hint{
+  flex-shrink:0;width:100%;align-self:stretch;display:flex;align-items:flex-start;gap:.5rem;
+  background:#eff6ff;border-bottom:1px solid #bfdbfe;
+  padding:.55rem 1.1rem;font-size:.76rem;line-height:1.65;color:#1e40af;
+}
+.demo-hint b{font-weight:800;color:#1e3a8a}
+.demo-hint-x{
+  font-family:inherit;margin-left:auto;flex-shrink:0;cursor:pointer;
+  background:transparent;border:none;color:#60a5fa;font-size:.95rem;
+  line-height:1;padding:0 .1rem;
+}
+.demo-hint-x:hover{color:#1e40af}
+@media(max-width:480px){
+  .demo-bar{font-size:.67rem;padding:.35rem .6rem;gap:.4rem}
+  .demo-bar-btn{font-size:.67rem}
+  .demo-hint{font-size:.72rem;padding:.5rem .8rem}
+}
 
 /* ============================================================ */
 /* SITE FOOTER (저작권 · 이용조건 · 개인정보)                     */
@@ -1163,6 +1237,7 @@ a{color:inherit;text-decoration:none}
   <span id="lock-banner-admin-hint" style="opacity:.75;font-size:.75rem;font-weight:500"></span>
 </div>
 <div id="screen-admin-home" class="screen">
+  <div class="adh-scroll">
   <div class="adh-card">
 
     <!-- 헤더: 학교명 강조 -->
@@ -1268,6 +1343,7 @@ a{color:inherit;text-decoration:none}
       <button class="btn btn-ghost btn-sm" onclick="logout()">로그아웃</button>
     </div>
   </div>
+  </div>
 </div>
 
 <!-- ═══════════════════════════════════════════════════════ -->
@@ -1280,19 +1356,46 @@ a{color:inherit;text-decoration:none}
     <div class="ld-hero-badge">📅 초등학교 선생님 전용 · 체험판</div>
     <h1 class="ld-hero-title">시간표 만들기,<br><em>이제 쉽고 빠르게</em></h1>
     <p class="ld-hero-sub">복잡한 엑셀 없이 클릭 몇 번으로 완성.<br>특별실 충돌·교시 중복을 프로그램이 자동으로 잡아줍니다.</p>
-    <div class="ld-hero-actions">
-      <button class="ld-btn-main" id="demo-start-btn" onclick="startDemo()">
-        🗓️ 체험 시작하기
+    <div class="ld-entry">
+      <div class="ld-entry-label">어떤 입장에서 둘러보시겠어요?</div>
+
+      <button class="ld-entry-card primary" data-role="admin" onclick="startDemoAs('admin')">
+        <span class="ld-entry-icon">👑</span>
+        <span class="ld-entry-body">
+          <span class="ld-entry-title">관리자로 체험 <span class="ld-entry-badge">추천</span></span>
+          <span class="ld-entry-desc">기초 설정·특별실 배정·교담 연동·엑셀 저장까지 <b>모든 기능</b>을 볼 수 있습니다.</span>
+        </span>
+        <span class="ld-entry-arrow">→</span>
       </button>
+
+      <button class="ld-entry-card" data-role="homeroom" onclick="startDemoAs('homeroom','cls_3_1')">
+        <span class="ld-entry-icon">🏠</span>
+        <span class="ld-entry-body">
+          <span class="ld-entry-title">담임 교사로 체험</span>
+          <span class="ld-entry-desc">내 반 시간표만 채워 보는 화면입니다.</span>
+        </span>
+        <span class="ld-entry-arrow">→</span>
+      </button>
+
+      <button class="ld-entry-card" data-role="specialty" onclick="startDemoAs('specialty','sp_demo_sci')">
+        <span class="ld-entry-icon">⭐</span>
+        <span class="ld-entry-body">
+          <span class="ld-entry-title">교과전담으로 체험</span>
+          <span class="ld-entry-desc">담당 학년의 수업 시간을 일괄 배정하는 화면입니다.</span>
+        </span>
+        <span class="ld-entry-arrow">→</span>
+      </button>
+
+      <div class="ld-entry-hint">들어간 뒤에도 화면 위 <b>‘역할 바꾸기’</b>로 언제든 오갈 수 있습니다.</div>
     </div>
 
     <div class="ld-demo-note">
       <div class="ld-demo-note-title">🧪 이 사이트는 체험판입니다</div>
       <div class="ld-demo-note-body">
-        가상 학교 <b>‘행복초’</b> 한 곳을 모든 방문자가 함께 사용합니다.
-        로그인 없이 역할만 고르면 바로 들어갑니다.<br>
-        입력한 내용은 <b>다른 방문자에게 그대로 보이며, 예고 없이 초기화</b>됩니다.
-        <b style="color:#fca5a5">실제 학생·교사의 이름이나 학교 이름은 절대 입력하지 마세요.</b>
+        누르면 <b>나만 쓰는 체험 학교</b>가 새로 만들어집니다(예: 행복초-K7A3).
+        가입도 비밀번호도 없고, 다른 방문자와 섞이지 않습니다.<br>
+        체험 학교는 <b>만든 지 24시간이 지나면 삭제</b>됩니다.
+        <b style="color:#fca5a5">실제 학생·교사의 이름이나 학교 이름은 입력하지 마세요.</b>
       </div>
     </div>
     <div class="ld-hero-scroll">
@@ -1388,7 +1491,7 @@ a{color:inherit;text-decoration:none}
         <div class="ld-step-num" style="background:#0f172a;color:#fff">1</div>
         <div class="ld-step-body">
           <div class="ld-step-title">체험 시작하기 <span style="font-size:.7rem;padding:.1rem .45rem;background:#e0e7ff;color:#4338ca;border-radius:8px;font-weight:700;margin-left:.3rem">누구나</span></div>
-          <div class="ld-step-desc">역할(담임·교과전담·관리자)만 고르면 가상 학교 ‘행복초’로 바로 들어갑니다. 가입도 비밀번호도 없습니다.</div>
+          <div class="ld-step-desc">역할을 고르면 <b>나만 쓰는 체험 학교</b>가 만들어지고 바로 들어갑니다. 관리자로 시작하면 모든 기능을 볼 수 있고, 화면 위 ‘역할 바꾸기’로 담임·교과전담도 오갈 수 있습니다.</div>
         </div>
       </div>
 
@@ -1431,8 +1534,8 @@ a{color:inherit;text-decoration:none}
   <div class="ld-cta">
     <div class="ld-cta-title">지금 바로 둘러보세요</div>
     <div class="ld-cta-sub">설치도, 가입도, 로그인도 없습니다</div>
-    <button class="ld-btn-main" style="max-width:280px;width:100%" onclick="startDemo()">
-      🗓️ 체험 시작하기
+    <button class="ld-btn-main" style="max-width:300px;width:100%" onclick="startDemoAs('admin')">
+      👑 관리자로 체험 시작하기
     </button>
   </div>
 
@@ -1597,7 +1700,7 @@ a{color:inherit;text-decoration:none}
   </div>
   <div class="page-body-wide">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:.75rem;flex-wrap:wrap;background:#fffbeb;border:1px solid #fcd34d;border-radius:var(--r);padding:.55rem .85rem;margin-bottom:.75rem;font-size:.8rem;color:#92400e">
-      <span>📅 생성한 지 <strong>1년이 지난 학교(그룹)는 삭제될 수 있습니다.</strong> 데이터를 정기적으로 백업해 두세요.</span>
+      <span>🧪 이 체험 학교는 <strong>만든 지 24시간이 지나면 삭제됩니다.</strong> 남겨 둘 내용은 📊 엑셀이나 백업으로 내려받아 주세요.</span>
       <button class="btn btn-sm" style="background:#d97706;color:#fff;border:none;white-space:nowrap;font-size:.78rem" onclick="exportBackupJSON()">💾 지금 백업하기</button>
     </div>
 
@@ -2084,7 +2187,7 @@ a{color:inherit;text-decoration:none}
 
   <!-- 관리자 전용 1년 경과 안내 -->
   <div id="admin-expire-notice" style="display:none;background:#fffbeb;border-bottom:1px solid #fcd34d;padding:.45rem 1rem;font-size:.78rem;color:#92400e;text-align:center">
-    📅 생성한 지 <strong>1년이 지난 학교(그룹)는 삭제될 수 있습니다.</strong> 📊 엑셀 저장으로 데이터를 백업해 두세요.
+    🧪 이 체험 학교는 <strong>만든 지 24시간이 지나면 삭제됩니다.</strong> 📊 엑셀 저장으로 결과를 내려받아 보세요.
   </div>
 
   <!-- Body -->
@@ -2140,7 +2243,7 @@ a{color:inherit;text-decoration:none}
     <div class="sa-login-title">🔑 관리자 인증</div>
     <div class="sa-login-sub">슈퍼 관리자 비밀번호를 입력하세요.</div>
     <div style="background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);border-radius:var(--r);padding:.6rem .85rem;margin-bottom:.85rem;font-size:.78rem;color:#fcd34d">
-      📅 생성한 지 <strong>1년이 지난 학교(그룹)는 삭제될 수 있습니다.</strong> 불필요한 데이터는 정기적으로 정리해 주세요.
+      🧪 체험 학교는 방문자마다 하나씩 만들어지고, <strong>24시간이 지나면 정리 대상</strong>이 됩니다.
     </div>
     <div class="form-group">
       <label class="form-label" style="color:#94a3b8">비밀번호</label>
@@ -2175,18 +2278,19 @@ a{color:inherit;text-decoration:none}
       </div>
     </div>
 
-    <!-- 체험 학교 초기화 -->
+    <!-- 오래된 체험 학교 정리 -->
     <div style="background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);border-radius:var(--r-md);padding:1rem 1.1rem;margin-bottom:1.3rem">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:.8rem;flex-wrap:wrap">
         <div style="flex:1;min-width:190px">
-          <div style="font-size:.85rem;font-weight:800;color:#fcd34d;margin-bottom:.2rem">🧪 체험 학교 초기화</div>
+          <div style="font-size:.85rem;font-weight:800;color:#fcd34d;margin-bottom:.2rem">🧹 오래된 체험 학교 정리</div>
           <div style="font-size:.75rem;color:rgba(255,255,255,.55);line-height:1.6">
-            체험 학교 <b style="color:#fde68a">‘행복초’</b>를 지우고 샘플 데이터로 다시 만듭니다.
-            방문자가 입력한 내용은 모두 사라집니다.
+            방문자마다 체험 학교가 하나씩 만들어집니다.
+            <b style="color:#fde68a">만든 지 24시간이 지난 것</b>을 한 번에 지웁니다.
+            <span id="sa-demo-count" style="color:#fcd34d;font-weight:700"></span>
           </div>
         </div>
-        <button class="btn btn-sm" id="sa-demo-reset-btn" onclick="confirmResetDemo()"
-          style="color:#fcd34d;border:1px solid rgba(251,191,36,.45);background:rgba(251,191,36,.12);flex-shrink:0">🔄 초기화 실행</button>
+        <button class="btn btn-sm" id="sa-demo-purge-btn" onclick="confirmPurgeDemo()"
+          style="color:#fcd34d;border:1px solid rgba(251,191,36,.45);background:rgba(251,191,36,.12);flex-shrink:0">🧹 정리 실행</button>
       </div>
     </div>
 
@@ -2204,6 +2308,33 @@ a{color:inherit;text-decoration:none}
 <!-- ═══════════════════════════════════════════════════════ -->
 
 <!-- Cell edit modal -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- 체험판: 역할 바꾸기                                      -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="modal-bg" id="modal-demo-role">
+  <div class="modal-box">
+    <div class="modal-title">🔄 역할 바꾸기</div>
+    <div class="modal-desc">
+      같은 체험 학교를 다른 역할로 볼 수 있습니다. 입력한 시간표는 그대로 남습니다.
+    </div>
+    <div class="form-group">
+      <label class="form-label">역할</label>
+      <select id="dr-role" class="form-select" onchange="onDemoRoleChange()"></select>
+    </div>
+    <div class="form-group" id="dr-class-group">
+      <label class="form-label">담당 학급</label>
+      <select id="dr-class" class="form-select"></select>
+    </div>
+    <div class="form-hint" style="margin-bottom:.4rem">
+      💡 관리자로 특별실을 배정한 뒤 담임으로 바꿔 보시면, 그 칸이 🔒으로 들어온 것을 볼 수 있습니다.
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost btn-sm" onclick="closeModal('modal-demo-role')">취소</button>
+      <button class="btn btn-primary btn-sm" onclick="confirmDemoRole()">✔ 바꾸기</button>
+    </div>
+  </div>
+</div>
+
 <!-- ═══════════════════════════════════════════════════════ -->
 <!-- 푸터 문서 ① 이용조건                                     -->
 <!-- ═══════════════════════════════════════════════════════ -->
@@ -2235,8 +2366,8 @@ a{color:inherit;text-decoration:none}
         <h4>3. 체험판 안내</h4>
         <div class="doc-note">
           이 사이트는 <b>기능을 둘러보기 위한 체험판</b>입니다.
-          가상 학교 <b>‘행복초’</b> 한 곳을 모든 방문자가 함께 사용하며,
-          입력한 내용은 <b>다른 방문자에게 그대로 보이고 예고 없이 초기화</b>됩니다.<br>
+          체험을 시작하면 <b>나만 쓰는 1회용 체험 학교</b>가 새로 만들어집니다(예: 행복초-K7A3).
+          다른 방문자와 섞이지 않지만, <b>만든 지 24시간이 지나면 삭제</b>됩니다.<br>
           실제 학교 업무에 사용하거나, 실제 학생·교사·학교의 이름을 입력하지 마세요.
         </div>
 
@@ -2274,8 +2405,9 @@ a{color:inherit;text-decoration:none}
 
         <div class="doc-note">
           <b>이 사이트는 체험판이며, 개인정보를 수집하지 않는 것을 원칙으로 합니다.</b><br>
-          회원가입·로그인이 없고, 이름·연락처·이메일을 묻는 입력란도 없습니다.<br>
-          <b>실제 학생·교사·학교의 이름을 입력하지 마세요.</b> 입력하신 내용은 다른 방문자에게 그대로 보입니다.
+          회원가입·로그인이 없고, 이름·연락처·이메일을 묻는 입력란도 없습니다.
+          체험 학교는 방문자마다 따로 만들어져 다른 방문자에게 보이지 않습니다.<br>
+          <b>그래도 실제 학생·교사·학교의 이름은 입력하지 마세요.</b> 입력한 글자는 구글 서버에 그대로 저장됩니다.
         </div>
 
         <h4>1. 수집하지 않는 것</h4>
@@ -2294,7 +2426,7 @@ a{color:inherit;text-decoration:none}
           </tr>
           <tr>
             <td>체험 학교 자료</td>
-            <td>방문자가 화면에 입력한 학급명·교과목·교시·특별실·시간표 내용. 체험 기능을 보여 주기 위한 용도입니다.</td>
+            <td>방문자가 화면에 입력한 학급명·교과목·교시·특별실·시간표 내용. 체험 기능을 보여 주기 위한 용도이며, 그 방문자의 체험 학교에만 저장됩니다.</td>
           </tr>
           <tr>
             <td>브라우저 저장소</td>
@@ -2303,7 +2435,7 @@ a{color:inherit;text-decoration:none}
         </table>
         <p>
           위 자료는 <b>이름표가 없는 시간표 내용</b>일 뿐이지만,
-          방문자가 실명을 직접 적어 넣으면 그 글자는 그대로 저장되고 공개됩니다.
+          방문자가 실명을 직접 적어 넣으면 그 글자도 그대로 저장됩니다.
           그래서 <b>실명 입력을 금지</b>하고 있습니다.
         </p>
 
@@ -2317,8 +2449,9 @@ a{color:inherit;text-decoration:none}
 
         <h4>4. 보관 기간과 파기</h4>
         <ul>
-          <li>체험 학교 자료는 <b>예고 없이, 수시로 전부 삭제</b>됩니다.</li>
-          <li>총괄 관리자가 체험 학교를 초기화하면 그동안 입력된 내용은 <b>복구할 수 없습니다.</b></li>
+          <li>체험 학교는 <b>만든 지 24시간이 지나면 삭제</b>됩니다. 그 전에도 예고 없이 정리될 수 있습니다.</li>
+          <li>삭제된 내용은 <b>복구할 수 없습니다.</b> 남겨 둘 것은 엑셀이나 백업으로 내려받아 주세요.</li>
+          <li>체험 중에 <b>‘학교 삭제’</b>를 누르면 그 자리에서 바로 지워집니다.</li>
           <li>이용자 기기의 브라우저 저장소 값은 <b>로그아웃</b>하거나 브라우저 저장 데이터를 지우면 사라집니다.</li>
         </ul>
 
@@ -2327,7 +2460,8 @@ a{color:inherit;text-decoration:none}
           이 사이트는 개인을 식별할 수 있는 정보를 보관하지 않으므로,
           특정 개인의 자료만 찾아 열람·정정·삭제해 드리는 것은 기술적으로 불가능합니다.
           실수로 실명을 입력하셨다면 <b>해당 내용을 화면에서 직접 지우시거나</b>,
-          아래 연락처로 알려 주시면 체험 학교 전체를 초기화해 드립니다.
+          관리자 홈의 <b>‘학교 삭제’</b>로 체험 학교를 통째로 지우실 수 있습니다.
+          어려우시면 아래 연락처로 알려 주세요.
         </p>
 
         <h4>6. 실제 학교 운영용 배포판</h4>
@@ -3326,15 +3460,26 @@ const DEFAULT_TEACHER_TYPES = [];
    체험판(DEMO) 설정
    -----------------------------------------------------------
    · 이 사이트는 기능을 둘러보는 '체험판'이다.
-   · 모든 방문자가 아래 공용 체험 학교 한 곳을 함께 사용한다.
-   · 비밀번호는 공개값이며, 총괄 관리자가 수시로 초기화한다.
-   · 실제 학교 운영은 배포판(학교별 자체 설치본)으로 한다.
+   · 방문자마다 1회용 체험 학교를 새로 만들어 혼자 쓴다.
+     → 남이 내 체험을 망치지 않고, 내가 남을 망치지도 않는다.
+     → 관리자 기능(마감·삭제·기초설정)을 하나도 잠그지 않아도 된다.
+   · 체험 학교는 만든 지 24시간이 지나면 정리 대상이 된다.
+   · 배포판을 만들 때는 이 블록과 installDemoBar()를 지우고,
+     #join-verify-step 의 display:none 을 없애면 원래 로그인 흐름으로 돌아간다.
    =========================================================== */
-const DEMO_SCHOOL_NAME = '행복초';
-const DEMO_SCHOOL_PW   = 'happy2026';
+const DEMO_BASE_NAME = '행복초';
+const DEMO_TTL_MS    = 24 * 60 * 60 * 1000;   // 체험 학교 보관 기간(24시간)
 
-/** 체험 학교의 초기 데이터(샘플). 초기화할 때마다 같은 내용으로 복원된다. */
-function buildDemoSchoolData(id) {
+/** 체험 학교 이름에 붙일 짧은 코드 — 행복초-K7A3 */
+function demoCode() {
+  const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';   // 헷갈리는 I,O,0,1 제외
+  const r = new Uint8Array(4);
+  crypto.getRandomValues(r);
+  return [...r].map(b => A[b % A.length]).join('');
+}
+
+/** 체험 학교의 기본 골격 — 학급·교과·교시·특별실·교담 */
+function buildDemoSchoolData(id, name) {
   const sbg = {};
   [1,2,3,4,5,6].forEach(g => {
     sbg[g] = DEFAULT_SUBJECTS_BY_GRADE[g].map((s,i) => ({...s, id:`sub${g}_${i}`}));
@@ -3347,7 +3492,7 @@ function buildDemoSchoolData(id) {
   });
   const classes = [1,2,3,4,5,6].flatMap(g => gradeClasses[g]);
 
-  // 교과전담 — 실명 대신 담당 교과 표기만 사용한다
+  // 교과전담 — 실명 대신 담당 교과 표기만 쓴다
   const specialtyTeachers = [
     { id:'sp_demo_sci', label:'과학 전담', grades:[5,6], subjects:['과학'],
       assignments:[{grade:5,subject:'과학'},{grade:6,subject:'과학'}] },
@@ -3357,7 +3502,7 @@ function buildDemoSchoolData(id) {
   ];
 
   return {
-    id, name: DEMO_SCHOOL_NAME,
+    id, name,
     isDemo: true,
     pwSalt: randomSalt(),
     subjectsByGrade: sbg,
@@ -3378,59 +3523,250 @@ function buildDemoSchoolData(id) {
   };
 }
 
-/** 체험 학교를 새로 만든다(없을 때 1회, 또는 초기화 직후). */
+/* -----------------------------------------------------------
+   샘플 시간표 채우기
+   -----------------------------------------------------------
+   저장키 형식이 어긋나면 화면에 아무것도 안 보이므로,
+   키 계산은 앱이 쓰는 헬퍼(getScheduleRows·gradeGroupSuffix)를 그대로 쓴다.
+   반드시 S.school 이 세팅된 뒤에 호출한다.
+   ----------------------------------------------------------- */
+
+/** (요일, 교시, 학년) → 특별실/교담 저장키와 시작시각 */
+function demoKeysFor(day, period, grade) {
+  const rows = getScheduleRows();
+  const times = getPeriodTimes(grade);
+  const start = times[period - 1]?.start;
+  if (!start) return null;
+  const slot = rows.find(r => r.start === start);
+  if (!slot) return null;
+
+  // 이 시간대에서 같은 교시 번호를 쓰는 학년 집합
+  const share = new Set(
+    Object.entries(slot.gradeMap)
+      .filter(([, p]) => p === period)
+      .map(([g]) => parseInt(g, 10))
+  );
+  if (!share.has(grade)) return null;
+  const suffix = gradeGroupSuffix(share);
+
+  return {
+    start,
+    roomKey: `${day}-${start}${suffix}`,   // 특별실 배정 키
+    spKey:   `${day}-${period}${suffix}`,  // 교담 시간표 키
+    ttKey:   `${day}-${period}`,           // 담임 시간표 키(접미사 없음)
+  };
+}
+
+/** 교담 시간표 샘플 — (교과, 학급, 요일, 교시) 목록 */
+const DEMO_SPECIALTY_PLAN = [
+  // 과학 전담 — 5·6학년, 월·화·수
+  ['과학','cls_5_1','월',2], ['과학','cls_5_1','화',3], ['과학','cls_5_1','수',4],
+  ['과학','cls_5_2','월',3], ['과학','cls_5_2','화',4], ['과학','cls_5_2','수',5],
+  ['과학','cls_6_1','월',4], ['과학','cls_6_1','화',5], ['과학','cls_6_1','수',2],
+  ['과학','cls_6_2','월',5], ['과학','cls_6_2','화',2], ['과학','cls_6_2','수',3],
+  // 영어 전담 — 3~6학년, 주로 목·금
+  ['영어','cls_3_1','목',1], ['영어','cls_3_1','금',1],
+  ['영어','cls_3_2','목',2], ['영어','cls_3_2','금',2],
+  ['영어','cls_4_1','목',3], ['영어','cls_4_1','금',3],
+  ['영어','cls_4_2','목',4], ['영어','cls_4_2','금',4],
+  ['영어','cls_5_1','목',5], ['영어','cls_5_1','금',5],
+  ['영어','cls_5_2','목',6], ['영어','cls_5_2','월',1],
+  ['영어','cls_6_1','화',1], ['영어','cls_6_1','수',1],
+  ['영어','cls_6_2','화',6], ['영어','cls_6_2','수',6],
+];
+
+/** 특별실 배정 샘플 — (특별실 이름, 학급, 요일, 교시) 목록 */
+const DEMO_ROOM_PLAN = [
+  ['강당','cls_1_1','월',1], ['강당','cls_1_2','월',2], ['강당','cls_2_1','월',3],
+  ['강당','cls_2_2','화',1], ['강당','cls_3_1','화',2], ['강당','cls_3_2','화',3],
+  ['과학실1','cls_5_1','월',2], ['과학실1','cls_5_2','월',3],
+  ['과학실1','cls_6_1','월',4], ['과학실1','cls_6_2','월',5],
+  ['영어실','cls_3_1','목',1], ['영어실','cls_3_2','목',2],
+  ['영어실','cls_4_1','목',3], ['영어실','cls_4_2','목',4],
+  ['컴퓨터실1','cls_4_1','목',1], ['컴퓨터실1','cls_4_2','목',2],
+  ['음악실','cls_1_1','수',1], ['음악실','cls_2_1','수',2],
+];
+
+/** 시간표를 끝까지 채울 학년 / 절반만 채울 학년 */
+const DEMO_FULL_GRADES    = [1, 2];
+const DEMO_PARTIAL_RATIO  = 0.55;
+
+/** 교담 → 특별실 → 담임 순으로 샘플을 채우고 저장한다. */
+async function seedDemoContent() {
+  const sc = S.school;
+  if (!sc) return;
+  const classOf = id => (sc.classes || []).find(c => c.id === id);
+
+  /* ① 교담 시간표 */
+  sc.specialtySchedule = {};
+  DEMO_SPECIALTY_PLAN.forEach(([subject, classId, day, period]) => {
+    const cls = classOf(classId);
+    if (!cls) return;
+    const k = demoKeysFor(day, period, cls.grade);
+    if (!k) return;
+    if (!sc.specialtySchedule[subject]) sc.specialtySchedule[subject] = {};
+    sc.specialtySchedule[subject][k.spKey] = { classId, className: cls.name };
+  });
+
+  /* ② 특별실 배정 */
+  sc.roomSchedule = {};
+  DEMO_ROOM_PLAN.forEach(([roomName, classId, day, period]) => {
+    const cls  = classOf(classId);
+    const room = (sc.specialRooms || []).find(r => r.name === roomName);
+    if (!cls || !room) return;
+    const k = demoKeysFor(day, period, cls.grade);
+    if (!k) return;
+    if (!sc.roomSchedule[room.id]) sc.roomSchedule[room.id] = {};
+    sc.roomSchedule[room.id][k.roomKey] = { classId, className: cls.name };
+  });
+
+  await saveSchool(sc);
+
+  /* ③ 담임 시간표 — 교담·특별실이 차지한 칸은 비워 둔다 */
+  for (const cls of sc.classes || []) {
+    if (!cls.grade) continue;
+
+    // 이 학급이 이미 쓰고 있는 (요일-교시) 모음
+    const taken = new Set();
+    for (const sched of Object.values(sc.specialtySchedule)) {
+      for (const [key, e] of Object.entries(sched)) {
+        if (e?.classId === cls.id) taken.add(stripGradeSuffix(key));
+      }
+    }
+    for (const sched of Object.values(sc.roomSchedule)) {
+      for (const [key, e] of Object.entries(sched)) {
+        if (e?.classId !== cls.id) continue;
+        const start = stripGradeSuffix(key).split('-').slice(1).join('-');
+        const times = getPeriodTimes(cls.grade);
+        const idx   = times.findIndex(t => t.start === start);
+        if (idx >= 0) taken.add(`${stripGradeSuffix(key).split('-')[0]}-${idx + 1}`);
+      }
+    }
+
+    // 빈 칸 목록
+    const slots = [];
+    DAYS.forEach(day => {
+      const max = (sc.dailyPeriods?.[cls.grade]?.[day]) ?? getPeriodTimes(cls.grade).length;
+      for (let p = 1; p <= max; p++) {
+        const key = `${day}-${p}`;
+        if (!taken.has(key)) slots.push(key);
+      }
+    });
+
+    // 담임이 넣어야 할 교과 목록 (교담 교과와 특수 교과는 제외)
+    const spSubjects = new Set(Object.keys(sc.specialtySchedule));
+    const queue = [];
+    (sc.subjectsByGrade?.[cls.grade] || []).forEach(s => {
+      if (s.special || !s.weeklyHours) return;
+      if (spSubjects.has(s.name)) return;
+      for (let i = 0; i < s.weeklyHours; i++) queue.push(s.name);
+    });
+
+    const full  = DEMO_FULL_GRADES.includes(cls.grade);
+    const limit = full ? queue.length : Math.floor(queue.length * DEMO_PARTIAL_RATIO);
+    const tt    = {};
+    for (let i = 0; i < Math.min(limit, slots.length); i++) {
+      tt[slots[i]] = { subject: queue[i] };
+    }
+
+    try {
+      localStorage.setItem(`stt_${sc.id}_${cls.id}`, JSON.stringify(tt));
+    } catch {}
+    if (db) {
+      try {
+        await setDoc(doc(db, 'schools', sc.id, 'timetables', cls.id),
+                     toFirestoreDoc({ ...tt, _updatedAt: Date.now() }));
+      } catch(e) { console.warn('seed timetable error:', e); }
+    }
+  }
+}
+
+/** 1회용 체험 학교를 만들고 샘플까지 채운다. */
 async function createDemoSchool() {
   await ensureAuth();
   const uid = myUid();
   if (!uid) throw new Error('auth failed');
 
-  const id   = 'demo_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
-  const data = buildDemoSchoolData(id);
-  const h    = await pwHashOf(data.pwSalt, DEMO_SCHOOL_PW);
+  const code = demoCode();
+  const name = `${DEMO_BASE_NAME}-${code}`;
+  const id   = 'demo_' + Date.now() + '_' + code.toLowerCase();
+  const data = buildDemoSchoolData(id, name);
 
+  // 비밀번호는 쓰지 않지만, 보안 규칙이 members 문서의 해시를 검사하므로 함께 만든다
+  const pw = 'demo-' + code;
+  const h  = await pwHashOf(data.pwSalt, pw);
   await setDoc(doc(db,'schools',id,'secret','auth'), { adminHash: h, teacherHash: h });
   await setDoc(doc(db,'schools',id,'members',uid),   { role:'admin', h, at: Date.now() });
   await saveSchool(data);
-  await setDoc(doc(db,'nameIndex', await nameKeyOf(DEMO_SCHOOL_NAME)),
-               { schoolId: id, salt: data.pwSalt, name: DEMO_SCHOOL_NAME });
+
+  S.school = data;
+  S.user   = { name:'관리자', role:'admin' };
+  await seedDemoContent();
   return data;
 }
 
-/** 랜딩 → 체험 시작. 비밀번호 단계 없이 역할 선택 화면으로 바로 보낸다. */
-async function startDemo() {
-  const btn = document.getElementById('demo-start-btn');
-  const restore = () => { if (btn) { btn.disabled = false; btn.innerHTML = '🗓️ 체험 시작하기'; } };
-  if (btn) { btn.disabled = true; btn.innerHTML = '⏳ 체험 학교 준비 중...'; }
+/* -----------------------------------------------------------
+   역할 적용 · 전환
+   ----------------------------------------------------------- */
+
+/** 지금 체험 학교에서 역할만 바꿔 해당 화면으로 보낸다. */
+function applyDemoRole(role, arg) {
+  const sc = S.school;
+  if (!sc) return;
+
+  if (role === 'admin') {
+    S.user = { name:'관리자', role:'admin' };
+    saveSession();
+    initTimetable();
+    goToAdminHome();
+  } else if (role === 'homeroom') {
+    const cls = (sc.classes||[]).find(c => c.id === arg) || (sc.classes||[])[0];
+    S.user = {
+      name: (cls?.name || '') + ' 담임', role:'homeroom',
+      className: cls?.name || '', classId: cls?.id || null,
+    };
+    saveSession();
+    initTimetable();
+    goTo('screen-timetable');
+  } else {
+    const sp = (sc.specialtyTeachers||[]).find(t => t.id === arg) || (sc.specialtyTeachers||[])[0];
+    if (!sp) { toast('등록된 교과전담이 없습니다.', 'error'); return; }
+    S.user = {
+      name: sp.label, role:'specialty',
+      spId: sp.id, spInfo: sp,
+      subjects: registeredSubjectsOf(sp, null),
+      className:'', classId:null,
+    };
+    saveSession();
+    goToSpecialtyScreen();
+  }
+  updateDemoBar();
+}
+window.applyDemoRole = applyDemoRole;
+
+/** 랜딩의 역할 카드 → 체험 시작. 이미 체험 중이면 역할만 바꾼다. */
+async function startDemoAs(role, arg) {
+  if (S.school?.isDemo) { applyDemoRole(role, arg); return; }
+
+  const btn = document.querySelector(`.ld-entry-card[data-role="${role}"]`);
+  const old = btn ? btn.innerHTML : null;
+  if (btn) { btn.classList.add('busy'); btn.innerHTML = '<div class="ld-entry-busy">⏳ 체험 학교를 만들고 있습니다...</div>'; }
 
   try {
-    await ensureAuth();
-    let idx = await lookupSchoolIndex(DEMO_SCHOOL_NAME);
-    if (!idx) {
-      try { await createDemoSchool(); } catch(e) { console.warn('createDemoSchool:', e); }
-      idx = await lookupSchoolIndex(DEMO_SCHOOL_NAME);
-    }
-    if (!idx) {
-      toast('체험 학교를 준비하지 못했습니다. 잠시 후 다시 시도해주세요.', 'error');
-      return;
-    }
-
-    const res = await authenticateSchool(DEMO_SCHOOL_NAME, DEMO_SCHOOL_PW);
-    if (!res) {
-      toast('체험 학교에 접속하지 못했습니다. 총괄 관리자에게 초기화를 요청해주세요.', 'error');
-      return;
-    }
-
-    joinFailCount = 0;
-    joinAuthLevel = res.level;
-    goTo('screen-join');
-    await openJoinForm(res.school);
+    await createDemoSchool();
+    applyDemoRole(role, arg);
+    toast(`${S.school.name} 체험을 시작합니다. 👋`, 'success');
   } catch(e) {
-    console.error('startDemo error:', e);
-    toast('체험 학교 접속 중 오류가 발생했습니다.', 'error');
+    console.error('startDemoAs error:', e);
+    toast('체험 학교를 만들지 못했습니다. 잠시 후 다시 시도해주세요.', 'error');
   } finally {
-    restore();
+    if (btn) { btn.classList.remove('busy'); if (old !== null) btn.innerHTML = old; }
   }
 }
+window.startDemoAs = startDemoAs;
+
+/** 기존 '체험 시작하기' 버튼 호환 — 관리자로 시작 */
+function startDemo() { return startDemoAs('admin'); }
 window.startDemo = startDemo;
 
 /* ===========================================================
@@ -3597,6 +3933,11 @@ window.saExit = saExit;
 let saExpiredSel = new Set();
 let saSchoolsCache = [];
 
+/** 학교별 보관 기간 — 체험 학교는 24시간, 그 밖은 1년 */
+function saTtlOf(school) {
+  return school?.isDemo ? DEMO_TTL_MS : 365 * 24 * 60 * 60 * 1000;
+}
+
 async function loadAllSchools() {
   const list = document.getElementById('sa-list');
   list.innerHTML = '<div style="color:rgba(255,255,255,.3);text-align:center;padding:2rem"><div class="spinner" style="border-color:rgba(255,255,255,.15);border-top-color:var(--brand)"></div></div>';
@@ -3607,13 +3948,19 @@ async function loadAllSchools() {
   }
   saSchoolsCache = schools;
 
-  const now      = Date.now();
-  const ONE_YEAR = 365 * 24 * 60 * 60 * 1000;
+  const now = Date.now();
 
   // 생성일 오래된 순(삭제 우선순위)으로 정렬
   const sorted = [...schools].sort((a, b) => (a.createdAt||0) - (b.createdAt||0));
 
-  const expiredIds = sorted.filter(s => now - (s.createdAt||0) >= ONE_YEAR).map(s => s.id);
+  const expiredIds = sorted.filter(s => now - (s.createdAt||0) >= saTtlOf(s)).map(s => s.id);
+
+  // 정리 카드에 대기 개수 표시
+  const cntEl = document.getElementById('sa-demo-count');
+  if (cntEl) {
+    const n = schools.filter(x => x.isDemo && now - (x.createdAt||0) >= DEMO_TTL_MS).length;
+    cntEl.textContent = n ? ` 현재 ${n}개 대기 중.` : ' 지금은 정리할 것이 없습니다.';
+  }
   // 더 이상 존재하지 않거나 만료 대상이 아닌 id는 선택 목록에서 제거
   saExpiredSel = new Set([...saExpiredSel].filter(id => expiredIds.includes(id)));
   // 처음 보는 만료 학교는 기본 선택 상태로 추가
@@ -3622,7 +3969,7 @@ async function loadAllSchools() {
   const expiredCount = expiredIds.length;
   const warnHtml = expiredCount ? `
     <div style="background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);border-radius:var(--r);padding:.75rem 1rem;margin-bottom:1rem;font-size:.82rem;color:#fca5a5">
-      <div style="margin-bottom:.55rem">⚠️ <strong>${expiredCount}개 학교</strong>가 생성한 지 1년이 지났습니다. 삭제할 학교를 선택하세요 (기본 전체 선택됨).</div>
+      <div style="margin-bottom:.55rem">⚠️ <strong>${expiredCount}개 학교</strong>가 보관 기간(체험 24시간 / 그 밖 1년)을 넘겼습니다. 삭제할 학교를 선택하세요 (기본 전체 선택됨).</div>
       <div style="display:flex;gap:.4rem;flex-wrap:wrap">
         <button class="btn btn-sm" onclick="saSelectAllExpired(true)"
           style="color:#fca5a5;border:1px solid rgba(239,68,68,.3);background:transparent">전체 선택</button>
@@ -3635,8 +3982,9 @@ async function loadAllSchools() {
   list.innerHTML = warnHtml + sorted.map(s => {
     const age     = now - (s.createdAt || 0);
     const days    = Math.floor(age / (24*60*60*1000));
-    const expired = age >= ONE_YEAR;
-    const warn11m = age >= ONE_YEAR * 0.9;
+    const ttl     = saTtlOf(s);
+    const expired = age >= ttl;
+    const warn11m = age >= ttl * 0.9;
     const dateStr = new Date(s.createdAt||0).toLocaleDateString('ko-KR');
     const ageBadge = expired
       ? `<span style="background:rgba(239,68,68,.25);color:#fca5a5;font-size:.7rem;font-weight:700;padding:.15rem .45rem;border-radius:8px">⚠ ${days}일 경과</span>`
@@ -3662,7 +4010,7 @@ async function loadAllSchools() {
             · 학급 ${(s.classes||[]).length}개
             · <span style="font-family:monospace;font-size:.72rem;color:${(s.adminPassword||s.teacherPassword) ? '#fca5a5' : '#6ee7b7'}">${(s.adminPassword||s.teacherPassword) ? '⚠ 구버전 데이터' : '🔒 PW 미저장'}</span>
           </div>
-          ${expired ? `<div style="font-size:.73rem;color:#fca5a5;margin-top:2px">📅 생성 1년 경과 — 삭제를 검토하세요</div>` : ''}
+          ${expired ? `<div style="font-size:.73rem;color:#fca5a5;margin-top:2px">📅 보관 기간 경과 — 삭제를 검토하세요</div>` : ''}
         </div>
         <button class="btn btn-sm" onclick="saResetSchoolPw('${s.id}','${escHtml(s.name)}')"
           style="color:#94a3b8;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);margin-right:.35rem;flex-shrink:0">🔑 PW</button>
@@ -3690,8 +4038,8 @@ window.saToggleExpiredSel = saToggleExpiredSel;
 
 // 만료 학교 전체 선택/해제
 function saSelectAllExpired(selectAll) {
-  const now = Date.now(), ONE_YEAR = 365 * 24 * 60 * 60 * 1000;
-  const expiredIds = saSchoolsCache.filter(s => now - (s.createdAt||0) >= ONE_YEAR).map(s => s.id);
+  const now = Date.now();
+  const expiredIds = saSchoolsCache.filter(s => now - (s.createdAt||0) >= saTtlOf(s)).map(s => s.id);
   saExpiredSel = selectAll ? new Set(expiredIds) : new Set();
   loadAllSchools();
 }
@@ -3717,35 +4065,35 @@ function confirmBulkDeleteSelected() {
 window.confirmBulkDeleteSelected = confirmBulkDeleteSelected;
 
 /* 체험 학교 초기화 — 기존 체험 학교를 지우고 샘플 데이터로 다시 만든다. */
-function confirmResetDemo() {
+/* 오래된 체험 학교 일괄 정리 — 24시간 지난 체험 학교를 모두 지운다. */
+function confirmPurgeDemo() {
+  const now  = Date.now();
+  const olds = saSchoolsCache.filter(x => x.isDemo && now - (x.createdAt||0) >= DEMO_TTL_MS);
+  if (!olds.length) {
+    toast('24시간이 지난 체험 학교가 없습니다.', 'success');
+    return;
+  }
   openConfirm(
-    '체험 학교 초기화',
-    `체험 학교 "${DEMO_SCHOOL_NAME}"를 지우고 샘플 데이터로 다시 만듭니다. 방문자가 입력한 내용은 모두 사라지며 복구할 수 없습니다. 계속하시겠습니까?`,
+    '오래된 체험 학교 정리',
+    `만든 지 24시간이 지난 체험 학교 <b>${olds.length}개</b>를 모두 지웁니다. 복구할 수 없습니다. 계속하시겠습니까?`,
     async () => {
-      const btn = document.getElementById('sa-demo-reset-btn');
-      if (btn) { btn.disabled = true; btn.textContent = '⏳ 초기화 중...'; }
+      const btn = document.getElementById('sa-demo-purge-btn');
+      if (btn) { btn.disabled = true; btn.textContent = '\u23f3 정리 중...'; }
+      let done = 0;
       try {
-        // ① 기존 체험 학교 제거 (이름 색인 포함)
-        const idx = await lookupSchoolIndex(DEMO_SCHOOL_NAME);
-        if (idx?.schoolId) {
-          await removeSchool(idx.schoolId);
-          try { await deleteDoc(doc(db,'nameIndex', await nameKeyOf(DEMO_SCHOOL_NAME))); } catch {}
+        for (const x of olds) {
+          try { await removeSchool(x.id); done++; } catch(e) { console.warn('purge', x.id, e); }
         }
-        // ② 샘플 데이터로 다시 생성
-        await createDemoSchool();
-        toast('체험 학교를 초기화했습니다. ✔', 'success');
+        toast(`체험 학교 ${done}개를 정리했습니다. \u2714`, 'success');
         loadAllSchools();
-      } catch(e) {
-        console.error('resetDemo error:', e);
-        toast('초기화 중 오류가 발생했습니다. 다시 시도해주세요.', 'error');
       } finally {
-        if (btn) { btn.disabled = false; btn.textContent = '🔄 초기화 실행'; }
+        if (btn) { btn.disabled = false; btn.textContent = '\ud83e\uddf9 정리 실행'; }
       }
     },
-    '', '초기화', 'btn-danger'
+    '', '정리', 'btn-danger'
   );
 }
-window.confirmResetDemo = confirmResetDemo;
+window.confirmPurgeDemo = confirmPurgeDemo;
 
 function confirmDeleteSchool(id, name) {
   openConfirm(`"${name}" 삭제`, `학교와 모든 시간표 데이터가 영구 삭제됩니다. 계속하시겠습니까?`, async () => {
@@ -7819,15 +8167,124 @@ document.querySelectorAll('.modal-bg').forEach(bg => {
   bg.addEventListener('click', e => { if(e.target===bg) bg.classList.remove('open'); });
 });
 
-/* 체험판 안내 띠 — 랜딩·총괄관리자를 뺀 모든 화면 맨 위에 붙인다.
-   (배포판에서는 이 블록만 지우면 된다) */
+/* ===========================================================
+   체험판 안내 띠 + 화면별 길잡이
+   랜딩·총괄관리자를 뺀 모든 화면 맨 위에 붙인다.
+   (배포판에서는 이 블록만 지우면 된다)
+   =========================================================== */
+
+/** 화면별 길잡이 문구 — 처음 온 분이 다음에 뭘 할지 알게 한다. */
+const DEMO_HINTS = {
+  'screen-admin-home':
+    '<b>관리자 홈입니다.</b> 아래 ①~④를 순서대로 눌러 보세요. 기초 설정에는 학급·교시·교담·특별실이 이미 채워져 있습니다.',
+  'screen-setup':
+    '<b>기초 설정입니다.</b> 탭을 옮겨 학급 구성·교시 시간·교과전담·특별실·교과 시수를 바꿔 보세요. 바꾼 내용은 모든 시간표에 바로 반영됩니다.',
+  'screen-room-schedule':
+    '<b>특별실 배정입니다.</b> 빈 칸을 눌러 학급을 넣거나, 배정된 칸을 끌어 옮겨 보세요. <b>🎲 랜덤 배정</b>도 눌러 보시고, 배정한 뒤 <b>역할 바꾸기 → 담임</b>으로 가면 그 칸이 잠겨 들어온 걸 볼 수 있습니다.',
+  'screen-specialty':
+    '<b>교과전담 화면입니다.</b> 학급을 골라 수업 시간을 배정하면, 그 학급 담임 시간표에 자동으로 들어갑니다. 샘플로 과학·영어가 이미 배정되어 있습니다.',
+  'screen-timetable':
+    '<b>담임 시간표입니다.</b> 빈 칸을 눌러 과목을 넣어 보세요. 왼쪽 시수와 오른쪽 현황이 함께 움직입니다. 보라색 <b>교담 칸</b>은 🔒으로 잠겨 있고, 관리자가 배정한 <b>특별실</b>은 칸 아래에 표시됩니다.',
+};
+
+function demoRoleLabel() {
+  const u = S.user;
+  if (!u) return '👤 미정';
+  if (u.role === 'admin') return '👑 관리자';
+  if (u.role === 'specialty' || u.role === 'collaborative') return '⭐ ' + (u.name || '교과전담');
+  return '🏠 ' + (u.className || '담임');
+}
+
+/** 모든 화면의 띠에 현재 역할을 반영한다. */
+function updateDemoBar() {
+  const label = demoRoleLabel();
+  document.querySelectorAll('.demo-bar-role').forEach(el => { el.textContent = label; });
+}
+window.updateDemoBar = updateDemoBar;
+
 (function installDemoBar() {
-  const html = '<div class="demo-bar">🧪 체험판입니다 — 실제 학생·교사·학교 이름을 입력하지 마세요. 입력 내용은 공개되며 예고 없이 초기화됩니다.</div>';
+  const bar = `
+    <div class="demo-bar">
+      <span class="demo-bar-msg">🧪 체험판 — 실제 이름은 입력하지 마세요</span>
+      <span class="demo-bar-role">👤 미정</span>
+      <button class="demo-bar-btn" onclick="openDemoRole()">역할 바꾸기</button>
+    </div>`;
   document.querySelectorAll('.screen').forEach(sc => {
     if (sc.id === 'screen-landing' || sc.id === 'screen-superadmin') return;
+    let html = bar;
+    const hint = DEMO_HINTS[sc.id];
+    if (hint) {
+      html += `<div class="demo-hint" id="hint-${sc.id}">
+        <span>💡</span><span>${hint}</span>
+        <button class="demo-hint-x" title="이 안내 숨기기"
+          onclick="dismissDemoHint('${sc.id}')">✕</button>
+      </div>`;
+    }
     sc.insertAdjacentHTML('afterbegin', html);
   });
+
+  // 이전에 숨긴 안내는 계속 숨김
+  try {
+    (JSON.parse(localStorage.getItem('stt_hints_off') || '[]') || []).forEach(id => {
+      const el = document.getElementById('hint-' + id);
+      if (el) el.style.display = 'none';
+    });
+  } catch {}
 })();
+
+function dismissDemoHint(screenId) {
+  const el = document.getElementById('hint-' + screenId);
+  if (el) el.style.display = 'none';
+  try {
+    const off = new Set(JSON.parse(localStorage.getItem('stt_hints_off') || '[]'));
+    off.add(screenId);
+    localStorage.setItem('stt_hints_off', JSON.stringify([...off]));
+  } catch {}
+}
+window.dismissDemoHint = dismissDemoHint;
+
+/* ── 역할 바꾸기 모달 ─────────────────────────────────────── */
+function openDemoRole() {
+  if (!S.school) { goTo('screen-landing'); return; }
+  const sel = q('#dr-role');
+  const sp  = S.school.specialtyTeachers || [];
+  sel.innerHTML = `
+    <option value="admin">👑 관리자 — 설정·배정 전체 권한</option>
+    <option value="homeroom">🏠 담임 교사 — 내 반 시간표</option>
+    ${sp.map(t => `<option value="sp:${escHtml(t.id)}">⭐ ${escHtml(t.label)}</option>`).join('')}
+  `;
+  // 현재 역할을 기본 선택
+  const u = S.user;
+  sel.value = u?.role === 'admin' ? 'admin'
+            : u?.spId ? 'sp:' + u.spId
+            : 'homeroom';
+
+  // 담임용 학급 목록
+  const cs = q('#dr-class');
+  cs.innerHTML = (S.school.classes||[])
+    .filter(c => c.grade)
+    .map(c => `<option value="${escHtml(c.id)}">${escHtml(c.name)}</option>`).join('');
+  if (u?.classId) cs.value = u.classId;
+
+  onDemoRoleChange();
+  openModal('modal-demo-role');
+}
+window.openDemoRole = openDemoRole;
+
+function onDemoRoleChange() {
+  const v = q('#dr-role').value;
+  q('#dr-class-group').style.display = v === 'homeroom' ? 'block' : 'none';
+}
+window.onDemoRoleChange = onDemoRoleChange;
+
+function confirmDemoRole() {
+  const v = q('#dr-role').value;
+  closeModal('modal-demo-role');
+  if (v === 'admin')            applyDemoRole('admin');
+  else if (v === 'homeroom')    applyDemoRole('homeroom', q('#dr-class').value);
+  else                          applyDemoRole('specialty', v.slice(3));
+}
+window.confirmDemoRole = confirmDemoRole;
 
 function openConfirm(title, desc, onOk, extraHtml='', okLabel='삭제', okClass='btn-danger', onCancel=null) {
   q('#mconf-title').textContent = title;
@@ -10906,6 +11363,7 @@ window.adhGoSpecialty = adhGoSpecialty;
         && !isOriginallyAdmin) {
       goToSpecialtyScreen();
       history.replaceState({ screen: 'screen-specialty' }, '');
+      try { updateDemoBar(); } catch {}
       return;
     }
 
@@ -10942,6 +11400,8 @@ window.adhGoSpecialty = adhGoSpecialty;
     // 미로그인 — landing이 초기 화면임을 히스토리에 등록
     history.replaceState({ screen: 'screen-landing' }, '');
   }
+  // 체험판 띠의 역할 표시 동기화
+  try { updateDemoBar(); } catch {}
 })();
 </script>
 </body>
