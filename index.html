@@ -550,7 +550,7 @@ a{color:inherit;text-decoration:none}
 
 /* 체험판 상단 띠 (랜딩·총괄관리자 외 모든 화면 상단에 고정) */
 .demo-bar{
-  position:sticky;top:0;z-index:1500;flex-shrink:0;
+  position:sticky;top:0;z-index:1500;flex-shrink:0;width:100%;
   display:flex;align-items:center;justify-content:center;
   background:#78350f;color:#fde68a;font-size:.72rem;font-weight:600;
   padding:.4rem .9rem;text-align:center;line-height:1.5;
@@ -561,24 +561,28 @@ a{color:inherit;text-decoration:none}
 /* SITE FOOTER (저작권 · 이용조건 · 개인정보)                     */
 /* ============================================================ */
 .site-footer{
-  background:var(--g900);color:var(--g400);
+  /* #screen-landing 은 align-items:flex-start 이므로 반드시 width 100% */
+  width:100%;flex-shrink:0;
+  background:#0b1220;border-top:1px solid rgba(255,255,255,.09);
+  color:var(--g300);
   padding:2.5rem 1.25rem 3.25rem;text-align:center;
 }
 .sf-inner{max-width:720px;margin:0 auto}
 .sf-title{
-  font-size:.92rem;font-weight:700;color:var(--g100);
-  margin-bottom:.3rem;letter-spacing:-.01em;
+  font-size:.92rem;font-weight:700;color:#f1f5f9;
+  margin-bottom:.35rem;letter-spacing:-.01em;
 }
-.sf-copy{font-size:.8rem;color:var(--g400);margin-bottom:.35rem}
-.sf-line{font-size:.73rem;color:var(--g500);margin-bottom:1.2rem}
+.sf-copy{font-size:.81rem;color:#cbd5e1;margin-bottom:.4rem}
+.sf-line{font-size:.75rem;color:#94a3b8;margin-bottom:1.25rem;line-height:1.6}
 .sf-links{display:flex;flex-wrap:wrap;gap:.5rem;justify-content:center}
 .sf-link{
-  font-family:inherit;font-size:.76rem;font-weight:600;color:var(--g300);
-  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);
-  border-radius:999px;padding:.42rem 1rem;cursor:pointer;
+  font-family:inherit;font-size:.77rem;font-weight:600;color:#e2e8f0;
+  background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.18);
+  border-radius:999px;padding:.45rem 1.05rem;cursor:pointer;
   transition:all var(--t);white-space:nowrap;
 }
-.sf-link:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.28);color:#fff}
+.sf-link:hover{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.34);color:#fff}
+.sf-link:active{transform:translateY(1px)}
 
 /* 푸터 모달 본문 */
 .modal-box.doc-box{max-width:560px;padding:1.5rem 1.35rem 1.25rem;text-align:left}
