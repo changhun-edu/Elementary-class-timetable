@@ -120,7 +120,7 @@ footer b{color:var(--g700)}
   <p>
     우리 학교 저장소를 만들어 연결하는 과정입니다.
     프로그램을 설치하거나 서버를 사지 않아도 되고, <b>모두 무료</b>입니다.
-    처음 하시면 30분쯤 걸립니다.
+    <b>setup.html</b>의 설치 마법사를 따라가면 처음 하셔도 30분이면 끝납니다.
   </p>
 </div>
 
@@ -133,20 +133,28 @@ footer b{color:var(--g700)}
     학교가 자기 저장소에 설치하면 자료가 <b>학교 밖으로 나가지 않고</b>, 관리 책임도 명확해집니다.
   </div>
 
-  <div class="toc">
+<div class="toc">
     <div class="toc-title">순서</div>
     <ol>
       <li><a href="#s1">준비물 확인</a></li>
       <li><a href="#s2">Firebase 프로젝트 만들기</a></li>
       <li><a href="#s3">Firestore 데이터베이스 만들기</a></li>
       <li><a href="#s4">익명 로그인 켜기</a></li>
-      <li><a href="#s5">설정값 복사해 index.html에 넣기</a></li>
-      <li><a href="#s6">보안 규칙 붙여 넣기 — 가장 중요</a></li>
-      <li><a href="#s7">인터넷에 올리기</a></li>
-      <li><a href="#s8">첫 사용 — 학교 만들고 선생님께 안내</a></li>
-      <li><a href="#s9">개인정보 처리방침 채우기</a></li>
-      <li><a href="#s10">문제가 생겼을 때</a></li>
+      <li><a href="#s5">웹 앱 추가하고 설정값 복사하기</a></li>
+      <li><a href="#s6">setup.html 열어 설정 붙여 넣기</a></li>
+      <li><a href="#s7">보안 규칙 붙여넣고 게시하기 — 가장 중요</a></li>
+      <li><a href="#s8">완성된 index.html 내려받기</a></li>
+      <li><a href="#s9">인터넷에 올리기</a></li>
+      <li><a href="#s10">첫 사용 — 학교 만들고 선생님께 안내</a></li>
+      <li><a href="#s11">개인정보 처리방침 채우기</a></li>
+      <li><a href="#s12">문제가 생겼을 때</a></li>
     </ol>
+  </div>
+
+  <div class="note note-info" style="margin-bottom:1.75rem">
+    <b>교원 자율연수비 정산 시스템을 설치해 보셨다면</b> 순서가 같습니다.
+    한 가지만 다릅니다. 반별 시간표는 <b>익명 로그인</b>(4단계)을 켜야 합니다.
+    같은 Firebase 프로젝트를 함께 써도 되고, 따로 만들어도 됩니다.
   </div>
 
   <!-- 1 -->
@@ -158,8 +166,8 @@ footer b{color:var(--g700)}
     </div>
     <ul>
       <li><b>구글 계정</b> 하나 — 학교 공용 계정을 권합니다. 담당자가 바뀌어도 이어받을 수 있습니다.</li>
-      <li><b>index.html 파일</b> — 이 안내와 함께 받은 파일입니다.</li>
-      <li><b>메모장</b> 같은 텍스트 편집기 — 윈도우 기본 메모장으로 충분합니다.</li>
+      <li><b>깃허브(GitHub)·버셀(Vercel) 계정</b> — 완성한 파일을 인터넷에 올릴 때 씁니다. 구글 계정으로 가입할 수 있습니다.</li>
+      <li><b>파일 두 개</b> — <code>setup.html</code>(설치 파일)과 이 안내서. 같은 폴더에 두세요.</li>
     </ul>
     <div class="note note-warn">
       <b>개인 구글 계정은 피해 주세요.</b> 전보를 가시면 학교가 자료에 접근할 수 없게 됩니다.
@@ -179,7 +187,7 @@ footer b{color:var(--g700)}
       <li><a href="https://console.firebase.google.com" target="_blank" rel="noopener noreferrer">console.firebase.google.com</a> 에 학교 구글 계정으로 접속합니다.</li>
       <li><b>[프로젝트 만들기]</b>를 누릅니다.</li>
       <li>프로젝트 이름을 적습니다. 예: <code>unnam-timetable</code>
-        <br><span style="color:var(--g500);font-size:.82rem">영문·숫자·하이픈만 쓸 수 있습니다. 이름은 나중에 바꿔도 됩니다.</span></li>
+        <br><span style="color:var(--g500);font-size:.82rem">영문·숫자·하이픈만 쓸 수 있습니다.</span></li>
       <li><b>Google 애널리틱스는 꺼</b> 두셔도 됩니다. 이 프로그램은 쓰지 않습니다.</li>
       <li><b>[프로젝트 만들기]</b>를 누르고 1분쯤 기다립니다.</li>
     </ol>
@@ -193,7 +201,7 @@ footer b{color:var(--g700)}
       <div class="step-time">3분</div>
     </div>
     <ol>
-      <li>왼쪽 메뉴에서 <b>빌드 → Firestore Database</b>를 고릅니다.</li>
+      <li>왼쪽 메뉴에서 <b>데이터베이스 및 스토리지 → Firestore</b>를 고릅니다.</li>
       <li><b>[데이터베이스 만들기]</b>를 누릅니다.</li>
       <li>위치는 <b>asia-northeast3 (서울)</b>을 고릅니다.
         <div class="note note-warn" style="margin:.5rem 0">
@@ -201,7 +209,7 @@ footer b{color:var(--g700)}
           그리고 이 값을 적어 두세요 — 개인정보 처리방침에 <b>저장 지역</b>으로 적어야 합니다.
         </div>
       </li>
-      <li>보안 규칙은 <b>프로덕션 모드</b>로 시작합니다. (6단계에서 제대로 된 규칙을 넣습니다)</li>
+      <li>보안 규칙은 <b>프로덕션 모드</b>로 시작합니다. (7단계에서 제대로 된 규칙을 넣습니다)</li>
     </ol>
   </div>
 
@@ -217,14 +225,14 @@ footer b{color:var(--g700)}
       개인정보를 받지 않으면서도 “누가 우리 학교 사람인지”를 가릴 수 있게 해 줍니다.
     </p>
     <ol>
-      <li>왼쪽 메뉴에서 <b>빌드 → Authentication</b>을 고릅니다.</li>
+      <li>왼쪽 메뉴에서 <b>보안 → Authentication</b>을 고릅니다.</li>
       <li><b>[시작하기]</b>를 누릅니다.</li>
       <li><b>로그인 방법</b> 탭에서 <b>익명</b>을 찾아 누릅니다.</li>
       <li><b>사용 설정</b>을 켜고 저장합니다.</li>
     </ol>
     <div class="note note-bad">
       <b>이 단계를 빠뜨리면</b> 학교를 만들 때 “네트워크 인증에 실패했습니다”가 뜹니다.
-      가장 흔한 실수이니 꼭 확인해 주세요.
+      가장 흔한 실수입니다. 설치 마법사가 켜졌는지 확인해 알려 드립니다.
     </div>
   </div>
 
@@ -232,40 +240,19 @@ footer b{color:var(--g700)}
   <div class="step" id="s5">
     <div class="step-head">
       <div class="step-num">5</div>
-      <div class="step-title">설정값 복사해 index.html에 넣기</div>
-      <div class="step-time">5분</div>
+      <div class="step-title">웹 앱 추가하고 설정값 복사하기</div>
+      <div class="step-time">3분</div>
     </div>
     <ol>
-      <li>왼쪽 위 <b>⚙️ → 프로젝트 설정</b>을 누릅니다.</li>
+      <li>왼쪽 위 <b>설정 → 일반</b>을 누릅니다.</li>
       <li>아래로 내려 <b>내 앱</b>에서 <b>&lt;/&gt;</b> (웹) 아이콘을 누릅니다.</li>
-      <li>앱 닉네임을 적고(예: <code>시간표</code>) <b>[앱 등록]</b>을 누릅니다.
+      <li>앱 이름을 적고(예: <code>시간표</code>) <b>[앱 등록]</b>을 누릅니다.
         호스팅 설정은 체크하지 않아도 됩니다.</li>
-      <li>화면에 나오는 <code>firebaseConfig</code> 값을 <b>전부 복사</b>합니다.</li>
-      <li><b>index.html</b>을 메모장으로 엽니다. (파일 우클릭 → 연결 프로그램 → 메모장)</li>
-      <li><code>Ctrl+F</code>로 <b>여기만 고치면 됩니다</b>를 찾습니다.</li>
-      <li>따옴표 안을 복사한 값으로 채우고 저장합니다.</li>
+      <li><code>const firebaseConfig = { … }</code>가 나옵니다. <b>중괄호 부분을 통째로 복사</b>합니다.</li>
     </ol>
-
-    <p>이렇게 생긴 부분입니다.</p>
-    <div class="copy-wrap">
-      <button class="copy-btn" onclick="copyPre(this)">복사</button>
-<pre><code>const firebaseConfig = {
-  apiKey:            "AIzaSyD-여기에-우리학교-값",
-  authDomain:        "unnam-timetable.firebaseapp.com",
-  projectId:         "unnam-timetable",
-  storageBucket:     "unnam-timetable.appspot.com",
-  messagingSenderId: "123456789012",
-  appId:             "1:123456789012:web:abcdef123456",
-};</code></pre>
-    </div>
-
-    <div class="note note-warn">
-      <b>따옴표와 쉼표를 지우지 마세요.</b> 따옴표 <b>안쪽</b> 글자만 바꾸면 됩니다.
-      하나라도 빠지면 화면이 하얗게 뜹니다.
-    </div>
     <div class="note note-info">
       <b>이 값이 공개되어도 괜찮나요?</b> 괜찮습니다. 웹 앱의 주소 같은 값이라 원래 공개됩니다.
-      실제 보안은 다음 단계의 <b>보안 규칙</b>이 담당합니다.
+      실제 보안은 7단계의 <b>보안 규칙</b>이 담당합니다.
     </div>
   </div>
 
@@ -273,20 +260,41 @@ footer b{color:var(--g700)}
   <div class="step" id="s6">
     <div class="step-head">
       <div class="step-num">6</div>
-      <div class="step-title">보안 규칙 붙여 넣기 — 가장 중요</div>
-      <div class="step-time">5분</div>
+      <div class="step-title">setup.html 열어 설정 붙여 넣기</div>
+      <div class="step-time">3분</div>
+    </div>
+    <ol>
+      <li>내려받은 <code>setup.html</code>을 <b>더블클릭</b>해 크롬 브라우저로 엽니다. (인터넷은 연결되어 있어야 합니다)</li>
+      <li><b>설치 마법사</b> 화면이 나옵니다. 3번 칸에 방금 복사한 설정을 붙여 넣습니다.</li>
+      <li><b>[🔍 설정 확인하기]</b>를 누릅니다. 연결되면 4~6단계가 이어서 나타납니다.</li>
+      <li>4단계에서 <b>Firestore</b>와 <b>익명 로그인</b>이 모두 <b>✅</b>인지 봅니다.
+        ⚠️가 보이면 그 기능을 켠 뒤 [설정 확인하기]를 한 번 더 누르세요.</li>
+    </ol>
+    <div class="note note-ok">
+      <b>파일을 편집기로 열어 고칠 필요가 없습니다.</b> 마법사가 값을 넣은 파일을 만들어 줍니다.
+    </div>
+  </div>
+
+  <!-- 7 -->
+  <div class="step" id="s7">
+    <div class="step-head">
+      <div class="step-num">7</div>
+      <div class="step-title">보안 규칙 붙여넣고 게시하기 — 가장 중요</div>
+      <div class="step-time">3분</div>
     </div>
     <div class="note note-bad">
       <b>이 단계를 건너뛰면 누구나 우리 학교 자료를 읽고 지울 수 있습니다.</b>
-      반드시 끝까지 하세요.
+      반드시 [게시]까지 마쳐 주세요.
     </div>
     <ol>
-      <li><b>Firestore Database → 규칙</b> 탭을 엽니다.</li>
-      <li>기존 내용을 <b>모두 지우고</b> 아래를 붙여 넣습니다.</li>
+      <li>마법사의 <b>[📋 보안 규칙 복사]</b>를 누릅니다.</li>
+      <li><b>[규칙 탭 열기]</b>로 이동해 <b>Firestore → 규칙</b> 칸의 내용을 지우고 통째로 붙여 넣습니다.</li>
       <li><b>[게시]</b>를 누릅니다.</li>
     </ol>
 
-    <div class="copy-wrap">
+    <details style="margin-top:.9rem">
+      <summary style="cursor:pointer;font-weight:700">복사 단추가 동작하지 않을 때 — 규칙 전문 보기</summary>
+      <div class="copy-wrap">
       <button class="copy-btn" onclick="copyPre(this)">복사</button>
 <pre><code>rules_version = '2';
 service cloud.firestore {
@@ -360,6 +368,7 @@ service cloud.firestore {
   }
 }</code></pre>
     </div>
+    </details>
 
     <h3>이 규칙이 막아 주는 것</h3>
     <table>
@@ -371,42 +380,60 @@ service cloud.firestore {
     </table>
   </div>
 
-  <!-- 7 -->
-  <div class="step" id="s7">
-    <div class="step-head">
-      <div class="step-num">7</div>
-      <div class="step-title">인터넷에 올리기</div>
-      <div class="step-time">10분</div>
-    </div>
-    <p>파일 하나뿐이라 어디에 올려도 됩니다. 쉬운 순서대로 적었습니다.</p>
-
-    <h3>가장 쉬운 방법 — Netlify Drop</h3>
-    <ol>
-      <li><a href="https://app.netlify.com/drop" target="_blank" rel="noopener noreferrer">app.netlify.com/drop</a> 에 접속합니다.</li>
-      <li><b>index.html이 든 폴더</b>를 화면에 끌어다 놓습니다.</li>
-      <li>몇 초 뒤 주소가 나옵니다. 이 주소를 선생님들께 안내하면 끝입니다.</li>
-    </ol>
-    <div class="note note-info">
-      계정 없이도 올라가지만, <b>가입해 두면</b> 나중에 파일을 고쳐 다시 올리거나 주소를 바꿀 수 있습니다.
-    </div>
-
-    <h3>다른 방법</h3>
-    <table>
-      <tr><th>방법</th><th>특징</th></tr>
-      <tr><td><b>학교 홈페이지</b></td><td>학교 도메인을 쓸 수 있어 가장 안정적입니다. 담당 업체나 정보부에 파일 업로드를 요청하세요.</td></tr>
-      <tr><td><b>GitHub Pages</b></td><td>무료·안정적이지만 가입과 저장소 만들기가 필요합니다.</td></tr>
-      <tr><td><b>Vercel</b></td><td>GitHub와 연결하면 파일을 고칠 때마다 자동으로 반영됩니다.</td></tr>
-    </table>
-    <div class="note note-warn">
-      <b>파일을 그냥 더블클릭해서 여는 방식</b>(<code>file://</code>)은 쓰지 마세요.
-      브라우저 보안 때문에 저장이 되지 않습니다. 반드시 인터넷에 올려서 <code>https://</code> 주소로 쓰셔야 합니다.
-    </div>
-  </div>
-
   <!-- 8 -->
   <div class="step" id="s8">
     <div class="step-head">
       <div class="step-num">8</div>
+      <div class="step-title">완성된 index.html 내려받기</div>
+      <div class="step-time">1분</div>
+    </div>
+    <p>마법사 6단계의 <b>[⬇ 설정이 끝난 index.html 내려받기]</b>를 누릅니다.
+       우리 학교 설정이 모두 들어간 <code>index.html</code> 한 개가 저장됩니다. 이 파일이 <b>우리 학교 프로그램</b>입니다.</p>
+    <div class="note note-info">
+      <code>setup.html</code>은 설치용이라 올리지 않으셔도 됩니다. 나중에 다시 설치할 일이 있을 수 있으니 컴퓨터에 보관해 두세요.
+    </div>
+  </div>
+
+  <!-- 9 -->
+  <div class="step" id="s9">
+    <div class="step-head">
+      <div class="step-num">9</div>
+      <div class="step-title">인터넷에 올리기</div>
+      <div class="step-time">10분</div>
+    </div>
+    <p>교원 자율연수비 정산 시스템과 같은 방법입니다. 파일 하나뿐이라 어디에 올려도 됩니다.</p>
+
+    <h3>깃허브(GitHub)에 파일 올리기</h3>
+    <ol>
+      <li><a href="https://github.com" target="_blank" rel="noopener noreferrer">github.com</a>에서 <b>[Create repository]</b>로 새 저장소를 만듭니다.
+        이름은 <code>timetable</code>처럼 영문으로 정하고, <b>Public</b>으로 둡니다.</li>
+      <li><b>[uploading an existing file]</b>을 눌러 8단계에서 받은 <b><code>index.html</code>을 끌어다 놓고</b> <b>[Commit changes]</b>를 누릅니다.</li>
+    </ol>
+
+    <h3>버셀(Vercel)로 주소 만들기</h3>
+    <ol>
+      <li><a href="https://vercel.com" target="_blank" rel="noopener noreferrer">vercel.com</a>에서 <b>[Add New → Project]</b>를 누릅니다.</li>
+      <li>깃허브를 연결하고, 방금 만든 저장소를 찾아 <b>[Import]</b> → <b>[Deploy]</b>를 누릅니다.</li>
+      <li><b>[Domains]</b> 아래에 나온 주소가 <b>우리 학교 시간표 주소</b>입니다.</li>
+    </ol>
+    <div class="note note-ok">
+      ✅ 여기까지 하시면 설치가 끝났습니다. 파이어베이스로 돌아가 따로 등록할 것은 없습니다.
+    </div>
+    <div class="note note-info">
+      저장소가 Public이어도 <b>자료가 공개되는 것이 아닙니다.</b> 공개되는 것은 프로그램 파일뿐이고,
+      시간표 자료는 우리 학교 Firebase에 들어 있으며 보안 규칙과 비밀번호로 막혀 있습니다.<br>
+      학교 홈페이지나 GitHub Pages·Netlify 같은 다른 곳에 올리셔도 됩니다.
+    </div>
+    <div class="note note-warn">
+      <b>완성된 index.html을 더블클릭해서 쓰는 방식</b>(<code>file://</code>)은 피해 주세요.
+      선생님들이 함께 쓰려면 인터넷에 올려 <code>https://</code> 주소로 들어가야 합니다.
+    </div>
+  </div>
+
+  <!-- 10 -->
+  <div class="step" id="s10">
+    <div class="step-head">
+      <div class="step-num">10</div>
       <div class="step-title">첫 사용 — 학교 만들고 선생님께 안내</div>
       <div class="step-time">10분</div>
     </div>
@@ -445,10 +472,10 @@ service cloud.firestore {
     </div>
   </div>
 
-  <!-- 9 -->
-  <div class="step" id="s9">
+  <!-- 11 -->
+  <div class="step" id="s11">
     <div class="step-head">
-      <div class="step-num">9</div>
+      <div class="step-num">11</div>
       <div class="step-title">개인정보 처리방침 채우기</div>
       <div class="step-time">5분</div>
     </div>
@@ -466,7 +493,8 @@ service cloud.firestore {
       <tr><td>시행일</td><td>설치한 날짜</td></tr>
     </table>
     <p>
-      메모장에서 <code>Ctrl+F</code>로 <code>[ 학교명 ]</code>처럼 대괄호를 찾으면 빠르게 고칠 수 있습니다.
+      8단계에서 받은 <code>index.html</code>을 메모장으로 열어 <code>Ctrl+F</code>로 <code>[ 학교명 ]</code>처럼
+      대괄호를 찾으면 빠르게 고칠 수 있습니다. 고친 파일은 깃허브에 다시 올리면 주소 그대로 반영됩니다.
     </p>
     <div class="note note-ok">
       <b>이 프로그램은 학생 정보를 전혀 입력받지 않습니다.</b>
@@ -474,29 +502,37 @@ service cloud.firestore {
     </div>
   </div>
 
-  <!-- 10 -->
-  <div class="step" id="s10">
+  <!-- 12 -->
+  <div class="step" id="s12">
     <div class="step-head">
-      <div class="step-num">10</div>
+      <div class="step-num">12</div>
       <div class="step-title">문제가 생겼을 때</div>
     </div>
     <table>
       <tr><th>증상</th><th>확인할 것</th></tr>
       <tr>
-        <td>설치 안내 화면이 계속 뜬다</td>
-        <td>5단계의 <code>apiKey</code>·<code>projectId</code>가 비어 있습니다. 저장했는지, 올린 파일이 고친 파일이 맞는지 확인하세요.</td>
+        <td>올린 주소에 설치 마법사가 뜬다</td>
+        <td><code>setup.html</code>을 올리셨거나, 8단계에서 받은 파일이 아닌 것을 올리셨습니다. 마법사에서 <b>내려받은 index.html</b>을 올려 주세요.</td>
       </tr>
       <tr>
-        <td>화면이 하얗게만 나온다</td>
-        <td>5단계에서 따옴표나 쉼표가 빠졌을 가능성이 큽니다. 붙여 넣은 부분을 다시 보세요.</td>
+        <td>설치 마법사에서 “연결하지 못했습니다”</td>
+        <td>설정값을 중괄호 <code>{ }</code>까지 통째로 붙여 넣으셨는지 확인하세요.</td>
       </tr>
       <tr>
-        <td>“네트워크 인증에 실패했습니다”</td>
+        <td>마법사에서 Firestore가 ⚠️</td>
+        <td>3단계 <b>데이터베이스 만들기</b>를 먼저 해 주세요.</td>
+      </tr>
+      <tr>
+        <td>마법사에서 익명 로그인이 ⚠️ · “네트워크 인증에 실패했습니다”</td>
         <td>4단계 <b>익명 로그인</b>이 꺼져 있습니다.</td>
       </tr>
       <tr>
+        <td>화면이 하얗게만 나온다</td>
+        <td>인터넷 연결을 확인하세요. 학교 방화벽이 <code>gstatic.com</code>, <code>cdnjs.cloudflare.com</code>을 막고 있으면 열리지 않을 수 있습니다.</td>
+      </tr>
+      <tr>
         <td>학교는 만들어지는데 내용이 저장되지 않는다</td>
-        <td>6단계 보안 규칙을 <b>[게시]</b>까지 눌렀는지 확인하세요.</td>
+        <td>7단계 보안 규칙을 <b>[게시]</b>까지 눌렀는지 확인하세요.</td>
       </tr>
       <tr>
         <td>“학교 이름 또는 비밀번호가 맞지 않습니다”</td>
